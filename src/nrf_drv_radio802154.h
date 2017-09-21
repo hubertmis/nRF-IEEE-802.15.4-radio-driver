@@ -414,6 +414,13 @@ bool nrf_drv_radio802154_continuous_carrier(void);
 extern void nrf_drv_radio802154_rx_started(void);
 
 /**
+ * @brief Notify that transmitting ACK frame has started.
+ *
+ * @note This function should be very short to prevent dropping frames by the driver.
+ */
+extern void nrf_drv_radio802154_tx_ack_started(void);
+
+/**
  * @brief Notify that frame was received.
  *
  * @note Buffer pointed by the p_data pointer is not modified by the radio driver (and can't
@@ -480,6 +487,15 @@ extern void nrf_drv_radio802154_receive_failed(nrf_drv_radio802154_rx_error_t er
  * @note This function should be very short to prevent dropping frames by the driver.
  */
 extern void nrf_drv_radio802154_tx_started(void);
+
+/**
+ * @brief Notify that receiving ACK frame has started.
+ *
+ * @note It is possible that the frame being received is not expected ACK and
+ *       @sa nrf_drv_radio802154_transmitted won't be called.
+ * @note This function should be very short to prevent dropping frames by the driver.
+ */
+extern void nrf_drv_radio802154_rx_ack_started(void);
 
 /**
  * @brief Notify that frame was transmitted.

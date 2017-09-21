@@ -407,6 +407,11 @@ __WEAK void nrf_drv_radio802154_rx_started(void)
     // Intentionally empty
 }
 
+__WEAK void nrf_drv_radio802154_tx_ack_started(void)
+{
+    // Intentionally empty
+}
+
 __WEAK void nrf_drv_radio802154_received(uint8_t * p_data, uint8_t length, int8_t power, int8_t lqi)
 {
     (void) length;
@@ -430,6 +435,11 @@ __WEAK void nrf_drv_radio802154_receive_failed(nrf_drv_radio802154_rx_error_t er
 }
 
 __WEAK void nrf_drv_radio802154_tx_started(void)
+{
+    // Intentionally empty
+}
+
+__WEAK void nrf_drv_radio802154_rx_ack_started(void)
 {
     // Intentionally empty
 }

@@ -749,6 +749,8 @@ static inline void irq_framestart_state_rx_ack(void)
     else
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_RSSISTART);
+
+        nrf_drv_radio802154_rx_ack_started();
     }
 }
 
@@ -756,6 +758,12 @@ static inline void irq_framestart_state_rx_ack(void)
 static inline void irq_framestart_state_tx_frame(void)
 {
     nrf_drv_radio802154_tx_started();
+}
+
+/// This event is handled when the radio starts transmitting an ACK frame.
+static inline void irq_framestart_state_tx_ack(void)
+{
+    nrf_drv_radio802154_tx_ack_started();
 }
 
 /// This event is handled when MHR is received
@@ -1410,11 +1418,14 @@ static inline void irq_handler(void)
                 break;
 
             case RADIO_STATE_TX_FRAME:
+            case RADIO_STATE_CCA_BEFORE_TX: // This could happen at the beginning of transmission procedure.
                 irq_framestart_state_tx_frame();
                 break;
 
             case RADIO_STATE_TX_ACK:
-            case RADIO_STATE_CCA_BEFORE_TX: // This could happen at the beginning of transmission procedure.
+                irq_framestart_state_tx_ack();
+                break;
+
             case RADIO_STATE_WAITING_TIMESLOT:
                 break;
 
