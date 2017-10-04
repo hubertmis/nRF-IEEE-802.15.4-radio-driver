@@ -46,7 +46,7 @@
 #include "nrf.h"
 #include "nrf_raal_config.h"
 
-#include <cmsis/cmsis_gcc.h>
+#include <cmsis/core_cm4.h>
 
 static bool    m_continuous_requested;
 static bool    m_continuous_granted;
