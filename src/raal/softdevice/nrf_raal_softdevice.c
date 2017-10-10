@@ -62,15 +62,15 @@
 #define TIMER_TO_SIGNAL_JITTER_US NRF_RADIO_START_JITTER_US + 6
 
 /**@brief Timer compare channel definitions. */
-#define TIMER_CC_EXTEND           0
+#define TIMER_CC_EXTEND           NRF_TIMER_CC_CHANNEL0
 #define TIMER_CC_EXTEND_EVENT     NRF_TIMER_EVENT_COMPARE0
 #define TIMER_CC_EXTEND_INT       NRF_TIMER_INT_COMPARE0_MASK
 
-#define TIMER_CC_MARGIN           1
+#define TIMER_CC_MARGIN           NRF_TIMER_CC_CHANNEL1
 #define TIMER_CC_MARGIN_EVENT     NRF_TIMER_EVENT_COMPARE1
 #define TIMER_CC_MARGIN_INT       NRF_TIMER_INT_COMPARE1_MASK
 
-#define TIMER_CC_CAPTURE          2
+#define TIMER_CC_CAPTURE          NRF_TIMER_CC_CHANNEL2
 
 /**@brief Defines number of microseconds in one second. */
 #define US_PER_S                  1000000
