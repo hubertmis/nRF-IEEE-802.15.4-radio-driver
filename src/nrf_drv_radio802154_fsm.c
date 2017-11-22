@@ -240,7 +240,7 @@ static inline void received_frame_notify(void)
  */
 static inline void rx_buffer_in_use_set(rx_buffer_t * p_rx_buffer)
 {
-#if RADIO_RX_BUFFERS > 1
+#if NRF_DRV_RADIO802154_RX_BUFFERS > 1
     mp_current_rx_buffer = p_rx_buffer;
 #else
     (void) p_rx_buffer;
