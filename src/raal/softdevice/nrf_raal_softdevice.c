@@ -47,7 +47,19 @@
 #include <nrf_drv_radio802154_debug.h>
 #include <hal/nrf_timer.h>
 #include <nrf_drv_clock.h>
-#include <softdevice.h>
+
+#if defined(__GNUC__)
+    _Pragma("GCC diagnostic push")
+    _Pragma("GCC diagnostic ignored \"-Wreturn-type\"")
+    _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"")
+    _Pragma("GCC diagnostic ignored \"-Wpedantic\"")
+#endif
+
+#include <nrf_soc.h>
+
+#if defined(__GNUC__)
+    _Pragma("GCC diagnostic pop")
+#endif
 
 /**@brief Enable Request and End on timeslot safety interrupt. */
 #define ENABLE_REQUEST_AND_END_ON_TIMESLOT_END 0
