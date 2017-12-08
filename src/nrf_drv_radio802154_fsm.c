@@ -1824,11 +1824,18 @@ bool nrf_drv_radio802154_fsm_receive(void)
             break;
 
         case RADIO_STATE_SLEEP:
-            assert(mutex_lock());
-            state_set(RADIO_STATE_WAITING_TIMESLOT);
-            nrf_raal_continuous_mode_enter();
+            if (mutex_lock())
+            {
+                state_set(RADIO_STATE_WAITING_TIMESLOT);
+                nrf_raal_continuous_mode_enter();
 
-            result = true;
+                result = true;
+            }
+            else
+            {
+                assert(false);
+            }
+
             break;
 
         case RADIO_STATE_CCA_BEFORE_TX:
@@ -2105,17 +2112,22 @@ void nrf_drv_radio802154_fsm_channel_update(void)
     switch (m_state)
     {
         case RADIO_STATE_WAITING_RX_FRAME:
-            assert(mutex_lock());
+            if (mutex_lock())
+            {
+                channel_set(nrf_drv_radio802154_pib_channel_get());
+                auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
 
-            channel_set(nrf_drv_radio802154_pib_channel_get());
-            auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
-
-            // Clear events that could have happened in critical section due to receiving
-            // frame or RX ramp up.
-            nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+                // Clear events that could have happened in critical section due to receiving
+                // frame or RX ramp up.
+                nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+            }
+            else
+            {
+                assert(false);
+            }
 
             break;
 

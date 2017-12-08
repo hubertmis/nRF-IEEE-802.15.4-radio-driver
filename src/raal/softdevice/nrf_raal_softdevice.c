@@ -603,7 +603,8 @@ void nrf_raal_init(void)
     m_config.timeslot_max_length  = NRF_RAAL_TIMESLOT_DEFAULT_MAX_LENGTH;
     m_config.timeslot_timeout     = NRF_RAAL_TIMESLOT_DEFAULT_TIMEOUT;
 
-    assert(sd_radio_session_open(signal_handler) == NRF_SUCCESS);
+    uint32_t err_code = sd_radio_session_open(signal_handler);
+    assert(err_code == NRF_SUCCESS);
 
     m_initialize = true;
 }
@@ -611,7 +612,9 @@ void nrf_raal_init(void)
 void nrf_raal_uninit(void)
 {
     assert(m_initialize);
-    assert(sd_radio_session_close() == NRF_SUCCESS);
+
+    uint32_t err_code = sd_radio_session_close();
+    assert(err_code == NRF_SUCCESS);
 
     m_continuous  = false;
     m_in_timeslot = false;
