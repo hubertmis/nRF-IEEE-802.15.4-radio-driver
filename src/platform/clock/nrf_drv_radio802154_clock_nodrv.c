@@ -44,6 +44,8 @@
 
 void nrf_drv_radio802154_clock_init(void)
 {
+    nrf_clock_lf_src_set(NRF_DRV_RADIO802154_CLOCK_LFCLK_SOURCE);
+
     NVIC_SetPriority(POWER_CLOCK_IRQn, NRF_DRV_RADIO802154_CLOCK_IRQ_PRIORITY);
     NVIC_ClearPendingIRQ(POWER_CLOCK_IRQn);
     NVIC_EnableIRQ(POWER_CLOCK_IRQn);

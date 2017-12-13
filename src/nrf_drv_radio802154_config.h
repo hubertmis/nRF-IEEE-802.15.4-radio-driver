@@ -189,6 +189,72 @@ extern "C" {
 #endif
 
 /**
+ * @def NRF_DRV_RADIO802154_CLOCK_IRQ_PRIORITY
+ *
+ * Low frequency clock source used in standalone clock driver implementation.
+ *
+ * @note This configuration is only applicable for Clock Abstraction Layer implementation
+ *       in nrf_drv_radio802154_clock_nodrv.c.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_CLOCK_LFCLK_SOURCE
+#define NRF_DRV_RADIO802154_CLOCK_LFCLK_SOURCE NRF_CLOCK_LFCLK_Xtal
+#endif
+
+/**
+ * @def NRF_DRV_RADIO802154_RTC_IRQ_PRIORITY
+ *
+ * Priority of RTC interrupt used in standalone timer driver implementation.
+ *
+ * @note This configuration is only applicable for Timer Abstraction Layer implementation
+ *       in nrf_drv_radio802154_timer_nodrv.c.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_RTC_IRQ_PRIORITY
+#define NRF_DRV_RADIO802154_RTC_IRQ_PRIORITY  10
+#endif
+
+/**
+ * @def NRF_DRV_RADIO802154_RTC_INSTANCE
+ *
+ * RTC instance used in standalone timer driver implementation.
+ *
+ * @note This configuration is only applicable for Timer Abstraction Layer implementation
+ *       in nrf_drv_radio802154_timer_nodrv.c.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_RTC_INSTANCE
+#define NRF_DRV_RADIO802154_RTC_INSTANCE  NRF_RTC2
+#endif
+
+/**
+ * @def NRF_DRV_RADIO802154_RTC_IRQ_HANDLER
+ *
+ * RTC interrupt handler name used in standalone timer driver implementation.
+ *
+ * @note This configuration is only applicable for Timer Abstraction Layer implementation
+ *       in nrf_drv_radio802154_timer_nodrv.c.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_RTC_IRQ_HANDLER
+#define NRF_DRV_RADIO802154_RTC_IRQ_HANDLER  RTC2_IRQHandler
+#endif
+
+
+/**
+ * @def NRF_DRV_RADIO802154_RTC_IRQN
+ *
+ * RTC Interrupt number used in standalone timer driver implementation.
+ *
+ * @note This configuration is only applicable for Timer Abstraction Layer implementation
+ *       in nrf_drv_radio802154_timer_nodrv.c.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_RTC_IRQN
+#define NRF_DRV_RADIO802154_RTC_IRQN  RTC2_IRQn
+#endif
+
+/**
  *@}
  **/
 
