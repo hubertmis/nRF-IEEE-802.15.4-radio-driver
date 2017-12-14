@@ -50,28 +50,42 @@
 #include "nrf_drv_radio802154_pib.h"
 #include "nrf_drv_radio802154_priority_drop.h"
 #include "nrf_drv_radio802154_procedures_duration.h"
+#include "nrf_drv_radio802154_revision.h"
 #include "nrf_drv_radio802154_rx_buffer.h"
 #include "fem/nrf_fem_control_api.h"
 #include "hal/nrf_radio.h"
 #include "raal/nrf_raal_api.h"
+
+
+/// Workaround for missing PHYEND event in older chip revision.
+static inline uint32_t short_phyend_disable_mask_get(void)
+{
+    if (nrf_drv_radio802154_revision_has_phyend_event())
+    {
+        return NRF_RADIO_SHORT_PHYEND_DISABLE_MASK;
+    }
+
+    return NRF_RADIO_SHORT_END_DISABLE_MASK;
+}
 
 /// Value set to SHORTS register when no shorts should be enabled.
 #define SHORTS_IDLE         0
 /// Value set to SHORTS register when receiver is waiting for incoming frame.
 #define SHORTS_RX_INITIAL   (NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_DISABLED_TXEN_MASK | \
                              NRF_RADIO_SHORT_FRAMESTART_BCSTART_MASK)
+
 /// Value set to SHORTS register when receiver started receiving a frame.
-#define SHORTS_RX_FOLLOWING (NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_READY_START_MASK | \
+#define SHORTS_RX_FOLLOWING (short_phyend_disable_mask_get() | NRF_RADIO_SHORT_READY_START_MASK | \
                              NRF_RADIO_SHORT_FRAMESTART_BCSTART_MASK)
 /// Value set to SHORTS register when received frame should be acknowledged.
-#define SHORTS_TX_ACK       (NRF_RADIO_SHORT_END_DISABLE_MASK)
+#define SHORTS_TX_ACK       (short_phyend_disable_mask_get())
 #if NRF_DRV_RADIO802154_SHORT_CCAIDLE_TXEN
 /// Value set to SHORTS register during transmission of a frame
-#define SHORTS_TX_FRAME     (NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_READY_START_MASK | \
+#define SHORTS_TX_FRAME     (short_phyend_disable_mask_get() | NRF_RADIO_SHORT_READY_START_MASK | \
                              NRF_RADIO_SHORT_CCAIDLE_TXEN_MASK)
 #else
 /// Value set to SHORTS register during transmission of a frame
-#define SHORTS_TX_FRAME     (NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_READY_START_MASK)
+#define SHORTS_TX_FRAME     (short_phyend_disable_mask_get() | NRF_RADIO_SHORT_READY_START_MASK)
 #endif
 
 /// Delay before sending ACK (12sym = 192uS)
@@ -325,11 +339,10 @@ static inline void shorts_rx_following_set(void)
 /// Disable peripheral shorts used during automatic ACK transmission when ACK is being transmitted
 static inline void shorts_tx_ack_set(void)
 {
-    // If ACK is sent END_DISABLE short should persist to disable transmitter automatically.
+    // If ACK is sent PHYEND_DISABLE short should persist to disable transmitter automatically.
     nrf_radio_shorts_set(SHORTS_TX_ACK);
     nrf_radio_ifs_set(0);
 }
-
 
 /***************************************************************************************************
  * @section ACK transmission management
@@ -475,6 +488,12 @@ static void nrf_radio_init(void)
     nrf_radio_int_enable(NRF_RADIO_INT_READY_MASK);
     nrf_radio_int_enable(NRF_RADIO_INT_BCMATCH_MASK);
     nrf_radio_int_enable(NRF_RADIO_INT_EDEND_MASK);
+
+    /// Workaround for missing PHYEND event in older chip revision.
+    if (nrf_drv_radio802154_revision_has_phyend_event())
+    {
+        nrf_radio_int_enable(NRF_RADIO_INT_PHYEND_MASK);
+    }
 }
 
 /// Reset radio peripheral
@@ -682,6 +701,7 @@ static inline void irq_framestart_state_waiting_rx_frame(void)
             auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
             nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
             nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
             nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
         }
@@ -712,6 +732,7 @@ static inline void irq_framestart_state_waiting_rx_frame(void)
             auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
             nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
             nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
             nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
             break;
@@ -733,6 +754,7 @@ static inline void irq_framestart_state_rx_ack(void)
 
         frame_rx_start_after_ack_rx();
         nrf_radio_event_clear(NRF_RADIO_EVENT_END); // In case frame ended before task DISABLE
+        nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
     }
     else
     {
@@ -791,6 +813,7 @@ static inline void irq_bcmatch_mhr(void)
                     default:
                         auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
                         nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                        nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                         nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
                         nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
                 }
@@ -810,6 +833,7 @@ static inline void irq_bcmatch_mhr(void)
                 {
                     auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
                     // Do not count received ACK as an error.
                     if (frame_type != FRAME_TYPE_ACK)
@@ -849,6 +873,7 @@ static inline void irq_bcmatch_address(void)
         {
             auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
             nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
             nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_DEST_ADDR);
         }
@@ -892,6 +917,7 @@ static inline void irq_bcmatch_state_rx_header(void)
             // Something had stopped the CPU too long. Start receiving again.
             auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
             nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
             nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
             break;
@@ -915,6 +941,7 @@ static inline void irq_end_state_waiting_rx_frame(void)
             assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
             auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
         }
     }
     else
@@ -929,6 +956,7 @@ static inline void irq_end_state_rx_header(void)
     // Frame ended before header was received.
     auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
     nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
 }
 
@@ -952,6 +980,7 @@ static inline void irq_end_state_rx_frame(void)
                 {
                     auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                     received_frame_notify();
                 }
                 else
@@ -964,6 +993,7 @@ static inline void irq_end_state_rx_frame(void)
             {
                 auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
                 nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                 nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FCS);
             }
 
@@ -973,6 +1003,7 @@ static inline void irq_end_state_rx_frame(void)
             // CPU was hold too long.
             auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
             nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
             break;
 
@@ -982,16 +1013,17 @@ static inline void irq_end_state_rx_frame(void)
 }
 
 /// This event is generated when the radio ends transmission of ACK frame.
-static inline void irq_end_state_tx_ack(void)
+static inline void irq_phyend_state_tx_ack(void)
 {
     assert(nrf_radio_shorts_get() == SHORTS_TX_ACK ||
-           nrf_radio_shorts_get() == SHORTS_RX_FOLLOWING); // In case END is handled before READY
+           nrf_radio_shorts_get() == SHORTS_RX_FOLLOWING); // In case PHYEND is handled before READY
     shorts_disable();
 
     received_frame_notify();
 
-    // Clear event READY in case CPU was halted and event END is handled before READY.
+    // Clear event READY in case CPU was halted and event PHYEND is handled before READY.
     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_END);
 
     state_set(RADIO_STATE_WAITING_RX_FRAME);
     // Receiver is enabled by shorts.
@@ -1006,13 +1038,14 @@ static inline void irq_end_state_cca_before_tx(void)
 }
 
 /// This event is generated when the radio ends transmission of a frame.
-static inline void irq_end_state_tx_frame(void)
+static inline void irq_phyend_state_tx_frame(void)
 {
     shorts_disable();
     assert(nrf_radio_shorts_get() == SHORTS_IDLE);
 
-    // Clear event READY in case CPU was halted and event END is handled before READY.
+    // Clear event READY in case CPU was halted and event PHYEND is handled before READY.
     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_END);
 
     if (!ack_is_requested(mp_tx_data))
     {
@@ -1097,6 +1130,7 @@ static inline void irq_disabled_state_rx_frame(void)
 
     auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
     nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
 }
 
@@ -1448,6 +1482,40 @@ static inline void irq_handler(void)
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_BCMATCH);
     }
 
+    if (nrf_drv_radio802154_revision_has_phyend_event() && nrf_radio_event_get(NRF_RADIO_EVENT_PHYEND))
+    {
+        nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_EVENT_PHYEND);
+        nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+
+        switch (m_state)
+        {
+            case RADIO_STATE_WAITING_RX_FRAME:
+            case RADIO_STATE_RX_HEADER:
+            case RADIO_STATE_RX_FRAME:
+                break;
+
+            case RADIO_STATE_TX_ACK:
+                 irq_phyend_state_tx_ack();
+                 break;
+
+            case RADIO_STATE_CCA_BEFORE_TX:
+                break;
+
+            case RADIO_STATE_TX_FRAME:
+                irq_phyend_state_tx_frame();
+                break;
+
+            case RADIO_STATE_RX_ACK:
+            case RADIO_STATE_WAITING_TIMESLOT:
+                break;
+
+            default:
+                assert(false);
+        }
+
+        nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_PHYEND);
+    }
+
     if (nrf_radio_event_get(NRF_RADIO_EVENT_END))
     {
         nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_EVENT_END);
@@ -1468,7 +1536,11 @@ static inline void irq_handler(void)
                 break;
 
             case RADIO_STATE_TX_ACK:
-                irq_end_state_tx_ack();
+                if (!nrf_drv_radio802154_revision_has_phyend_event())
+                {
+                    irq_phyend_state_tx_ack();
+                }
+
                 break;
 
             case RADIO_STATE_CCA_BEFORE_TX: // This could happen at the beginning of transmission
@@ -1477,7 +1549,11 @@ static inline void irq_handler(void)
                 break;
 
             case RADIO_STATE_TX_FRAME:
-                irq_end_state_tx_frame();
+                if (!nrf_drv_radio802154_revision_has_phyend_event())
+                {
+                    irq_phyend_state_tx_frame();
+                }
+
                 break;
 
             case RADIO_STATE_RX_ACK: // Ended receiving of ACK.
@@ -1723,6 +1799,7 @@ static inline void tx_procedure_abort(radio_state_t state)
     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
     nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
     nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
 }
 
 
@@ -1778,6 +1855,7 @@ bool nrf_drv_radio802154_fsm_sleep(void)
                 nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
                 nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
                 nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                 nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
 
                 result = true;
@@ -1890,6 +1968,7 @@ bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca)
             nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
             nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
             nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
 
             // Check 2nd time in case this procedure was interrupted.
@@ -1951,6 +2030,7 @@ bool nrf_drv_radio802154_fsm_energy_detection(uint32_t time_us)
                     nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
                 }
                 else
@@ -2007,6 +2087,7 @@ bool nrf_drv_radio802154_fsm_cca(void)
                     nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
                 }
                 else
@@ -2048,6 +2129,7 @@ bool nrf_drv_radio802154_fsm_continuous_carrier(void)
         nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
         nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
         nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+        nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
         nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
 
         result = true;
@@ -2122,6 +2204,7 @@ void nrf_drv_radio802154_fsm_channel_update(void)
                 nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
                 nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
                 nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                 nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
             }
             else

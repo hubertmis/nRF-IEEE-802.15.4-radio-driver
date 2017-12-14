@@ -51,6 +51,7 @@
 #include "nrf_drv_radio802154_pib.h"
 #include "nrf_drv_radio802154_priority_drop.h"
 #include "nrf_drv_radio802154_request.h"
+#include "nrf_drv_radio802154_revision.h"
 #include "nrf_drv_radio802154_rx_buffer.h"
 #include "hal/nrf_radio.h"
 #include "platform/timer/nrf_drv_radio802154_timer.h"
@@ -123,6 +124,7 @@ void nrf_drv_radio802154_init(void)
     nrf_drv_radio802154_pib_init();
     nrf_drv_radio802154_priority_drop_init();
     nrf_drv_radio802154_request_init();
+    nrf_drv_radio802154_revision_init();
     nrf_drv_radio802154_rx_buffer_init();
     nrf_drv_radio802154_timer_init();
     nrf_raal_init();
