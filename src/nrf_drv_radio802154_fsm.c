@@ -1958,6 +1958,7 @@ bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca)
     if (mutex_lock())
     {
         if (nrf_raal_timeslot_request(nrf_drv_radio802154_tx_duration_get(p_data[0],
+                                                                          cca,
                                                                           ack_is_requested(p_data))))
         {
             assert(m_state == RADIO_STATE_WAITING_RX_FRAME);
@@ -1976,7 +1977,7 @@ bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca)
 
             // Check 2nd time in case this procedure was interrupted.
             if (nrf_raal_timeslot_request(
-                    nrf_drv_radio802154_tx_duration_get(p_data[0], ack_is_requested(p_data))))
+                    nrf_drv_radio802154_tx_duration_get(p_data[0], cca, ack_is_requested(p_data))))
             {
                 result = true;
             }
