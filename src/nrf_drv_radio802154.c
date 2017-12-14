@@ -53,6 +53,7 @@
 #include "nrf_drv_radio802154_request.h"
 #include "nrf_drv_radio802154_rx_buffer.h"
 #include "hal/nrf_radio.h"
+#include "platform/timer/nrf_drv_radio802154_timer.h"
 #include "raal/nrf_raal_api.h"
 
 #include <cmsis/core_cmFunc.h>
@@ -123,11 +124,13 @@ void nrf_drv_radio802154_init(void)
     nrf_drv_radio802154_priority_drop_init();
     nrf_drv_radio802154_request_init();
     nrf_drv_radio802154_rx_buffer_init();
+    nrf_drv_radio802154_timer_init();
     nrf_raal_init();
 }
 
 void nrf_drv_radio802154_deinit(void)
 {
+    nrf_drv_radio802154_timer_deinit();
     nrf_drv_radio802154_fsm_deinit();
 }
 
