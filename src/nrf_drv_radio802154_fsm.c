@@ -313,6 +313,7 @@ static inline void shorts_disable(void)
 {
     nrf_radio_shorts_set(SHORTS_IDLE);
     nrf_radio_ifs_set(0);
+    nrf_radio_ramp_up_mode_set(NRF_RADIO_RAMP_UP_MODE_FAST);
 }
 
 /// Enable peripheral shorts used during data frame transmission.
@@ -325,6 +326,7 @@ static inline void shorts_tx_frame_set(void)
 static inline void shorts_rx_initial_set(void)
 {
     nrf_radio_ifs_set(TIFS_ACK_US);
+    nrf_radio_ramp_up_mode_set(NRF_RADIO_RAMP_UP_MODE_DEFAULT);
     nrf_radio_bcc_set(BCC_INIT);
 
     nrf_radio_shorts_set(SHORTS_RX_INITIAL);
@@ -342,6 +344,7 @@ static inline void shorts_tx_ack_set(void)
     // If ACK is sent PHYEND_DISABLE short should persist to disable transmitter automatically.
     nrf_radio_shorts_set(SHORTS_TX_ACK);
     nrf_radio_ifs_set(0);
+    nrf_radio_ramp_up_mode_set(NRF_RADIO_RAMP_UP_MODE_FAST);
 }
 
 /***************************************************************************************************
@@ -466,7 +469,7 @@ static void nrf_radio_init(void)
     nrf_radio_config_preamble_length_set(NRF_RADIO_PREAMBLE_LENGTH_32BIT_ZERO);
     nrf_radio_config_crc_included_set(true);
     nrf_radio_config_max_length_set(MAX_PACKET_SIZE);
-    nrf_radio_ramp_up_mode_set(NRF_RADIO_RAMP_UP_MODE_DEFAULT);
+    nrf_radio_ramp_up_mode_set(NRF_RADIO_RAMP_UP_MODE_FAST);
 
     // Configure CRC
     nrf_radio_crc_length_set(CRC_LENGTH);
