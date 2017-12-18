@@ -285,7 +285,7 @@ static void tx_enable(void)
 {
     nrf_fem_control_time_latch();
     nrf_radio_task_trigger(NRF_RADIO_TASK_TXEN);
-    nrf_fem_control_pa_set(false);
+    nrf_fem_control_pa_set(false, false);
 }
 
 /***************************************************************************************************
@@ -1161,7 +1161,7 @@ static inline void irq_disabled_state_tx_ack(void)
     {
         // nrf_fem_control_time_latch was called at the beginning of the irq handler,
         // to capture the time as close to short occurence as possible
-        nrf_fem_control_pa_set(true);
+        nrf_fem_control_pa_set(true, false);
     }
 }
 
@@ -1696,7 +1696,7 @@ static inline void irq_handler(void)
 #else
                 // nrf_fem_control_time_latch was called at the beginning of the irq handler,
                 // to capture the time as close to short occurence as possible
-                nrf_fem_control_pa_set(true);
+                nrf_fem_control_pa_set(true, true);
 #endif
                 break;
 
