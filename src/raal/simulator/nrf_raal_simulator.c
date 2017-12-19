@@ -42,11 +42,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "nrf_drv_radio802154_debug.h"
 #include "nrf.h"
-#include "nrf_raal_config.h"
-
-#include <cmsis/core_cm4.h>
+#include "nrf_drv_radio802154_debug.h"
+#include "platform/clock/nrf_drv_radio802154_clock.h"
 
 static bool    m_continuous_requested;
 static bool    m_continuous_granted;
@@ -116,27 +114,12 @@ void nrf_raal_uninit(void)
 
 void nrf_raal_continuous_mode_enter(void)
 {
-    uint32_t timer;
-
     assert(!m_continuous_requested);
-
-    NRF_RAAL_HFCLK_START();
 
     m_continuous_requested = true;
     m_pending_event = PENDING_EVENT_NONE;
 
-    NRF_TIMER0->TASKS_CAPTURE[3] = 1;
-    timer = NRF_TIMER0->CC[3];
-
-    if (timer > m_ble_duty * 1000UL &&
-        timer < (m_time_interval * 1000UL) - m_pre_preemption_notification)
-    {
-        nrf_raal_critical_section_enter(); // To make sure granting is not interrupted by revoking.
-
-        continuous_grant();
-
-        nrf_raal_critical_section_exit();
-    }
+    nrf_drv_radio802154_clock_hfclk_start();
 }
 
 void nrf_raal_continuous_mode_exit(void)
@@ -146,7 +129,7 @@ void nrf_raal_continuous_mode_exit(void)
     m_continuous_requested = false;
     m_continuous_granted   = false;
 
-    NRF_RAAL_HFCLK_STOP();
+    nrf_drv_radio802154_clock_hfclk_stop();
 
     nrf_drv_radio802154_pin_clr(PIN_DBG_TIMESLOT_ACTIVE);
 }
@@ -230,6 +213,23 @@ uint32_t nrf_raal_timeslot_us_left_get(void)
     return timer >= timeslot_start && timer < timeslot_end ? timeslot_end - timer : 0;
 }
 
+void nrf_drv_radio802154_clock_hfclk_ready(void)
+{
+    uint32_t timer;
+
+    NRF_TIMER0->TASKS_CAPTURE[3] = 1;
+    timer = NRF_TIMER0->CC[3];
+
+    if (timer > m_ble_duty * 1000UL &&
+        timer < (m_time_interval * 1000UL) - m_pre_preemption_notification)
+    {
+        nrf_raal_critical_section_enter(); // To make sure granting is not interrupted by revoking.
+
+        continuous_grant();
+
+        nrf_raal_critical_section_exit();
+    }
+}
 
 void TIMER0_IRQHandler(void)
 {
@@ -288,6 +288,7 @@ void TIMER0_IRQHandler(void)
         NRF_TIMER0->TASKS_START = 1;
     }
 }
+
 void MWU_IRQHandler(void)
 {
     while (1);
