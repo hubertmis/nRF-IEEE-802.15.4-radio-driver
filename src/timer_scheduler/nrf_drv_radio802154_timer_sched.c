@@ -63,7 +63,6 @@ bool nrf_drv_radio802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0
 
 void nrf_drv_radio802154_timer_sched_add(nrf_drv_radio802154_timer_t * p_timer, bool round_up)
 {
-    assert(!nrf_drv_radio802154_timer_is_running()); // Currently only one timer can be running at a time
     assert(p_timer != NULL);
     assert(p_timer->callback != NULL);
 
