@@ -27,11 +27,14 @@
             "src/nrf_drv_radio802154_critical_section.c",
             "src/nrf_drv_radio802154_debug.c",
             "src/nrf_drv_radio802154_fsm.c",
+            "src/nrf_drv_radio802154_fsm_hooks.c",
             "src/nrf_drv_radio802154_pib.c",
             "src/nrf_drv_radio802154_revision.c",
             "src/nrf_drv_radio802154_rx_buffer.c",
+            "src/mac_features/nrf_drv_radio802154_csma_ca.c",
             "src/platform/clock/nrf_drv_radio802154_clock_sdk.c",
-            "src/platform/timer/nrf_drv_radio802154_timer_none.c"
+            "src/platform/timer/nrf_drv_radio802154_timer_nodrv.c",
+            "src/timer_scheduler/nrf_drv_radio802154_timer_sched.c"
         ],
         "_variants": [
             {

@@ -72,5 +72,9 @@
 #define FCS_SIZE              2    ///< Size of FCS field
 #define MAX_PACKET_SIZE       127  ///< Maximal size of radio packet
 
+#define TURNAROUND_TIME       192UL                         ///< aTurnaroundTime [us]
+#define CCA_TIME              128UL                         ///< aCcaTime [us]
+#define UNIT_BACKOFF_PERIOD   (TURNAROUND_TIME + CCA_TIME)  ///< aUnitBackoffPeriod [us]
+
 
 #endif // NRD_DRV_RADIO802154_CONST_H_

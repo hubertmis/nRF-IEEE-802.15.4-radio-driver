@@ -46,6 +46,7 @@
 #include "nrf_drv_radio802154_config.h"
 #include "nrf_drv_radio802154_const.h"
 #include "nrf_drv_radio802154_debug.h"
+#include "nrf_drv_radio802154_fsm_hooks.h"
 #include "nrf_drv_radio802154_notification.h"
 #include "nrf_drv_radio802154_pib.h"
 #include "nrf_drv_radio802154_priority_drop.h"
@@ -88,8 +89,8 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 #define SHORTS_TX_FRAME     (short_phyend_disable_mask_get() | NRF_RADIO_SHORT_READY_START_MASK)
 #endif
 
-/// Delay before sending ACK (12sym = 192uS)
-#define TIFS_ACK_US         192
+/// Delay before sending ACK (aTurnaroundTime)
+#define TIFS_ACK_US         TURNAROUND_TIME
 /// Delay before first check of received frame: 16 bits is MAC Frame Control field.
 #define BCC_INIT            (2 * 8)
 /// Delay before second check of received frame if destination address is short.
@@ -246,6 +247,15 @@ static inline void received_frame_notify(void)
     nrf_drv_radio802154_notify_received(mp_current_rx_buffer->psdu,                // data
                                         rssi_last_measurement_get(),               // rssi
                                         RX_FRAME_LQI(mp_current_rx_buffer->psdu)); // lqi
+}
+
+/// Notify MAC layer that transmission procedure failed.
+static void transmit_failed_notify(nrf_drv_radio802154_tx_error_t error)
+{
+    if (nrf_drv_radio802154_fsm_hooks_tx_failed(error))
+    {
+        nrf_drv_radio802154_notify_transmit_failed(error);
+    }
 }
 
 /** Set currently used rx buffer to given address.
@@ -449,12 +459,23 @@ static inline bool ack_is_matched(void)
             (nrf_radio_crc_status_get() == NRF_RADIO_CRC_STATUS_OK);
 }
 
-/// Start receiver to receive data after receiving of ACK frame.
-static inline void frame_rx_start_after_ack_rx(void)
+/** Start receiver to receive data after receiving of ACK frame.
+ *
+ * @param[in] error  Error value that should be notified to the MAC layer in case there was an error
+ *                   when ACK frame was received. If there was no error @p error shall be set to 0
+ *                   and error will not be notified.
+ */
+static inline void frame_rx_start_after_ack_rx(nrf_drv_radio802154_rx_error_t error)
 {
-    ack_matching_disable();
     state_set(RADIO_STATE_WAITING_RX_FRAME);
     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE); // Errata [110]
+
+    if (error)
+    {
+        transmit_failed_notify(error);
+    }
+
+    ack_matching_disable();
 }
 
 /***************************************************************************************************
@@ -643,7 +664,7 @@ void nrf_raal_timeslot_ended(void)
         case RADIO_STATE_CCA_BEFORE_TX:
         case RADIO_STATE_TX_FRAME:
         case RADIO_STATE_RX_ACK:
-            nrf_drv_radio802154_notify_transmit_failed(NRF_DRV_RADIO802154_TX_ERROR_TIMESLOT_ENDED);
+            transmit_failed_notify(NRF_DRV_RADIO802154_TX_ERROR_TIMESLOT_ENDED);
             break;
 
         case RADIO_STATE_RX_HEADER:
@@ -753,9 +774,7 @@ static inline void irq_framestart_state_rx_ack(void)
     if ((mp_current_rx_buffer->psdu[0] < ACK_LENGTH) ||
         (mp_current_rx_buffer->psdu[0] > MAX_PACKET_SIZE))
     {
-        nrf_drv_radio802154_notify_transmit_failed(NRF_DRV_RADIO802154_TX_ERROR_INVALID_ACK);
-
-        frame_rx_start_after_ack_rx();
+        frame_rx_start_after_ack_rx(NRF_DRV_RADIO802154_TX_ERROR_INVALID_ACK);
         nrf_radio_event_clear(NRF_RADIO_EVENT_END); // In case frame ended before task DISABLE
         nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
     }
@@ -1069,6 +1088,8 @@ static inline void irq_phyend_state_tx_frame(void)
 /// This event is generated when the radio ends receiving of ACK frame.
 static inline void irq_end_state_rx_ack(void)
 {
+    nrf_drv_radio802154_tx_error_t error = NRF_DRV_RADIO802154_TX_ERROR_NONE;
+
     assert(nrf_radio_shorts_get() == SHORTS_IDLE);
     assert(nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE);
 
@@ -1081,10 +1102,10 @@ static inline void irq_end_state_rx_ack(void)
     }
     else
     {
-        nrf_drv_radio802154_notify_transmit_failed(NRF_DRV_RADIO802154_TX_ERROR_INVALID_ACK);
+        error = NRF_DRV_RADIO802154_TX_ERROR_INVALID_ACK;
     }
 
-    frame_rx_start_after_ack_rx();
+    frame_rx_start_after_ack_rx(error);
 }
 
 /// This event is generated when radio peripheral disables in order to enter sleep state.
@@ -1311,8 +1332,7 @@ static inline void irq_ready_state_rx_ack(void)
 
     if (mp_current_rx_buffer == NULL || (!mp_current_rx_buffer->free))
     {
-        nrf_drv_radio802154_notify_transmit_failed(NRF_DRV_RADIO802154_TX_ERROR_NO_MEM);
-        frame_rx_start_after_ack_rx();
+        frame_rx_start_after_ack_rx(NRF_DRV_RADIO802154_TX_ERROR_NO_MEM);
     }
     else
     {
@@ -1372,11 +1392,10 @@ static inline void irq_ccabusy_state_tx_frame(void)
     assert(nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE);
 
     shorts_disable();
-
-    nrf_drv_radio802154_notify_transmit_failed(NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
-
     state_set(RADIO_STATE_WAITING_RX_FRAME);
     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+
+    transmit_failed_notify(NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
 }
 
 /// This event is generated when CCA reports busy channel during stand-alone procedure.
@@ -1766,6 +1785,15 @@ static inline void irq_handler(void)
  * @section FSM transition request sub-procedures
  **************************************************************************************************/
 
+/** Abort ongoing operation.
+ *
+ * This function is called when MAC layer requests transition to another operation.
+ */
+static void current_operation_abort(void)
+{
+    nrf_drv_radio802154_fsm_hooks_abort();
+}
+
 /** Abort transmission procedure.
  *
  *  This function is called when MAC layer requests transition from transmit to receive state.
@@ -1882,6 +1910,11 @@ bool nrf_drv_radio802154_fsm_sleep(void)
             assert(false); // This should not happen.
     }
 
+    if (result)
+    {
+        current_operation_abort();
+    }
+
     return result;
 }
 
@@ -1945,6 +1978,12 @@ bool nrf_drv_radio802154_fsm_receive(void)
 
         default:
             assert(false);
+    }
+
+    // Abort ongoing operations if succeeded
+    if (result)
+    {
+        current_operation_abort();
     }
 
     return result;

@@ -40,7 +40,7 @@
 #include <stdint.h>
 
 #include "nrf_drv_radio802154_config.h"
-#include "hal/nrf_radio.h"
+#include "nrf_drv_radio802154_types.h"
 
 #if ENABLE_FEM
 #include "fem/nrf_fem_control_api.h"
@@ -49,51 +49,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @brief States of the driver.
- */
-typedef uint8_t nrf_drv_radio802154_state_t;
-
-#define NRF_DRV_RADIO802154_STATE_INVALID              0x01 /**< Radio in an invalid state. */
-#define NRF_DRV_RADIO802154_STATE_SLEEP                0x02 /**< Radio in Sleep state. */
-#define NRF_DRV_RADIO802154_STATE_RECEIVE              0x03 /**< Radio in Receive state. */
-#define NRF_DRV_RADIO802154_STATE_TRANSMIT             0x04 /**< Radio in Transmit state. */
-#define NRF_DRV_RADIO802154_STATE_ENERGY_DETECTION     0x05 /**< Radio in Energy Detection state. */
-#define NRF_DRV_RADIO802154_STATE_CCA                  0x06 /**< Radio in CCA state. */
-#define NRF_DRV_RADIO802154_STATE_CONTINUOUS_CARRIER   0x07 /**< Radio in Continuous Carrier state. */
-
-/**
- * @brief Errors reported during frame transmission.
- */
-typedef uint8_t nrf_drv_radio802154_tx_error_t;
-
-#define NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL      0x01 /**< CCA reported busy channel prior to transmission. */
-#define NRF_DRV_RADIO802154_TX_ERROR_INVALID_ACK       0x02 /**< Received ACK frame is other than expected. */
-#define NRF_DRV_RADIO802154_TX_ERROR_NO_MEM            0x03 /**< No receive buffer are available to receive an ACK. */
-#define NRF_DRV_RADIO802154_TX_ERROR_TIMESLOT_ENDED    0x04 /**< Radio timeslot ended during transmission procedure. */
-
-/**
- * @brief Possible errors during frame reception.
- */
-typedef uint8_t nrf_drv_radio802154_rx_error_t;
-
-#define NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME     0x01 /**< Received a malformed frame */
-#define NRF_DRV_RADIO802154_RX_ERROR_INVALID_FCS       0x02 /**< Received a frame with invalid checksum. */
-#define NRF_DRV_RADIO802154_RX_ERROR_INVALID_DEST_ADDR 0x03 /**< Received a frame with mismatched destination address. */
-#define NRF_DRV_RADIO802154_RX_ERROR_RUNTIME           0x04 /**< A runtime error occured (e.g. CPU was hold for too long.) */
-#define NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED    0x05 /**< Radio timeslot ended during frame reception. */
-
-/**
- * @brief Structure for configuring CCA.
- */
-typedef struct
-{
-    nrf_radio_cca_mode_t mode;           /**< CCA mode. */
-    uint8_t              ed_threshold;   /**< CCA Energy Busy Threshold. Not used in NRF_RADIO_CCA_MODE_CARRIER. */
-    uint8_t              corr_threshold; /**< CCA Correlator Busy Threshold. Not used in NRF_RADIO_CCA_MODE_ED. */
-    uint8_t              corr_limit;     /**< Limit of occurrences above CCA Correlator Busy Threshold. Not used in NRF_RADIO_CCA_MODE_ED. */
-} nrf_drv_radio802154_cca_cfg_t;
 
 /**
  * @brief Initialize 802.15.4 driver.
@@ -760,6 +715,48 @@ void nrf_drv_radio802154_cca_cfg_set(const nrf_drv_radio802154_cca_cfg_t * p_cca
  * @param[out] p_cca_cfg A pointer to the structure for current CCA configuration.
  */
 void nrf_drv_radio802154_cca_cfg_get(nrf_drv_radio802154_cca_cfg_t * p_cca_cfg);
+
+/**
+ * @section CSMA-CA procedure.
+ */
+#if NRF_DRV_RADIO802154_CSMA_CA_ENABLED
+
+/**
+ * @brief Perform CSMA-CA procedure and transmit frame in case of success.
+ *
+ * End of CSMA-CA procedure is notified by @sa nrf_drv_radio802154_transmitted() or
+ * @sa nrf_drv_radio802154_transmit_failed() function.
+ *
+ * @note CSMA-CA procedure does not time out waiting for ACK frame in case frame with ACK request
+ *       bit set was transmitted. MAC layer should manage timer to time out waiting for ACK frame.
+ *       This timer may be started by @sa nrf_drv_radio802154_tx_started() function. When the timer
+ *       expires MAC layer should call @sa nrf_drv_radio802154_receive() to stop waiting for ACK
+ *       frame.
+ *
+ * @note Before CSMA-CA procedure is used, application should initialize random seed with srand().
+ *
+ * @param[in]  p_data  Pointer to frame to transmit @sa nrf_drv_radio802154_transmit_raw()
+ */
+void nrf_drv_radio802154_transmit_csma_ca_raw(const uint8_t * p_data);
+
+/**
+ * @brief Perform CSMA-CA procedure and transmit frame in case of success.
+ *
+ * End of CSMA-CA procedure is notified by @sa nrf_drv_radio802154_transmitted() or
+ * @sa nrf_drv_radio802154_transmit_failed() function.
+ *
+ * @note CSMA-CA procedure does not time out waiting for ACK frame in case frame with ACK request
+ *       bit set was transmitted. MAC layer should manage timer to time out waiting for ACK frame.
+ *       This timer may be started by @sa nrf_drv_radio802154_tx_started() function. When the timer
+ *       expires MAC layer should call @sa nrf_drv_radio802154_receive() to stop waiting for ACK
+ *       frame.
+ *
+ * @param[in]  p_data  Pointer to frame to transmit. @sa nrf_drv_radio802154_transmit()
+ * @param[in]  length  Length of given frame. @sa nrf_drv_radio802154_transmit()
+ */
+void nrf_drv_radio802154_transmit_csma_ca(const uint8_t * p_data, uint8_t length);
+
+#endif // NRF_DRV_RADIO802154_CSMA_CA_ENABLED
 
 #ifdef __cplusplus
 }

@@ -123,6 +123,16 @@ void nrf_drv_radio802154_timer_sched_add(nrf_drv_radio802154_timer_t * p_timer, 
 void nrf_drv_radio802154_timer_sched_remove(nrf_drv_radio802154_timer_t * p_timer);
 
 /**
+ * @brief Check if given timer is already scheduled.
+ *
+ * @param[in]  p_timer  Pointer to the timer to check.
+ *
+ * @retval true   Given timer is already scheduled.
+ * @retval false  Given timer is not scheduled.
+ */
+bool nrf_drv_radio802154_timer_sched_is_running(nrf_drv_radio802154_timer_t * p_timer);
+
+/**
  *@}
  **/
 

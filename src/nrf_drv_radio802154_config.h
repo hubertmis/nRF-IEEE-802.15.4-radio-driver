@@ -254,6 +254,56 @@ extern "C" {
 #define NRF_DRV_RADIO802154_RTC_IRQN  RTC2_IRQn
 #endif
 
+
+/*******************************************************************************
+ * @section CSMA/CA procedure configuration.
+ ******************************************************************************/
+
+/**
+ * @def NRF_DRV_RADIO802154_CSMA_CA_ENABLED
+ *
+ * If CSMA-CA procedure should be enabled by the driver. Disabling CSMA-CA procedure improves
+ * driver performance.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_CSMA_CA_ENABLED
+#define NRF_DRV_RADIO802154_CSMA_CA_ENABLED 1
+#endif
+
+/**
+ * @def NRF_DRV_RADIO802154_CSMA_CA_MIN_BE
+ *
+ * The minimum value of the backoff exponent (BE) in the CSMA-CA algorithm.
+ * (IEEE 802.15.4-2015: 6.2.5.1)
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_CSMA_CA_MIN_BE
+#define NRF_DRV_RADIO802154_CSMA_CA_MIN_BE 3
+#endif
+
+/**
+ * @def NRF_DRV_RADIO802154_CSMA_CA_MAX_BE
+ *
+ * The maximum value of the backoff exponent, BE, in the CSMA-CA algorithm.
+ * (IEEE 802.15.4-2015: 6.2.5.1)
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_CSMA_CA_MAX_BE
+#define NRF_DRV_RADIO802154_CSMA_CA_MAX_BE 5
+#endif
+
+/**
+ * @def NRF_DRV_RADIO802154_CSMA_CA_MAX_CSMA_BACKOFFS
+ *
+ * The maximum number of backoffs the CSMA-CA algorithm will attempt before declaring a channel
+ * access failure.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_CSMA_CA_MAX_CSMA_BACKOFFS
+#define NRF_DRV_RADIO802154_CSMA_CA_MAX_CSMA_BACKOFFS 4
+#endif
+
+
 /**
  *@}
  **/

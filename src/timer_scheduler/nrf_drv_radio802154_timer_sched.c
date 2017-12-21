@@ -87,11 +87,18 @@ void nrf_drv_radio802154_timer_sched_remove(nrf_drv_radio802154_timer_t * p_time
     mp_timer = NULL;
 }
 
+bool nrf_drv_radio802154_timer_sched_is_running(nrf_drv_radio802154_timer_t * p_timer)
+{
+    return p_timer == mp_timer;
+}
+
 void nrf_drv_radio802154_timer_fired(void)
 {
     assert(mp_timer != NULL);
     assert(mp_timer->callback != NULL);
 
     mp_timer->callback(mp_timer->p_context);
+
+    mp_timer = NULL;
 }
 

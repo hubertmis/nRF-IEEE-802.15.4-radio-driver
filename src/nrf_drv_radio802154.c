@@ -59,6 +59,7 @@
 #include "raal/nrf_raal_api.h"
 
 #include <cmsis/core_cmFunc.h>
+#include "mac_features/nrf_drv_radio802154_csma_ca.h"
 
 #if ENABLE_FEM
 #include "fem/nrf_fem_control_api.h"
@@ -66,6 +67,29 @@
 
 #define RAW_LENGTH_OFFSET  0
 #define RAW_PAYLOAD_OFFSET 1
+
+/** Static transmit buffer used by @sa nrf_drv_radio802154_transmit() family of functions.
+ *
+ * If none of functions using this buffer is called and link time optimization is enabled, this
+ * buffer should be removed by linker.
+ */
+static uint8_t m_tx_buffer[RAW_PAYLOAD_OFFSET + MAX_PACKET_SIZE];
+
+/**
+ * @brief Fill transmit buffer with given data.
+ *
+ * @param[in]  p_data   Pointer to array containing payload of a data to transmit. The array
+ *                      should exclude PHR or FCS fields of 802.15.4 frame.
+ * @param[in]  length   Length of given frame. This value shall exclude PHR and FCS fields from
+ *                      the given frame (exact size of buffer pointed by @p p_data).
+ */
+static void tx_buffer_fill(const uint8_t * p_data, uint8_t length)
+{
+    assert(length <= MAX_PACKET_SIZE - FCS_SIZE);
+
+    m_tx_buffer[RAW_LENGTH_OFFSET] = length + FCS_SIZE;
+    memcpy(&m_tx_buffer[RAW_PAYLOAD_OFFSET], p_data, length);
+}
 
 
 void nrf_drv_radio802154_channel_set(uint8_t channel)
@@ -246,14 +270,9 @@ bool nrf_drv_radio802154_transmit_raw(const uint8_t * p_data, bool cca)
 
 bool nrf_drv_radio802154_transmit(const uint8_t * p_data, uint8_t length, bool cca)
 {
-    static uint8_t tx_buffer[RAW_PAYLOAD_OFFSET + MAX_PACKET_SIZE];
+    tx_buffer_fill(p_data, length);
 
-    assert(length <= MAX_PACKET_SIZE - FCS_SIZE);
-
-    tx_buffer[RAW_LENGTH_OFFSET] = length + FCS_SIZE;
-    memcpy(&tx_buffer[RAW_PAYLOAD_OFFSET], p_data, length);
-
-    return nrf_drv_radio802154_transmit_raw(tx_buffer, cca);
+    return nrf_drv_radio802154_transmit_raw(m_tx_buffer, cca);
 }
 
 bool nrf_drv_radio802154_energy_detection(uint32_t time_us)
@@ -399,6 +418,26 @@ void nrf_drv_radio802154_cca_cfg_get(nrf_drv_radio802154_cca_cfg_t * p_cca_cfg)
 {
     nrf_drv_radio802154_pib_cca_cfg_get(p_cca_cfg);
 }
+
+#if NRF_DRV_RADIO802154_CSMA_CA_ENABLED
+
+void nrf_drv_radio802154_transmit_csma_ca_raw(const uint8_t * p_data)
+{
+    nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_CSMACA);
+
+    nrf_drv_radio802154_csma_ca_start(p_data);
+
+    nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_CSMACA);
+}
+
+void nrf_drv_radio802154_transmit_csma_ca(const uint8_t * p_data, uint8_t length)
+{
+    tx_buffer_fill(p_data, length);
+
+    nrf_drv_radio802154_transmit_csma_ca_raw(m_tx_buffer);
+}
+
+#endif // NRF_DRV_RADIO802154_CSMA_CA_ENABLED
 
 __WEAK void nrf_drv_radio802154_rx_started(void)
 {
