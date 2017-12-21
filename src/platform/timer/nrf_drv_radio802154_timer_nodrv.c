@@ -40,7 +40,6 @@
 
 #include <assert.h>
 
-#include <cmsis/core_cmFunc.h>
 #include <hal/nrf_rtc.h>
 #include <nrf.h>
 
