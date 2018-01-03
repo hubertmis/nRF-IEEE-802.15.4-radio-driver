@@ -81,6 +81,7 @@ static inline bool mutex_get(void)
 
         if (mutex_value)
         {
+            __CLREX();
             return false;
         }
     }
