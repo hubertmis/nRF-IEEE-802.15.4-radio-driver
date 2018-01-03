@@ -45,6 +45,7 @@
 #include "nrf_drv_radio802154_ack_pending_bit.h"
 #include "nrf_drv_radio802154_config.h"
 #include "nrf_drv_radio802154_const.h"
+#include "nrf_drv_radio802154_critical_section.h"
 #include "nrf_drv_radio802154_debug.h"
 #include "nrf_drv_radio802154_fsm_hooks.h"
 #include "nrf_drv_radio802154_notification.h"
@@ -136,51 +137,6 @@ typedef struct
 } nrf_radio802154_flags_t;
 static nrf_radio802154_flags_t m_flags;  ///< Flags used to store current driver state.
 
-static volatile uint8_t m_mutex;  ///< Mutex preventing race condition.
-
-
-/***************************************************************************************************
- * @section Mutex
- **************************************************************************************************/
-
-/// Lock mutex to prevent race conditions.
-static bool mutex_lock(void)
-{
-    do
-    {
-        volatile uint8_t mutex_value = __LDREXB(&m_mutex);
-
-        if (mutex_value)
-        {
-            return false;
-        }
-    }
-    while (__STREXB(1, &m_mutex));
-
-    __DMB();
-
-    // Driver may be in WAITING_TIMESLOT state if timeslot ended during mutex locking.
-    assert(m_state == RADIO_STATE_WAITING_RX_FRAME ||
-           m_state == RADIO_STATE_SLEEP ||
-           m_state == RADIO_STATE_WAITING_TIMESLOT);
-
-    nrf_drv_radio802154_log(EVENT_MUTEX_LOCK, 0);
-
-    return true;
-}
-
-/// Unlock mutex.
-static void mutex_unlock(void)
-{
-    assert(m_state == RADIO_STATE_SLEEP ||
-           m_state == RADIO_STATE_WAITING_RX_FRAME);
-
-    nrf_drv_radio802154_log(EVENT_MUTEX_UNLOCK, 0);
-
-    __DMB();
-    m_mutex = 0;
-}
-
 
 /***************************************************************************************************
  * @section FSM common operations
@@ -211,7 +167,6 @@ static inline void sleep_start(void)
 {
     state_set(RADIO_STATE_SLEEP);
     nrf_drv_radio802154_priority_drop_timeslot_exit();
-    mutex_unlock();
 }
 
 /// Start receiver to wait for frames.
@@ -244,18 +199,67 @@ static inline int8_t rssi_last_measurement_get(void)
 static inline void received_frame_notify(void)
 {
     mp_current_rx_buffer->free = false;
+
+    nrf_drv_radio802154_critical_section_nesting_allow();
+
     nrf_drv_radio802154_notify_received(mp_current_rx_buffer->psdu,                // data
                                         rssi_last_measurement_get(),               // rssi
                                         RX_FRAME_LQI(mp_current_rx_buffer->psdu)); // lqi
+
+    nrf_drv_radio802154_critical_section_nesting_deny();
+}
+
+/// Notify MAC layer that receive procedure failed.
+static void receive_failed_notify(nrf_drv_radio802154_rx_error_t error)
+{
+    nrf_drv_radio802154_critical_section_nesting_allow();
+
+    nrf_drv_radio802154_notify_receive_failed(error);
+
+    nrf_drv_radio802154_critical_section_nesting_deny();
+}
+
+/// Notify MAC layer that a frame was received.
+static inline void transmitted_frame_notify(uint8_t * p_ack, int8_t power, int8_t lqi)
+{
+    nrf_drv_radio802154_critical_section_nesting_allow();
+
+    nrf_drv_radio802154_notify_transmitted(p_ack, power, lqi);
+
+    nrf_drv_radio802154_critical_section_nesting_deny();
 }
 
 /// Notify MAC layer that transmission procedure failed.
 static void transmit_failed_notify(nrf_drv_radio802154_tx_error_t error)
 {
+    nrf_drv_radio802154_critical_section_nesting_allow();
+
     if (nrf_drv_radio802154_fsm_hooks_tx_failed(error))
     {
         nrf_drv_radio802154_notify_transmit_failed(error);
     }
+
+    nrf_drv_radio802154_critical_section_nesting_deny();
+}
+
+/// Notify MAC layer that energy detection procedure ended.
+static inline void energy_detected_notify(uint8_t result)
+{
+    nrf_drv_radio802154_critical_section_nesting_allow();
+
+    nrf_drv_radio802154_notify_energy_detected(result);
+
+    nrf_drv_radio802154_critical_section_nesting_deny();
+}
+
+/// Notify MAC layer that CCA procedure ended.
+static inline void cca_notify(bool result)
+{
+    nrf_drv_radio802154_critical_section_nesting_allow();
+
+    nrf_drv_radio802154_notify_cca(result);
+
+    nrf_drv_radio802154_critical_section_nesting_deny();
 }
 
 /** Set currently used rx buffer to given address.
@@ -608,6 +612,9 @@ void nrf_raal_timeslot_started(void)
 {
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
 
+    // Prevent interrupting of this handler by requests from higher priority code.
+    nrf_drv_radio802154_critical_section_forcefully_enter();
+
     nrf_radio_reset();
     nrf_radio_init();
     irq_init();
@@ -648,12 +655,17 @@ void nrf_raal_timeslot_started(void)
             assert(false);
     }
 
+    nrf_drv_radio802154_critical_section_exit();
+
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_STARTED);
 }
 
 void nrf_raal_timeslot_ended(void)
 {
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_ENDED);
+
+    // Prevent interrupting of this handler by requests from higher priority code.
+    nrf_drv_radio802154_critical_section_forcefully_enter();
 
     irq_deinit();
     nrf_radio_reset();
@@ -670,7 +682,7 @@ void nrf_raal_timeslot_ended(void)
         case RADIO_STATE_RX_HEADER:
         case RADIO_STATE_RX_FRAME:
         case RADIO_STATE_TX_ACK:
-            nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED);
+            receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED);
             break;
 
         default:
@@ -698,10 +710,11 @@ void nrf_raal_timeslot_ended(void)
         case RADIO_STATE_CCA_BEFORE_TX:
         case RADIO_STATE_TX_FRAME:
         case RADIO_STATE_RX_ACK:
-            mutex_lock();
             state_set(RADIO_STATE_WAITING_TIMESLOT);
             break;
     }
+
+    nrf_drv_radio802154_critical_section_exit();
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_ENDED);
 }
@@ -714,27 +727,24 @@ void nrf_raal_timeslot_ended(void)
 /// This event is handled when the radio starts receiving a frame.
 static inline void irq_framestart_state_waiting_rx_frame(void)
 {
-    if (mutex_lock())
+    state_set(RADIO_STATE_RX_HEADER);
+    assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
+
+    if ((mp_current_rx_buffer->psdu[0] < ACK_LENGTH) ||
+        (mp_current_rx_buffer->psdu[0] > MAX_PACKET_SIZE))
     {
-        state_set(RADIO_STATE_RX_HEADER);
-        assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
+        auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
+        nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+        nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+        nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+        nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
+    }
+    else
+    {
+        nrf_radio_task_trigger(NRF_RADIO_TASK_RSSISTART);
 
-        if ((mp_current_rx_buffer->psdu[0] < ACK_LENGTH) ||
-            (mp_current_rx_buffer->psdu[0] > MAX_PACKET_SIZE))
-        {
-            auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-            nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
-        }
-        else
-        {
-            nrf_radio_task_trigger(NRF_RADIO_TASK_RSSISTART);
-
-            nrf_drv_radio802154_rx_started();
-        }
+        nrf_drv_radio802154_rx_started();
     }
 
     switch (nrf_radio_state_get())
@@ -758,7 +768,7 @@ static inline void irq_framestart_state_waiting_rx_frame(void)
             nrf_radio_event_clear(NRF_RADIO_EVENT_END);
             nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-            nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
+            receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
             break;
 
         default:
@@ -837,7 +847,7 @@ static inline void irq_bcmatch_mhr(void)
                         nrf_radio_event_clear(NRF_RADIO_EVENT_END);
                         nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                         nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-                        nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
+                        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
                 }
 
                 break;
@@ -860,7 +870,7 @@ static inline void irq_bcmatch_mhr(void)
                     // Do not count received ACK as an error.
                     if (frame_type != FRAME_TYPE_ACK)
                     {
-                        nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
+                        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
                     }
                 }
         }
@@ -872,7 +882,7 @@ static inline void irq_bcmatch_mhr(void)
 
         state_set(RADIO_STATE_WAITING_TIMESLOT);
 
-        nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED);
+        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED);
     }
 }
 
@@ -897,7 +907,7 @@ static inline void irq_bcmatch_address(void)
             nrf_radio_event_clear(NRF_RADIO_EVENT_END);
             nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-            nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_DEST_ADDR);
+            receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_DEST_ADDR);
         }
     }
 }
@@ -941,7 +951,7 @@ static inline void irq_bcmatch_state_rx_header(void)
             nrf_radio_event_clear(NRF_RADIO_EVENT_END);
             nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-            nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
+            receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
             break;
 
         default:
@@ -949,27 +959,17 @@ static inline void irq_bcmatch_state_rx_header(void)
     }
 }
 
-/** This event is generated when radio receives invalid frame with length set to 0 or started
- *  receiving a frame after other procedure locked mutex.
+/** This event is generated when radio receives invalid frame with length set to 0.
  */
 static inline void irq_end_state_waiting_rx_frame(void)
 {
     // Radio state is not asserted here. It can be a lot of states due to shorts.
-    if (mp_current_rx_buffer->psdu[0] == 0)
-    {
-        // If length of the frame is 0 there was no FRAMESTART event. Lock mutex now and abort sending ACK.
-        if (mutex_lock())
-        {
-            assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
-            auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-        }
-    }
-    else
-    {
-        // Do nothing. Whoever took mutex shall stop sending ACK.
-    }
+    assert(mp_current_rx_buffer->psdu[0] == 0);
+
+    assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
+    auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
 }
 
 /// This event is generated if frame being received is shorter than expected MAC header length.
@@ -979,7 +979,7 @@ static inline void irq_end_state_rx_header(void)
     auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
     nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-    nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
+    receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
 }
 
 /// This event is generated when radio peripheral ends receiving of a complete frame.
@@ -1016,7 +1016,7 @@ static inline void irq_end_state_rx_frame(void)
                 auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
                 nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
                 nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FCS);
+                receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FCS);
             }
 
             break;
@@ -1026,7 +1026,7 @@ static inline void irq_end_state_rx_frame(void)
             auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
             nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
             nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-            nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
+            receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
             break;
 
         default:
@@ -1071,7 +1071,7 @@ static inline void irq_phyend_state_tx_frame(void)
 
     if (!ack_is_requested(mp_tx_data))
     {
-        nrf_drv_radio802154_notify_transmitted(NULL, 0, 0);
+        transmitted_frame_notify(NULL, 0, 0);
 
         state_set(RADIO_STATE_WAITING_RX_FRAME);
     }
@@ -1096,9 +1096,9 @@ static inline void irq_end_state_rx_ack(void)
     if (ack_is_matched())
     {
         mp_current_rx_buffer->free = false;
-        nrf_drv_radio802154_notify_transmitted(mp_current_rx_buffer->psdu,                // psdu
-                                               rssi_last_measurement_get(),               // rssi
-                                               RX_FRAME_LQI(mp_current_rx_buffer->psdu)); // lqi
+        transmitted_frame_notify(mp_current_rx_buffer->psdu,                // psdu
+                                 rssi_last_measurement_get(),               // rssi
+                                 RX_FRAME_LQI(mp_current_rx_buffer->psdu)); // lqi;
     }
     else
     {
@@ -1133,7 +1133,6 @@ static inline void irq_disabled_state_waiting_rx_frame(void)
     assert(nrf_radio_state_get() == NRF_RADIO_STATE_DISABLED);
 
     rx_enable();
-    mutex_unlock();
 
     rx_buffer_in_use_set(nrf_drv_radio802154_rx_buffer_free_find());
     nrf_radio_tx_power_set(nrf_drv_radio802154_pib_tx_power_get());
@@ -1280,13 +1279,8 @@ static inline void irq_ready_state_waiting_rx_frame(void)
 
     if ((mp_current_rx_buffer != NULL) && (mp_current_rx_buffer->free))
     {
-        if (mutex_lock())
-        {
-            shorts_rx_initial_set();
-            rx_frame_start();
-
-            mutex_unlock();
-        }
+        shorts_rx_initial_set();
+        rx_frame_start();
     }
 }
 
@@ -1379,10 +1373,10 @@ static inline void irq_ccaidle_state_cca(void)
     assert(nrf_radio_shorts_get() == SHORTS_IDLE);
     assert(nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE);
 
-    nrf_drv_radio802154_notify_cca(true);
-
     state_set(RADIO_STATE_WAITING_RX_FRAME);
     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+
+    cca_notify(true);
 }
 
 /// This event is generated when CCA reports busy channel prior to transmission.
@@ -1404,10 +1398,10 @@ static inline void irq_ccabusy_state_cca(void)
     assert(nrf_radio_shorts_get() == SHORTS_IDLE);
     assert(nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE);
 
-    nrf_drv_radio802154_notify_cca(false);
-
     state_set(RADIO_STATE_WAITING_RX_FRAME);
     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+
+    cca_notify(false);
 }
 
 /// This event is generated when energy detection procedure ends.
@@ -1429,13 +1423,13 @@ static inline void irq_edend(void)
     }
     else
     {
-        nrf_drv_radio802154_notify_energy_detected(m_ed_result);
-
         // In case channel change was requested during energy detection procedure.
         channel_set(nrf_drv_radio802154_pib_channel_get());
 
         state_set(RADIO_STATE_WAITING_RX_FRAME);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+
+        energy_detected_notify(m_ed_result);
     }
 }
 
@@ -1445,6 +1439,9 @@ static inline void irq_handler(void)
     nrf_fem_control_time_latch();
 
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_IRQ_HANDLER);
+
+    // Prevent interrupting of this handler by requests from higher priority code.
+    nrf_drv_radio802154_critical_section_forcefully_enter();
 
     if (nrf_radio_event_get(NRF_RADIO_EVENT_FRAMESTART))
     {
@@ -1492,9 +1489,7 @@ static inline void irq_handler(void)
                 irq_bcmatch_state_rx_header();
                 break;
 
-            case RADIO_STATE_WAITING_RX_FRAME: // Didn't lock mutex - other procedure manages radio.
             case RADIO_STATE_WAITING_TIMESLOT: // Radio is out of timeslot now.
-                assert(m_mutex);
                 break;
 
             default:
@@ -1777,6 +1772,8 @@ static inline void irq_handler(void)
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_EDEND);
     }
 
+    nrf_drv_radio802154_critical_section_exit();
+
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_IRQ_HANDLER);
 }
 
@@ -1803,7 +1800,6 @@ static inline void tx_procedure_abort(radio_state_t state)
     shorts_disable();
 
     assert(nrf_radio_shorts_get() == SHORTS_IDLE);
-    assert(m_mutex);
 
     state_set(state);
 
@@ -1868,29 +1864,24 @@ bool nrf_drv_radio802154_fsm_sleep(void)
     switch (m_state)
     {
         case RADIO_STATE_WAITING_TIMESLOT:
-            assert(m_mutex);
-
             sleep_start();
             result = true;
             break;
 
         case RADIO_STATE_WAITING_RX_FRAME:
-            if (mutex_lock())
-            {
-                auto_ack_abort(RADIO_STATE_DISABLING);
+            auto_ack_abort(RADIO_STATE_DISABLING);
 
-                assert(nrf_radio_shorts_get() == SHORTS_IDLE);
+            assert(nrf_radio_shorts_get() == SHORTS_IDLE);
 
-                // Clear events that could have happened in critical section due to receiving frame
-                // or RX ramp up.
-                nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
-                nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-                nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+            // Clear events that could have happened in critical section due to receiving frame
+            // or RX ramp up.
+            nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
 
-                result = true;
-            }
+            result = true;
 
             break;
 
@@ -1938,17 +1929,10 @@ bool nrf_drv_radio802154_fsm_receive(void)
             break;
 
         case RADIO_STATE_SLEEP:
-            if (mutex_lock())
-            {
-                state_set(RADIO_STATE_WAITING_TIMESLOT);
-                nrf_raal_continuous_mode_enter();
+            state_set(RADIO_STATE_WAITING_TIMESLOT);
+            nrf_raal_continuous_mode_enter();
 
-                result = true;
-            }
-            else
-            {
-                assert(false);
-            }
+            result = true;
 
             break;
 
@@ -1994,14 +1978,12 @@ bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca)
     bool result = false;
     mp_tx_data  = p_data;
 
-    if (mutex_lock())
+    if (m_state == RADIO_STATE_WAITING_RX_FRAME)
     {
         if (nrf_raal_timeslot_request(nrf_drv_radio802154_tx_duration_get(p_data[0],
                                                                           cca,
                                                                           ack_is_requested(p_data))))
         {
-            assert(m_state == RADIO_STATE_WAITING_RX_FRAME);
-
             auto_ack_abort(cca ? RADIO_STATE_CCA_BEFORE_TX : RADIO_STATE_TX_FRAME);
 
             nrf_radio_tx_power_set(nrf_drv_radio802154_pib_tx_power_get());
@@ -2028,10 +2010,6 @@ bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca)
                 state_set(RADIO_STATE_WAITING_TIMESLOT);
             }
         }
-        else
-        {
-            mutex_unlock();
-        }
     }
 
     return result;
@@ -2044,45 +2022,39 @@ bool nrf_drv_radio802154_fsm_energy_detection(uint32_t time_us)
     switch (m_state)
     {
         case RADIO_STATE_SLEEP:
-            if (mutex_lock())
-            {
-                state_set(RADIO_STATE_ED);
-                m_ed_time_left = time_us;
-                m_ed_result    = 0;
+            state_set(RADIO_STATE_ED);
+            m_ed_time_left = time_us;
+            m_ed_result    = 0;
 
-                nrf_raal_continuous_mode_enter();
+            nrf_raal_continuous_mode_enter();
 
-                result = true;
-            }
+            result = true;
 
             break;
 
         case RADIO_STATE_WAITING_RX_FRAME:
-            if (mutex_lock())
+            m_ed_result = 0;
+
+            if (ed_iter_setup(time_us))
             {
-                m_ed_result = 0;
+                auto_ack_abort(RADIO_STATE_ED);
 
-                if (ed_iter_setup(time_us))
-                {
-                    auto_ack_abort(RADIO_STATE_ED);
+                assert(nrf_radio_shorts_get() == SHORTS_IDLE);
 
-                    assert(nrf_radio_shorts_get() == SHORTS_IDLE);
-
-                    // Clear events that could have happened in critical section due to receiving
-                    // frame or RX ramp up.
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-                }
-                else
-                {
-                    state_set(RADIO_STATE_ED);
-                }
-
-                result = true;
+                // Clear events that could have happened in critical section due to receiving
+                // frame or RX ramp up.
+                nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
             }
+            else
+            {
+                state_set(RADIO_STATE_ED);
+            }
+
+            result = true;
 
             break;
 
@@ -2107,39 +2079,33 @@ bool nrf_drv_radio802154_fsm_cca(void)
     switch (m_state)
     {
         case RADIO_STATE_SLEEP:
-            if (mutex_lock())
-            {
-                state_set(RADIO_STATE_CCA);
+            state_set(RADIO_STATE_CCA);
 
-                nrf_raal_continuous_mode_enter();
+            nrf_raal_continuous_mode_enter();
 
-                result = true;
-            }
+            result = true;
 
             break;
 
         case RADIO_STATE_WAITING_RX_FRAME:
-            if (mutex_lock())
+            if (nrf_raal_timeslot_request(nrf_drv_radio802154_cca_duration_get()))
             {
-                if (nrf_raal_timeslot_request(nrf_drv_radio802154_cca_duration_get()))
-                {
-                    auto_ack_abort(RADIO_STATE_CCA);
+                auto_ack_abort(RADIO_STATE_CCA);
 
-                    // Clear events that could have happened in critical section due to receiving
-                    // frame or RX ramp up.
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-                }
-                else
-                {
-                    state_set(RADIO_STATE_CCA);
-                }
-
-                result = true;
+                // Clear events that could have happened in critical section due to receiving
+                // frame or RX ramp up.
+                nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
             }
+            else
+            {
+                state_set(RADIO_STATE_CCA);
+            }
+
+            result = true;
 
             break;
 
@@ -2161,11 +2127,9 @@ bool nrf_drv_radio802154_fsm_continuous_carrier(void)
 {
     bool result = false;
 
-    if (mutex_lock())
+    if (m_state == RADIO_STATE_WAITING_RX_FRAME ||
+        m_state == RADIO_STATE_SLEEP)
     {
-        assert(m_state == RADIO_STATE_WAITING_RX_FRAME ||
-               m_state == RADIO_STATE_SLEEP);
-
         auto_ack_abort(RADIO_STATE_CONTINUOUS_CARRIER);
 
         // Clear events that could have happened in critical section due to receiving frame or RX ramp up.
@@ -2181,8 +2145,10 @@ bool nrf_drv_radio802154_fsm_continuous_carrier(void)
     return result;
 }
 
-void nrf_drv_radio802154_fsm_notify_buffer_free(rx_buffer_t * p_buffer)
+bool nrf_drv_radio802154_fsm_notify_buffer_free(uint8_t * p_data)
 {
+    rx_buffer_t * p_buffer = (rx_buffer_t *)p_data;
+
     p_buffer->free = true;
 
     switch (m_state)
@@ -2201,11 +2167,9 @@ void nrf_drv_radio802154_fsm_notify_buffer_free(rx_buffer_t * p_buffer)
                     break;
 
                 case NRF_RADIO_STATE_RX_IDLE:
-                    // Mutex to make sure Radio State did not change between IRQ and this process.
                     // Check shorts to make sure RX_IDLE state is due to occupied buffers - not
                     // during END/DISABLE short.
-                    // If API call changed Radio state leave Radio as it is.
-                    if (mutex_lock() && nrf_radio_shorts_get() == SHORTS_IDLE)
+                    if (nrf_radio_shorts_get() == SHORTS_IDLE)
                     {
                         shorts_rx_initial_set();
 
@@ -2215,8 +2179,6 @@ void nrf_drv_radio802154_fsm_notify_buffer_free(rx_buffer_t * p_buffer)
                         // Clear events that could have happened in critical section due to RX
                         // ramp up.
                         nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-
-                        mutex_unlock();
                     }
                     break;
 
@@ -2230,31 +2192,25 @@ void nrf_drv_radio802154_fsm_notify_buffer_free(rx_buffer_t * p_buffer)
             // Don't perform any action in any other state (receiver should not be started).
             break;
     }
+
+    return true;
 }
 
-void nrf_drv_radio802154_fsm_channel_update(void)
+bool nrf_drv_radio802154_fsm_channel_update(void)
 {
     switch (m_state)
     {
         case RADIO_STATE_WAITING_RX_FRAME:
-            if (mutex_lock())
-            {
-                channel_set(nrf_drv_radio802154_pib_channel_get());
-                auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
+            channel_set(nrf_drv_radio802154_pib_channel_get());
+            auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
 
-                // Clear events that could have happened in critical section due to receiving
-                // frame or RX ramp up.
-                nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
-                nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-                nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-            }
-            else
-            {
-                assert(false);
-            }
-
+            // Clear events that could have happened in critical section due to receiving
+            // frame or RX ramp up.
+            nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
             break;
 
         case RADIO_STATE_CONTINUOUS_CARRIER:
@@ -2279,11 +2235,12 @@ void nrf_drv_radio802154_fsm_channel_update(void)
             // Don't perform any action in these states (channel will be updated when receiver is
             // enabled).
             break;
-
     }
+
+    return true;
 }
 
-void nrf_drv_radio802154_fsm_cca_cfg_update(void)
+bool nrf_drv_radio802154_fsm_cca_cfg_update(void)
 {
     switch (m_state)
     {
@@ -2306,8 +2263,9 @@ void nrf_drv_radio802154_fsm_cca_cfg_update(void)
             // Don't perform any action in these states (CCA configuration will be updated when
             // receiver is enabled).
             break;
-
     }
+
+    return true;
 }
 
 #if NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING

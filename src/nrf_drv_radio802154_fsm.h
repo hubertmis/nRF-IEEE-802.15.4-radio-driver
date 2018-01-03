@@ -197,9 +197,9 @@ bool nrf_drv_radio802154_fsm_continuous_carrier(void);
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
- * @param[in]  p_buffer  Pointer to buffer that has been freed.
+ * @param[in]  p_data  Pointer to buffer that has been freed.
  */
-void nrf_drv_radio802154_fsm_notify_buffer_free(rx_buffer_t * p_buffer);
+bool nrf_drv_radio802154_fsm_notify_buffer_free(uint8_t * p_data);
 
 /**
  * @brief Notify the FSM that next higher layer requested change of the channel.
@@ -207,12 +207,12 @@ void nrf_drv_radio802154_fsm_notify_buffer_free(rx_buffer_t * p_buffer);
  * FSM should update frequency register of the peripheral and in case it is in RECEIVE state the
  * receiver should be disabled and enabled again to use new channel.
  */
-void nrf_drv_radio802154_fsm_channel_update(void);
+bool nrf_drv_radio802154_fsm_channel_update(void);
 
 /**
  * @brief Notify the FSM that next higher layer requested change of the CCA configuration.
  */
-void nrf_drv_radio802154_fsm_cca_cfg_update(void);
+bool nrf_drv_radio802154_fsm_cca_cfg_update(void);
 
 #if !NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING
 /**

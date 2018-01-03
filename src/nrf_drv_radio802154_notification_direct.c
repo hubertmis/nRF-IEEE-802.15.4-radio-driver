@@ -40,6 +40,7 @@
 #include <stdint.h>
 
 #include "nrf_drv_radio802154.h"
+#include "nrf_drv_radio802154_critical_section.h"
 
 void nrf_drv_radio802154_notification_init(void)
 {

@@ -155,17 +155,17 @@ void nrf_drv_radio802154_swi_continuous_carrier(bool * p_result);
  *
  * @param[in]  p_data  Pointer to the buffer to free.
  */
-void nrf_drv_radio802154_swi_buffer_free(uint8_t * p_data);
+void nrf_drv_radio802154_swi_buffer_free(uint8_t * p_data, bool * p_result);
 
 /**
  * @brief Notify FSM that the next higher layer requested channel change.
  */
-void nrf_drv_radio802154_swi_channel_update(void);
+void nrf_drv_radio802154_swi_channel_update(bool * p_result);
 
 /**
  * @brief Notify FSM that the next higher layer requested CCA configuration change.
  */
-void nrf_drv_radio802154_swi_cca_cfg_update(void);
+void nrf_drv_radio802154_swi_cca_cfg_update(bool * p_result);
 
 /**
  *@}

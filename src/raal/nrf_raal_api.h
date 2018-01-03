@@ -108,6 +108,14 @@ void nrf_raal_continuous_mode_exit(void);
 bool nrf_raal_timeslot_request(uint32_t length_us);
 
 /**
+ * @brief Check if the 802.15.4 driver is currently in timeslot.
+ *
+ * @retval TRUE  Timeslot is currently granted.
+ * @retval FALSE Timeslot is not currently granted.
+ */
+bool nrf_raal_timeslot_is_granted(void);
+
+/**
  * @brief Get left time of currently granted timeslot [us].
  *
  * @returns  Number of microseconds left in currently granted timeslot.
@@ -117,7 +125,11 @@ uint32_t nrf_raal_timeslot_us_left_get(void);
 /**
  * @brief Enter critical section of the module.
  *
- * When this method is called, the execution of the @nrf_raal_timeslot_ended function is blocked.
+ * When this method is called, the execution of the @sa nrf_raal_timeslot_started and
+ * @sa nrf_raal_timeslot_ended function is blocked.
+ *
+ * @note This function may be called when RAAL is already in critical section. Ongoing call may
+ *       be interrupted by another call from IRQ with higher priority.
  *
  */
 void nrf_raal_critical_section_enter(void);
@@ -125,9 +137,12 @@ void nrf_raal_critical_section_enter(void);
 /**
  * @brief Exit critical section of the module.
  *
- * When this method is called driver has to expect the execution of the @nrf_raal_timeslot_ended
+ * When this method is called driver has to expect the execution of the
+ * @sa nrf_raal_timeslot_started or @sa nrf_raal_timeslot_ended
  * function.
  *
+ * @note This function may be called when RAAL has already exited critical section. Ongoing call
+ *       may NOT be interrupted by another call from IRQ with higher priority.
  */
 void nrf_raal_critical_section_exit(void);
 

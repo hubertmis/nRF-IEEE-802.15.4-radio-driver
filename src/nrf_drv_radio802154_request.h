@@ -108,17 +108,17 @@ bool nrf_drv_radio802154_request_continuous_carrier(void);
  *
  * @param[in]  p_data  Pointer to the buffer to free.
  */
-void nrf_drv_radio802154_request_buffer_free(uint8_t * p_data);
+bool nrf_drv_radio802154_request_buffer_free(uint8_t * p_data);
 
 /**
  * @brief Request the driver to update channel number used by the RADIO peripheral.
  */
-void nrf_drv_radio802154_request_channel_update(void);
+bool nrf_drv_radio802154_request_channel_update(void);
 
 /**
  * @brief Request the driver to update CCA configuration used by the RADIO peripheral.
  */
-void nrf_drv_radio802154_request_cca_cfg_update(void);
+bool nrf_drv_radio802154_request_cca_cfg_update(void);
 
 /**
  *@}

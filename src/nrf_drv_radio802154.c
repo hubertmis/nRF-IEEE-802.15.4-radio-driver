@@ -45,6 +45,7 @@
 #include "nrf_drv_radio802154_ack_pending_bit.h"
 #include "nrf_drv_radio802154_config.h"
 #include "nrf_drv_radio802154_const.h"
+#include "nrf_drv_radio802154_critical_section.h"
 #include "nrf_drv_radio802154_debug.h"
 #include "nrf_drv_radio802154_fsm.h"
 #include "nrf_drv_radio802154_notification.h"
@@ -144,6 +145,7 @@ void nrf_drv_radio802154_init(void)
 {
     nrf_drv_radio802154_ack_pending_bit_init();
     nrf_drv_radio802154_clock_init();
+    nrf_drv_radio802154_critical_section_init();
     nrf_drv_radio802154_debug_init();
     nrf_drv_radio802154_fsm_init();
     nrf_drv_radio802154_notification_init();

@@ -186,8 +186,19 @@ typedef struct
 
         struct
         {
-            rx_buffer_t * p_data;         ///< Pointer to receive buffer to free.
+            uint8_t * p_data;             ///< Pointer to receive buffer to free.
+            bool    * p_result;           ///< Buffer free request result.
         } buffer_free;                    ///< Buffer free request details.
+
+        struct
+        {
+            bool * p_result;              ///< Channel update request result.
+        } channel_update;                 ///< Channel update request details.
+
+        struct
+        {
+            bool * p_result;              ///< CCA config update request result.
+        } cca_cfg_update;                 ///< CCA config update request details.
     } data;                               ///< Request data depending on it's type.
 } nrf_drv_radio802154_req_data_t;
 
@@ -525,30 +536,33 @@ void nrf_drv_radio802154_swi_continuous_carrier(bool * p_result)
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_buffer_free(uint8_t * p_data)
+void nrf_drv_radio802154_swi_buffer_free(uint8_t * p_data, bool * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
-    p_slot->type                    = REQ_TYPE_BUFFER_FREE;
-    p_slot->data.buffer_free.p_data = (rx_buffer_t *)p_data;
+    p_slot->type                      = REQ_TYPE_BUFFER_FREE;
+    p_slot->data.buffer_free.p_data   = p_data;
+    p_slot->data.buffer_free.p_result = p_result;
 
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_channel_update(void)
+void nrf_drv_radio802154_swi_channel_update(bool * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
-    p_slot->type                    = REQ_TYPE_CHANNEL_UPDATE;
+    p_slot->type                         = REQ_TYPE_CHANNEL_UPDATE;
+    p_slot->data.channel_update.p_result = p_result;
 
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_cca_cfg_update(void)
+void nrf_drv_radio802154_swi_cca_cfg_update(bool * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
-    p_slot->type = REQ_TYPE_CCA_CFG_UPDATE;
+    p_slot->type                         = REQ_TYPE_CCA_CFG_UPDATE;
+    p_slot->data.cca_cfg_update.p_result = p_result;
 
     req_exit();
 }
@@ -615,57 +629,78 @@ void SWI_IRQHandler(void)
         while (!req_queue_is_empty())
         {
             nrf_drv_radio802154_req_data_t * p_slot = &m_req_queue[m_req_r_ptr];
+            bool                             in_crit_sect;
 
-            nrf_drv_radio802154_critical_section_enter();
+            in_crit_sect = nrf_drv_radio802154_critical_section_enter();
 
             switch (p_slot->type)
             {
                 case REQ_TYPE_SLEEP:
-                    *(p_slot->data.sleep.p_result) = nrf_drv_radio802154_fsm_sleep();
+                    *(p_slot->data.sleep.p_result) = in_crit_sect ?
+                            nrf_drv_radio802154_fsm_sleep() :
+                            false;
                     break;
 
                 case REQ_TYPE_RECEIVE:
-                    *(p_slot->data.receive.p_result) = nrf_drv_radio802154_fsm_receive();
+                    *(p_slot->data.receive.p_result) = in_crit_sect ?
+                            nrf_drv_radio802154_fsm_receive() :
+                            false;
                     break;
 
                 case REQ_TYPE_TRANSMIT:
-                    *(p_slot->data.transmit.p_result) = nrf_drv_radio802154_fsm_transmit(
-                            p_slot->data.transmit.p_data,
-                            p_slot->data.transmit.cca);
+                    *(p_slot->data.transmit.p_result) = in_crit_sect ?
+                            nrf_drv_radio802154_fsm_transmit(
+                                    p_slot->data.transmit.p_data,
+                                    p_slot->data.transmit.cca) :
+                            false;
                     break;
 
                 case REQ_TYPE_ENERGY_DETECTION:
-                    *(p_slot->data.energy_detection.p_result) =
+                    *(p_slot->data.energy_detection.p_result) = in_crit_sect ?
                             nrf_drv_radio802154_fsm_energy_detection(
-                                    p_slot->data.energy_detection.time_us);
+                                    p_slot->data.energy_detection.time_us) :
+                            false;
                     break;
 
                 case REQ_TYPE_CCA:
-                    *(p_slot->data.cca.p_result) = nrf_drv_radio802154_fsm_cca();
+                    *(p_slot->data.cca.p_result) = in_crit_sect ?
+                            nrf_drv_radio802154_fsm_cca() :
+                            false;
                     break;
 
                 case REQ_TYPE_CONTINUOUS_CARRIER:
-                    *(p_slot->data.continuous_carrier.p_result) =
-                            nrf_drv_radio802154_fsm_continuous_carrier();
+                    *(p_slot->data.continuous_carrier.p_result) = in_crit_sect ?
+                            nrf_drv_radio802154_fsm_continuous_carrier() :
+                            false;
                     break;
 
                 case REQ_TYPE_BUFFER_FREE:
-                    nrf_drv_radio802154_fsm_notify_buffer_free(p_slot->data.buffer_free.p_data);
+                    *(p_slot->data.buffer_free.p_result) = in_crit_sect ?
+                            nrf_drv_radio802154_fsm_notify_buffer_free(
+                                    p_slot->data.buffer_free.p_data):
+                            false;
                     break;
 
                 case REQ_TYPE_CHANNEL_UPDATE:
-                    nrf_drv_radio802154_fsm_channel_update();
+                    *(p_slot->data.channel_update.p_result) = in_crit_sect ?
+                            nrf_drv_radio802154_fsm_channel_update() :
+                            false;
                     break;
 
                 case REQ_TYPE_CCA_CFG_UPDATE:
-                    nrf_drv_radio802154_fsm_cca_cfg_update();
+                    *(p_slot->data.cca_cfg_update.p_result) = in_crit_sect ?
+                            nrf_drv_radio802154_fsm_cca_cfg_update() :
+                            false;
                     break;
 
                 default:
                     assert(false);
             }
 
-            nrf_drv_radio802154_critical_section_exit();
+            if (in_crit_sect)
+            {
+                nrf_drv_radio802154_critical_section_exit();
+            }
 
             req_queue_ptr_increment(&m_req_r_ptr);
         }

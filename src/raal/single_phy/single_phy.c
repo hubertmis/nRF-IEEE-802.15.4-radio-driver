@@ -81,6 +81,11 @@ bool nrf_raal_timeslot_request(uint32_t length_us)
     return true;
 }
 
+bool nrf_raal_timeslot_is_granted(void)
+{
+    return true;
+}
+
 uint32_t nrf_raal_timeslot_us_left_get(void)
 {
     return UINT32_MAX;

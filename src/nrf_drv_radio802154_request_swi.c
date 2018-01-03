@@ -49,10 +49,38 @@
 #include "nrf_drv_radio802154_swi.h"
 #include "hal/nrf_radio.h"
 
-#include <cmsis/core_cmFunc.h>
-#include <cmsis/core_cm4.h>
+#include <nrf.h>
 
-#define CMSIS_IRQ_NUM_VECTACTIVE_DIFF 16
+#define REQUEST_FUNCTION(func_fsm, params_fsm, func_swi, params_swi)                               \
+    bool result = false;                                                                           \
+                                                                                                   \
+    if (active_vector_priority_is_high())                                                          \
+    {                                                                                              \
+        if (nrf_drv_radio802154_critical_section_enter())                                          \
+        {                                                                                          \
+            result = func_fsm params_fsm;                                                          \
+            nrf_drv_radio802154_critical_section_exit();                                           \
+        }                                                                                          \
+        else                                                                                       \
+        {                                                                                          \
+            result = false;                                                                        \
+        }                                                                                          \
+    }                                                                                              \
+    else                                                                                           \
+    {                                                                                              \
+        func_swi params_swi;                                                                       \
+    }                                                                                              \
+                                                                                                   \
+    return result;
+
+#define REQUEST_FUNCTION_NO_ARGS(func_fsm, func_swi)                                               \
+        REQUEST_FUNCTION(func_fsm, (), func_swi, (&result))
+
+#define REQUEST_FUNCTION_1_ARG(func_fsm, func_swi, arg)                                            \
+        REQUEST_FUNCTION(func_fsm, (arg), func_swi, (arg, &result))
+
+#define REQUEST_FUNCTION_2_ARGS(func_fsm, func_swi, arg1, arg2)                                    \
+        REQUEST_FUNCTION(func_fsm, (arg1, arg2), func_swi, (arg1, arg2, &result))
 
 /** Check if active vector priority is high enough to call requests directly.
  *
@@ -61,22 +89,9 @@
  */
 static bool active_vector_priority_is_high(void)
 {
-    uint32_t  active_vector_id = (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) >> SCB_ICSR_VECTACTIVE_Pos;
-    IRQn_Type irq_number;
-    uint32_t  active_priority;
 
-    // Check if this function is called from main thread.
-    if (active_vector_id == 0)
-    {
-        return false;
-    }
-
-    assert(active_vector_id >= CMSIS_IRQ_NUM_VECTACTIVE_DIFF);
-
-    irq_number      = (IRQn_Type)(active_vector_id - CMSIS_IRQ_NUM_VECTACTIVE_DIFF);
-    active_priority = NVIC_GetPriority(irq_number);
-
-    return active_priority <= NRF_DRV_RADIO802154_NOTIFICATION_SWI_PRIORITY;
+    return nrf_drv_radio802154_critical_section_active_vector_priority_get() <=
+            NRF_DRV_RADIO802154_NOTIFICATION_SWI_PRIORITY;
 }
 
 void nrf_drv_radio802154_request_init(void)
@@ -86,151 +101,59 @@ void nrf_drv_radio802154_request_init(void)
 
 bool nrf_drv_radio802154_request_sleep(void)
 {
-    bool result = false;
-
-    if (active_vector_priority_is_high())
-    {
-        nrf_drv_radio802154_critical_section_enter();
-        result = nrf_drv_radio802154_fsm_sleep();
-        nrf_drv_radio802154_critical_section_exit();
-    }
-    else
-    {
-        nrf_drv_radio802154_swi_sleep(&result);
-    }
-
-    return result;
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_sleep,
+                             nrf_drv_radio802154_swi_sleep)
 }
 
 bool nrf_drv_radio802154_request_receive(void)
 {
-    bool result = false;
-
-    if (active_vector_priority_is_high())
-    {
-        nrf_drv_radio802154_critical_section_enter();
-        result = nrf_drv_radio802154_fsm_receive();
-        nrf_drv_radio802154_critical_section_exit();
-    }
-    else
-    {
-        nrf_drv_radio802154_swi_receive(&result);
-    }
-
-    return result;
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_receive,
+                             nrf_drv_radio802154_swi_receive)
 }
 
 bool nrf_drv_radio802154_request_transmit(const uint8_t * p_data, bool cca)
 {
-    bool result = false;
-
-    if (active_vector_priority_is_high())
-    {
-        nrf_drv_radio802154_critical_section_enter();
-        result = nrf_drv_radio802154_fsm_transmit(p_data, cca);
-        nrf_drv_radio802154_critical_section_exit();
-    }
-    else
-    {
-        nrf_drv_radio802154_swi_transmit(p_data, cca, &result);
-    }
-
-    return result;
+    REQUEST_FUNCTION_2_ARGS(nrf_drv_radio802154_fsm_transmit,
+                            nrf_drv_radio802154_swi_transmit,
+                            p_data,
+                            cca)
 }
 
 bool nrf_drv_radio802154_request_energy_detection(uint32_t time_us)
 {
-    bool result = false;
-
-    if (active_vector_priority_is_high())
-    {
-        nrf_drv_radio802154_critical_section_enter();
-        result = nrf_drv_radio802154_fsm_energy_detection(time_us);
-        nrf_drv_radio802154_critical_section_exit();
-    }
-    else
-    {
-        nrf_drv_radio802154_swi_energy_detection(time_us, &result);
-    }
-
-    return result;
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_energy_detection,
+                           nrf_drv_radio802154_swi_energy_detection,
+                           time_us)
 }
 
 bool nrf_drv_radio802154_request_cca(void)
 {
-    bool result = false;
-
-    if (active_vector_priority_is_high())
-    {
-        nrf_drv_radio802154_critical_section_enter();
-        result = nrf_drv_radio802154_fsm_cca();
-        nrf_drv_radio802154_critical_section_exit();
-    }
-    else
-    {
-        nrf_drv_radio802154_swi_cca(&result);
-    }
-
-    return result;
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_cca,
+                             nrf_drv_radio802154_swi_cca)
 }
 
 bool nrf_drv_radio802154_request_continuous_carrier(void)
 {
-    bool result = false;
-
-    if (active_vector_priority_is_high())
-    {
-        nrf_drv_radio802154_critical_section_enter();
-        result = nrf_drv_radio802154_fsm_continuous_carrier();
-        nrf_drv_radio802154_critical_section_exit();
-    }
-    else
-    {
-        nrf_drv_radio802154_swi_continuous_carrier(&result);
-    }
-
-    return result;
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_continuous_carrier,
+                             nrf_drv_radio802154_swi_continuous_carrier)
 }
 
-void nrf_drv_radio802154_request_buffer_free(uint8_t * p_data)
+bool nrf_drv_radio802154_request_buffer_free(uint8_t * p_data)
 {
-    if (active_vector_priority_is_high())
-    {
-        nrf_drv_radio802154_critical_section_enter();
-        nrf_drv_radio802154_fsm_notify_buffer_free((rx_buffer_t *)p_data);
-        nrf_drv_radio802154_critical_section_exit();
-    }
-    else
-    {
-        nrf_drv_radio802154_swi_buffer_free(p_data);
-    }
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_notify_buffer_free,
+                           nrf_drv_radio802154_swi_buffer_free,
+                           p_data)
 }
 
-void nrf_drv_radio802154_request_channel_update(void)
+bool nrf_drv_radio802154_request_channel_update(void)
 {
-    if (active_vector_priority_is_high())
-    {
-        nrf_drv_radio802154_critical_section_enter();
-        nrf_drv_radio802154_fsm_channel_update();
-        nrf_drv_radio802154_critical_section_exit();
-    }
-    else
-    {
-        nrf_drv_radio802154_swi_channel_update();
-    }
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_channel_update,
+                             nrf_drv_radio802154_swi_channel_update)
 }
 
-void nrf_drv_radio802154_request_cca_cfg_update(void)
+bool nrf_drv_radio802154_request_cca_cfg_update(void)
 {
-    if (active_vector_priority_is_high())
-    {
-        nrf_drv_radio802154_critical_section_enter();
-        nrf_drv_radio802154_fsm_cca_cfg_update();
-        nrf_drv_radio802154_critical_section_exit();
-    }
-    else
-    {
-        nrf_drv_radio802154_swi_cca_cfg_update();
-    }
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_cca_cfg_update,
+                             nrf_drv_radio802154_swi_cca_cfg_update)
 }
 

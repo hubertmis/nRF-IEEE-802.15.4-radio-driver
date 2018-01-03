@@ -658,6 +658,11 @@ bool nrf_raal_timeslot_request(uint32_t length_us)
     return timer_time_get() + length_us < nrf_timer_cc_read(RAAL_TIMER, TIMER_CC_MARGIN);
 }
 
+bool nrf_raal_timeslot_is_granted(void)
+{
+    return (m_continuous && m_in_timeslot);
+}
+
 uint32_t nrf_raal_timeslot_us_left_get(void)
 {
     if (!m_continuous || !m_in_timeslot)
@@ -672,7 +677,6 @@ void nrf_raal_critical_section_enter(void)
 {
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_CRIT_SECT_ENTER);
 
-    assert(!m_in_critical_section);
     m_in_critical_section = true;
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CRIT_SECT_ENTER);
@@ -684,7 +688,6 @@ void nrf_raal_critical_section_exit(void)
 
     timeslot_critical_section_enter();
 
-    assert(m_in_critical_section);
     m_in_critical_section = false;
 
     switch (m_pending_event)
