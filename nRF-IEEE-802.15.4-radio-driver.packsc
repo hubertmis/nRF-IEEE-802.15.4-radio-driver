@@ -1,0 +1,222 @@
+{
+    "nrf_drv_radio802154": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "-",
+        "_includes": [
+            "src"
+        ],
+        "_headers": [
+            "src/nrf_drv_radio802154_config.h"
+        ],
+        "_links": [
+            "nrf52840_xxaa"
+        ],
+        "_replacements": [
+            {
+                "_value": "DebugLevel=gdb3",
+                "_condition": "'armgcc' in _toolchains"
+            },
+            {
+                "_value": "OptimizationLevel=s",
+                "_condition": "'armgcc' in _toolchains"
+            }
+        ],
+        "_files": [
+            "src/nrf_drv_radio802154.c",
+            "src/nrf_drv_radio802154_ack_pending_bit.c",
+            "src/nrf_drv_radio802154_critical_section.c",
+            "src/nrf_drv_radio802154_debug.c",
+            "src/nrf_drv_radio802154_fsm.c",
+            "src/nrf_drv_radio802154_pib.c",
+            "src/nrf_drv_radio802154_revision.c",
+            "src/nrf_drv_radio802154_rx_buffer.c",
+            "src/platform/clock/nrf_drv_radio802154_clock_sdk.c",
+            "src/platform/timer/nrf_drv_radio802154_timer_none.c"
+        ],
+        "_variants": [
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_files": [
+                    "src/nrf_drv_radio802154_notification_swi.c",
+                    "src/nrf_drv_radio802154_priority_drop_swi.c",
+                    "src/nrf_drv_radio802154_request_swi.c",
+                    "src/nrf_drv_radio802154_swi.c"
+                ],
+                "_links": [
+                    ["s140"]
+                ],
+                "_name": "swi"
+            },
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_files": [
+                    "src/nrf_drv_radio802154_notification_direct.c",
+                    "src/nrf_drv_radio802154_priority_drop_direct.c",
+                    "src/nrf_drv_radio802154_request_direct.c"
+                ],
+                "_links": [
+                    "!s140"
+                ],
+                "_name": "direct"
+            }
+        ]
+    },
+
+    "raal": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "RAAL",
+        "_headers": [
+            "src/raal/nrf_raal_config.h"
+        ],
+        "_links": [
+            "hal"
+        ],
+        "_includes": [
+            "src/raal"
+        ],
+        "_variants": [
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_defines": [
+                    "RAAL_SIMULATOR"
+                ],
+                "_files": [
+                    "src/raal/simulator/nrf_raal_simulator.c"
+                ],
+                "_name": "simulator"
+            },
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_defines": [
+                    "RAAL_SINGLE_PHY"
+                ],
+                "_files": [
+                    "src/raal/single_phy/single_phy.c"
+                ],
+                "_name": "single_phy"
+            },
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_defines": [
+                    "RAAL_SOFTDEVICE"
+                ],
+                "_files": [
+                    "src/raal/softdevice/nrf_raal_softdevice.c"
+                ],
+                "_includes": [
+                    "src/raal/softdevice"
+                ],
+                "_links": [
+                    "nrf_drivers",
+                    "softdevice_sim",
+                    "s140"
+                ],
+                "_name": "softdevice"
+            }
+        ]
+    },
+
+    "fem": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "FEM",
+        "_headers": [
+            "src/fem/nrf_fem_control_config.h"
+        ],
+        "_links": [
+            "hal"
+        ],
+        "_includes": [
+            "src/fem"
+        ],
+        "_files": [
+            "src/fem/nrf_fem_control_common.c"
+        ],
+        "_defines": [
+            "ENABLE_FEM"
+        ],
+        "_variants": [
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_files": [
+                    "src/fem/nrf_fem_control_direct.c"
+                ],
+                "_links": [
+                    "!s140"
+                ]
+            },
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_links": [
+                ["s140"]
+                ],
+                "_files": [
+                    "src/fem/nrf_fem_control_softdevice.c"
+                ],
+                "_name": "softdevice"
+            }
+        ]
+    },
+
+  "hal": {
+      "_class": "nRF_drv_radio_802_15_4",
+      "_description": "HAL",
+      "_includes": [
+          "external",
+          "external/hal",
+          "src/hal"
+      ],
+      "_variants": [
+          {
+              "_attrs": [
+                  "public"
+              ]
+          }
+      ]
+  },
+
+    "cli": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "This option enables CLI.",
+        "_defines": [
+            "ENABLE_CLI"
+        ]
+    },
+
+    "debug_log": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "This option provides an array containing events logged by the driver.",
+        "_defines": [
+            "ENABLE_DEBUG_LOG"
+        ]
+    },
+
+    "debug_assert": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "This option disables all IRQ on an assert and enters indefinite loop.",
+        "_defines": [
+            "ENABLE_DEBUG_ASSERT"
+        ]
+    },
+
+    "debug_gpio": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "This option connects RADIO events with GPIO output.",
+        "_defines": [
+            "ENABLE_DEBUG_GPIO"
+        ]
+    }
+}
