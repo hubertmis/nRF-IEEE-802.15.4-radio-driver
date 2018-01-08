@@ -56,6 +56,7 @@
 #include "nrf_drv_radio802154_rx_buffer.h"
 #include "fem/nrf_fem_control_api.h"
 #include "hal/nrf_radio.h"
+#include "mac_features/nrf_drv_radio802154_filter.h"
 #include "raal/nrf_raal_api.h"
 
 
@@ -94,10 +95,6 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 #define TIFS_ACK_US         TURNAROUND_TIME
 /// Delay before first check of received frame: 16 bits is MAC Frame Control field.
 #define BCC_INIT            (2 * 8)
-/// Delay before second check of received frame if destination address is short.
-#define BCC_SHORT_ADDR      ((DEST_ADDR_OFFSET + SHORT_ADDRESS_SIZE) * 8)
-/// Delay before second check of received frame if destination address is extended.
-#define BCC_EXTENDED_ADDR   ((DEST_ADDR_OFFSET + EXTENDED_ADDRESS_SIZE) * 8)
 
 /// Duration of single iteration of Energy Detection procedure
 #define ED_ITER_DURATION   128U
@@ -133,7 +130,8 @@ static volatile radio_state_t m_state = RADIO_STATE_SLEEP;  ///< State of the ra
 
 typedef struct
 {
-    bool prevent_ack :1;  ///< If frame being received is not destined to this node (promiscuous mode).
+    bool frame_filtered        :1;  ///< If frame being received passed filtering operation.
+    bool rx_timeslot_requested :1;  ///< If timeslot for the frame being received is already requested.
 } nrf_radio802154_flags_t;
 static nrf_radio802154_flags_t m_flags;  ///< Flags used to store current driver state.
 
@@ -179,6 +177,9 @@ static inline void rx_start(void)
 /// Start receiver to wait for frame that can be acknowledged.
 static inline void rx_frame_start(void)
 {
+    m_flags.frame_filtered        = false;
+    m_flags.rx_timeslot_requested = false;
+
     rx_start();
 
     // Just after starting receiving to receive buffer set packet pointer to ACK frame that can be
@@ -727,11 +728,28 @@ void nrf_raal_timeslot_ended(void)
 /// This event is handled when the radio starts receiving a frame.
 static inline void irq_framestart_state_waiting_rx_frame(void)
 {
+    uint8_t num_psdu_bytes = PHR_SIZE;
+
     state_set(RADIO_STATE_RX_HEADER);
     assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
 
-    if ((mp_current_rx_buffer->psdu[0] < ACK_LENGTH) ||
-        (mp_current_rx_buffer->psdu[0] > MAX_PACKET_SIZE))
+    if (nrf_drv_radio802154_filter_frame_part(mp_current_rx_buffer->psdu, &num_psdu_bytes))
+    {
+        if (num_psdu_bytes != PHR_SIZE)
+        {
+            nrf_radio_bcc_set((num_psdu_bytes - 1) * 8);
+        }
+        else
+        {
+            nrf_radio_bcc_set(PHR_SIZE + FCF_SIZE); // To request timeslot
+            m_flags.frame_filtered = true;
+        }
+
+        nrf_radio_task_trigger(NRF_RADIO_TASK_RSSISTART);
+
+        nrf_drv_radio802154_rx_started();
+    }
+    else
     {
         auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
         nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
@@ -739,12 +757,6 @@ static inline void irq_framestart_state_waiting_rx_frame(void)
         nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
         nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
         receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
-    }
-    else
-    {
-        nrf_radio_task_trigger(NRF_RADIO_TASK_RSSISTART);
-
-        nrf_drv_radio802154_rx_started();
     }
 
     switch (nrf_radio_state_get())
@@ -808,115 +820,12 @@ static inline void irq_framestart_state_tx_ack(void)
     nrf_drv_radio802154_tx_ack_started();
 }
 
-/// This event is handled when MHR is received
-static inline void irq_bcmatch_mhr(void)
-{
-    // Verify if time slot for receiving is available.
-    if (nrf_raal_timeslot_request(nrf_drv_radio802154_rx_duration_get(
-            mp_current_rx_buffer->psdu[0],
-            ack_is_requested(mp_current_rx_buffer->psdu))))
-    {
-        uint8_t frame_type = mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK;
-
-        // Check Frame Control field.
-        switch (frame_type)
-        {
-            case FRAME_TYPE_BEACON:
-                // Beacon is broadcast frame.
-                m_flags.prevent_ack = false;
-                state_set(RADIO_STATE_RX_FRAME);
-                break;
-
-            case FRAME_TYPE_DATA:
-            case FRAME_TYPE_COMMAND:
-
-                // For data or command check destination address.
-                switch (mp_current_rx_buffer->psdu[DEST_ADDR_TYPE_OFFSET] &
-                        DEST_ADDR_TYPE_MASK)
-                {
-                    case DEST_ADDR_TYPE_SHORT:
-                        nrf_radio_bcc_set(BCC_SHORT_ADDR);
-                        break;
-
-                    case DEST_ADDR_TYPE_EXTENDED:
-                        nrf_radio_bcc_set(BCC_EXTENDED_ADDR);
-                        break;
-
-                    default:
-                        auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
-                        nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-                        nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                        nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-                        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
-                }
-
-                break;
-
-            default:
-
-                // For ACK and other types: in promiscuous mode accept it as broadcast;
-                // in normal mode drop the frame.
-                if (nrf_drv_radio802154_pib_promiscuous_get())
-                {
-                    m_flags.prevent_ack = true;
-                    state_set(RADIO_STATE_RX_FRAME);
-                }
-                else
-                {
-                    auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-                    // Do not count received ACK as an error.
-                    if (frame_type != FRAME_TYPE_ACK)
-                    {
-                        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
-                    }
-                }
-        }
-    }
-    else
-    {
-        irq_deinit();
-        nrf_radio_reset();
-
-        state_set(RADIO_STATE_WAITING_TIMESLOT);
-
-        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED);
-    }
-}
-
-/// This event is generated when destination address fields are received.
-static inline void irq_bcmatch_address(void)
-{
-    if (nrf_drv_radio802154_pib_dest_addr_matches(mp_current_rx_buffer->psdu))
-    {
-        m_flags.prevent_ack = false;
-        state_set(RADIO_STATE_RX_FRAME);
-    }
-    else
-    {
-        if (nrf_drv_radio802154_pib_promiscuous_get())
-        {
-            m_flags.prevent_ack = true;
-            state_set(RADIO_STATE_RX_FRAME);
-        }
-        else
-        {
-            auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-            receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_DEST_ADDR);
-        }
-    }
-}
-
-/** This event is generated twice during frame reception:
- *  when MHR is received and when destination address fields are received.
- */
+/// This event is generated during frame reception to request RAAL timeslot and to filter frame
 static inline void irq_bcmatch_state_rx_header(void)
 {
+    uint8_t prev_num_psdu_bytes;
+    uint8_t num_psdu_bytes;
+
     assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
 
     switch (nrf_radio_state_get())
@@ -926,21 +835,66 @@ static inline void irq_bcmatch_state_rx_header(void)
         case NRF_RADIO_STATE_RX_DISABLE:
         case NRF_RADIO_STATE_DISABLED:
         case NRF_RADIO_STATE_TX_RU:      // A lot of states due to shorts.
+            num_psdu_bytes      = (nrf_radio_bcc_get() / 8) + 1;
+            prev_num_psdu_bytes = num_psdu_bytes;
 
-            switch (nrf_radio_bcc_get())
+            if (m_flags.rx_timeslot_requested || ((num_psdu_bytes >= PHR_SIZE + FCF_SIZE) &&
+                nrf_raal_timeslot_request(nrf_drv_radio802154_rx_duration_get(
+                        mp_current_rx_buffer->psdu[0],
+                        ack_is_requested(mp_current_rx_buffer->psdu)))))
             {
-                case BCC_INIT: // Received MHR
-                    irq_bcmatch_mhr();
-                    break;
+                m_flags.rx_timeslot_requested = true;
 
-                case BCC_SHORT_ADDR:     // Received short destination address
-                case BCC_EXTENDED_ADDR:  // Received extended destination address
-                    // Check destination address during second match.
-                    irq_bcmatch_address();
-                    break;
+                if (!m_flags.frame_filtered)
+                {
+                    if (nrf_drv_radio802154_filter_frame_part(mp_current_rx_buffer->psdu,
+                                                              &num_psdu_bytes))
+                    {
+                        if (num_psdu_bytes != prev_num_psdu_bytes)
+                        {
+                            nrf_radio_bcc_set((num_psdu_bytes - 1) * 8);
+                        }
+                        else
+                        {
+                            m_flags.frame_filtered = true;
+                            state_set(RADIO_STATE_RX_FRAME);
+                        }
+                    }
+                    else
+                    {
+                        if (!nrf_drv_radio802154_pib_promiscuous_get())
+                        {
+                            auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
+                            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+                            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
 
-                default:
-                    assert(false);
+                            if ((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
+                                    FRAME_TYPE_ACK)
+                            {
+                                nrf_drv_radio802154_notify_receive_failed(
+                                        NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
+                            }
+                        }
+                        else
+                        {
+                            state_set(RADIO_STATE_RX_FRAME);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                if (num_psdu_bytes >= PHR_SIZE + FCF_SIZE)
+                {
+                    irq_deinit();
+                    nrf_radio_reset();
+
+                    state_set(RADIO_STATE_WAITING_TIMESLOT);
+
+                    nrf_drv_radio802154_notify_receive_failed(
+                            NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED);
+                }
             }
 
             break;
@@ -998,12 +952,18 @@ static inline void irq_end_state_rx_frame(void)
             {
                 if ((!ack_is_requested(mp_current_rx_buffer->psdu)) ||
                     (!nrf_drv_radio802154_pib_auto_ack_get()) ||
-                    m_flags.prevent_ack)
+                    (!m_flags.frame_filtered && nrf_drv_radio802154_pib_promiscuous_get()))
                 {
                     auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                    received_frame_notify();
+
+                    // Filter out received ACK frame if promiscuous mode is disabled.
+                    if (((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
+                            FRAME_TYPE_ACK) || nrf_drv_radio802154_pib_promiscuous_get())
+                    {
+                        received_frame_notify();
+                    }
                 }
                 else
                 {

@@ -44,8 +44,6 @@
 #include "nrf_drv_radio802154_config.h"
 #include "nrf_drv_radio802154_const.h"
 
-#define BROADCAST_ADDRESS    ((uint8_t [SHORT_ADDRESS_SIZE]) {0xff, 0xff}) ///< Broadcast Short Address
-
 typedef struct
 {
     int8_t                        tx_power;                                ///< Transmit power.
@@ -135,9 +133,19 @@ void nrf_drv_radio802154_pib_tx_power_set(int8_t dbm)
     m_data.tx_power = dbm;
 }
 
+const uint8_t * nrf_drv_radio802154_pib_pan_id_get(void)
+{
+    return m_data.pan_id;
+}
+
 void nrf_drv_radio802154_pib_pan_id_set(const uint8_t * p_pan_id)
 {
     memcpy(m_data.pan_id, p_pan_id, PAN_ID_SIZE);
+}
+
+const uint8_t * nrf_drv_radio802154_pib_extended_address_get(void)
+{
+    return m_data.extended_addr;
 }
 
 void nrf_drv_radio802154_pib_extended_address_set(const uint8_t * p_extended_address)
@@ -145,58 +153,14 @@ void nrf_drv_radio802154_pib_extended_address_set(const uint8_t * p_extended_add
     memcpy(m_data.extended_addr, p_extended_address, EXTENDED_ADDRESS_SIZE);
 }
 
+const uint8_t * nrf_drv_radio802154_pib_short_address_get(void)
+{
+    return m_data.short_addr;
+}
+
 void nrf_drv_radio802154_pib_short_address_set(const uint8_t * p_short_address)
 {
     memcpy(m_data.short_addr, p_short_address, SHORT_ADDRESS_SIZE);
-}
-
-bool nrf_drv_radio802154_pib_dest_addr_matches(const uint8_t * p_psdu)
-{
-    // Check destination PAN Id.
-    // Note that +1 in PSDU offset is added because first byte in PSDU is length.
-    if ((0 != memcmp(&p_psdu[PAN_ID_OFFSET + 1], m_data.pan_id, PAN_ID_SIZE)) &&
-        (0 != memcmp(&p_psdu[PAN_ID_OFFSET + 1], BROADCAST_ADDRESS, PAN_ID_SIZE)))
-    {
-        return false;
-    }
-
-    // Check destination address.
-    switch (p_psdu[DEST_ADDR_TYPE_OFFSET] & DEST_ADDR_TYPE_MASK)
-    {
-        case DEST_ADDR_TYPE_SHORT:
-        {
-            // Note that +1 in PSDU offset is added because first byte in PSDU is length.
-            if ((0 != memcmp(&p_psdu[DEST_ADDR_OFFSET + 1],
-                             m_data.short_addr,
-                             SHORT_ADDRESS_SIZE)) &&
-                (0 != memcmp(&p_psdu[DEST_ADDR_OFFSET + 1],
-                             BROADCAST_ADDRESS,
-                             SHORT_ADDRESS_SIZE)))
-            {
-                return false;
-            }
-
-            break;
-        }
-
-        case DEST_ADDR_TYPE_EXTENDED:
-        {
-            // Note that +1 in PSDU offset is added because first byte in PSDU is length.
-            if (0 != memcmp(&p_psdu[DEST_ADDR_OFFSET + 1],
-                            m_data.extended_addr,
-                            sizeof(m_data.extended_addr)))
-            {
-                return false;
-            }
-
-            break;
-        }
-
-        default:
-            return false;
-    }
-
-    return true;
 }
 
 void nrf_drv_radio802154_pib_cca_cfg_set(const nrf_drv_radio802154_cca_cfg_t * p_cca_cfg)

@@ -110,6 +110,13 @@ int8_t nrf_drv_radio802154_pib_tx_power_get(void);
 void nrf_drv_radio802154_pib_tx_power_set(int8_t dbm);
 
 /**
+ * @brief Get PAN Id used by this device.
+ *
+ * @returns Pointer to buffer containing PAN Id value (2 bytes, little-endian).
+ */
+const uint8_t * nrf_drv_radio802154_pib_pan_id_get(void);
+
+/**
  * @brief Set PAN Id used by this device.
  *
  * @param[in]  p_pan_id  Pointer to PAN Id (2 bytes, little-endian).
@@ -117,6 +124,13 @@ void nrf_drv_radio802154_pib_tx_power_set(int8_t dbm);
  * This function makes copy of the PAN Id.
  */
 void nrf_drv_radio802154_pib_pan_id_set(const uint8_t * p_pan_id);
+
+/**
+ * @brief Get Extended Address of this device
+ *
+ * @returns Pointer to buffer containing extended address (8 bytes, little-endian).
+ */
+const uint8_t * nrf_drv_radio802154_pib_extended_address_get(void);
 
 /**
  * @brief Set Extended Address of this device.
@@ -128,6 +142,13 @@ void nrf_drv_radio802154_pib_pan_id_set(const uint8_t * p_pan_id);
 void nrf_drv_radio802154_pib_extended_address_set(const uint8_t * p_extended_address);
 
 /**
+ * @brief Get Short Address of this device
+ *
+ * @returns Pointer to buffer containing short address (2 bytes, little-endian).
+ */
+const uint8_t * nrf_drv_radio802154_pib_short_address_get(void);
+
+/**
  * @brief Set Short Address of this device.
  *
  * @param[in]  p_short_address  Pointer to short address (2 bytes, little-endian).
@@ -135,19 +156,6 @@ void nrf_drv_radio802154_pib_extended_address_set(const uint8_t * p_extended_add
  * This function makes copy of the address.
  */
 void nrf_drv_radio802154_pib_short_address_set(const uint8_t * p_short_address);
-
-/**
- * @brief Check if destination address in given frame matches address stored in this module or
- *        broadcast address.
- *
- * This function is intended to check if received frame is destined to this node.
- *
- * @param[in]  p_psdu  Pointer to PSDU of frame to check.
- *
- * @return  If destination address in given PSDU matches address stored in this module or broadcast
- *          address.
- */
-bool nrf_drv_radio802154_pib_dest_addr_matches(const uint8_t * p_psdu);
 
 /**
  * @brief Set radio CCA mode and threshold.
