@@ -10,7 +10,7 @@
             "src/nrf_drv_radio802154_ack_pending_bit.h",
             "src/nrf_drv_radio802154_critical_section.h",
             "src/nrf_drv_radio802154_debug.h",
-            "src-nrf_drv_radio802154_fsm_hooks.h",
+            "src/nrf_drv_radio802154_fsm_hooks.h",
             "src/nrf_drv_radio802154_notification.h",
             "src/nrf_drv_radio802154_pib.h",
             "src/nrf_drv_radio802154_priority_drop.h",
