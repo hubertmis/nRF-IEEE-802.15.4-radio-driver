@@ -67,16 +67,31 @@ extern "C" {
 typedef void (* nrf_drv_radio802154_timer_callback_t)(void * p_context);
 
 /**
+ * @brief Type for driver instance.
+ */
+typedef struct nrf_drv_radio802154_timer_s nrf_drv_radio802154_timer_t;
+
+/**
  * @brief Structure containing timer data used by timer module.
  */
-typedef struct
+struct nrf_drv_radio802154_timer_s
 {
     uint32_t                             t0;         ///< Base time of the timer [us]
     uint32_t                             dt;         ///< Timer expiration delta from @p t0 [us]
     nrf_drv_radio802154_timer_callback_t callback;   ///< Callback function called when timer expires
     void                               * p_context;  ///< User-defined context passed to callback function
-} nrf_drv_radio802154_timer_t;
+    nrf_drv_radio802154_timer_t        * p_next;     ///< A pointer to the next running timer
+};
 
+/**
+ * @brief Initialize the timer scheduler.
+ */
+void nrf_drv_radio802154_timer_sched_init(void);
+
+/**
+ * @brief Deinitialize the timer scheduler.
+ */
+void nrf_drv_radio802154_timer_sched_deinit(void);
 
 /**
  * @brief Get current time.
@@ -107,7 +122,7 @@ bool nrf_drv_radio802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0
  *
  * @note Due to timer granularity the callback function cannot be called exactly at specified time.
  *       Use @p round_up to specify if given timer should be expired before or after time given in
- *       the @p p_timer structure.
+ *       the @p p_timer structure. The dt field of the @p p_timer is updated with the rounded up value.
  *
  * @param[inout]  p_timer   Pointer to the timer to start and add to the scheduler.
  * @param[in]     round_up  True if timer should expire after specified time, false if it should
