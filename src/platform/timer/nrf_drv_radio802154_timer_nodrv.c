@@ -370,6 +370,11 @@ void nrf_drv_radio802154_timer_start(uint32_t t0, uint32_t dt)
     }
 }
 
+bool nrf_drv_radio802154_timer_is_running(void)
+{
+    return nrf_rtc_int_is_enabled(NRF_DRV_RADIO802154_RTC_INSTANCE, RTC_COMPARE_INT_MASK);
+}
+
 void nrf_drv_radio802154_timer_stop(void)
 {
     nrf_rtc_event_disable(NRF_DRV_RADIO802154_RTC_INSTANCE, RTC_COMPARE_EVENT_MASK);
