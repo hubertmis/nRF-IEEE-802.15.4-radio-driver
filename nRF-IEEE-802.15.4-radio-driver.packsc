@@ -99,6 +99,7 @@
                     "cmock\\mock_nrf_drv_radio802154_ack_pending_bit.c",
                     "cmock\\mock_nrf_drv_radio802154_critical_section.c",
                     "cmock\\mock_nrf_drv_radio802154_debug.c",
+                    "cmock\\mock_nrf_drv_radio802154_fsm_hooks.c",
                     "cmock\\mock_nrf_drv_radio802154_notification.c",
                     "cmock\\mock_nrf_drv_radio802154_pib.c",
                     "cmock\\mock_nrf_drv_radio802154_priority_drop.c",

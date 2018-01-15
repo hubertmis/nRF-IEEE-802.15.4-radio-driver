@@ -38,6 +38,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "nrf.h"
 
 #define TX_RAMP_UP_TIME       40  // us
 #define RX_RAMP_UP_TIME       40  // us
@@ -59,9 +60,19 @@
                                PHY_SHR_DURATION +                                                 \
                                (NUM_OCTETS_IN_ACK * PHY_SYMBOLS_PER_OCTET))
 
-static inline uint16_t nrf_drv_radio802154_tx_duration_get(uint8_t psdu_length,
-                                                           bool    cca,
-                                                           bool    ack_requested)
+__STATIC_INLINE uint16_t nrf_drv_radio802154_tx_duration_get(uint8_t psdu_length,
+                                                             bool    cca,
+                                                             bool    ack_requested);
+
+__STATIC_INLINE uint16_t nrf_drv_radio802154_rx_duration_get(uint8_t psdu_length, bool ack_requested);
+
+__STATIC_INLINE uint16_t nrf_drv_radio802154_cca_duration_get(void);
+
+#ifndef SUPPRESS_INLINE_IMPLEMENTATION
+
+__STATIC_INLINE uint16_t nrf_drv_radio802154_tx_duration_get(uint8_t psdu_length,
+                                                             bool    cca,
+                                                             bool    ack_requested)
 {
     // ramp down
     // if CCA: + RX ramp up + CCA + RX ramp down
@@ -86,11 +97,11 @@ static inline uint16_t nrf_drv_radio802154_tx_duration_get(uint8_t psdu_length,
     return result;
 }
 
-static inline uint16_t nrf_drv_radio802154_rx_duration_get(uint8_t psdu_length, bool ack_requested)
+__STATIC_INLINE uint16_t nrf_drv_radio802154_rx_duration_get(uint8_t psdu_length, bool ack_requested)
 {
     // SHR + PHR + PSDU
     // if ACK: + aTurnaroundTime + ACK frame duration
-    uint16_t result = PHY_SHR_DURATION + (psdu_length + 1) * PHY_SYMBOLS_PER_OCTET;
+    uint16_t result = PHY_SHR_DURATION + ((psdu_length + 1) * PHY_SYMBOLS_PER_OCTET);
 
     if (ack_requested)
     {
@@ -104,12 +115,14 @@ static inline uint16_t nrf_drv_radio802154_rx_duration_get(uint8_t psdu_length, 
     return result;
 }
 
-static inline uint16_t nrf_drv_radio802154_cca_duration_get(void)
+__STATIC_INLINE uint16_t nrf_drv_radio802154_cca_duration_get(void)
 {
     // ramp down + rx ramp up + CCA
-    uint16_t result = MAX_RAMP_DOWN_TIME + RX_RAMP_UP_TIME + A_CCA_DURATION * PHY_US_PER_SYMBOL;
+    uint16_t result = MAX_RAMP_DOWN_TIME + RX_RAMP_UP_TIME + (A_CCA_DURATION * PHY_US_PER_SYMBOL);
 
     return result;
 }
+
+#endif /* SUPPRESS_INLINE_IMPLEMENTATION */
 
 #endif /* NRF_DRV_RADIO802154_PROCEDURES_DURATION_H_ */
