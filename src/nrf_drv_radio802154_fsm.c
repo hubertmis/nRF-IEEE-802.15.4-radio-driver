@@ -319,6 +319,30 @@ static void tx_enable(void)
     nrf_fem_control_pa_set(false, false);
 }
 
+/** Verify if PSDU is being received.
+ *
+ * @retval true   RADIO is currently receiving PSDU.
+ * @retval false  RADIO is currently not receiving PSDU.
+ */
+static bool psdu_is_being_received(void)
+{
+    bool result;
+
+    switch (m_state)
+    {
+        case RADIO_STATE_RX_HEADER:
+        case RADIO_STATE_RX_FRAME:
+        case RADIO_STATE_TX_ACK:
+            result = true;
+            break;
+
+        default:
+            result = false;
+    }
+
+    return result;
+}
+
 /***************************************************************************************************
  * @section Radio parameters calculators
  **************************************************************************************************/
@@ -1837,15 +1861,6 @@ static inline void irq_handler(void)
  * @section FSM transition request sub-procedures
  **************************************************************************************************/
 
-/** Abort ongoing operation.
- *
- * This function is called when MAC layer requests transition to another operation.
- */
-static void current_operation_abort(void)
-{
-    nrf_drv_radio802154_fsm_hooks_abort();
-}
-
 /** Abort transmission procedure.
  *
  *  This function is called when MAC layer requests transition from transmit to receive state.
@@ -1884,6 +1899,67 @@ static inline void tx_procedure_abort(radio_state_t state)
     nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
 }
 
+/** Abort ongoing operation.
+ *
+ * This function is called when MAC layer requests transition to another operation.
+ *
+ * After calling this function RADIO should enter DISABLED state and RAAL should be in continuous
+ * mode.
+ *
+ */
+static void current_operation_abort(void)
+{
+    nrf_drv_radio802154_fsm_hooks_abort();
+
+    switch (m_state)
+    {
+        case RADIO_STATE_DISABLING:
+            // Do nothing: radio is disabled and RAAL is in continuous mode.
+            break;
+
+        case RADIO_STATE_SLEEP:
+            state_set(RADIO_STATE_WAITING_TIMESLOT);
+            nrf_raal_continuous_mode_enter();
+            break;
+
+        case RADIO_STATE_WAITING_TIMESLOT:
+            // Do nothing: radio is disabled and RAAL is in continuous mode.
+            break;
+
+        case RADIO_STATE_WAITING_RX_FRAME:
+        case RADIO_STATE_RX_HEADER:
+        case RADIO_STATE_RX_FRAME:
+        case RADIO_STATE_TX_ACK:
+            auto_ack_abort(m_state);
+
+            nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+            break;
+
+        case RADIO_STATE_CCA_BEFORE_TX:
+        case RADIO_STATE_TX_FRAME:
+        case RADIO_STATE_RX_ACK:
+            tx_procedure_abort(m_state);
+            break;
+
+        case RADIO_STATE_ED:
+        case RADIO_STATE_CCA:
+            // TODO: Implement procedures to exit these states.
+            break;
+
+        case RADIO_STATE_CONTINUOUS_CARRIER:
+            nrf_radio_event_clear(NRF_RADIO_EVENT_DISABLED);
+            nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+            break;
+
+        default:
+            assert(false);
+    }
+}
+
 
 /***************************************************************************************************
  * @section API functions
@@ -1916,49 +1992,13 @@ bool nrf_drv_radio802154_fsm_sleep(void)
 {
     bool result = false;
 
-    switch (m_state)
-    {
-        case RADIO_STATE_WAITING_TIMESLOT:
-            sleep_start();
-            result = true;
-            break;
-
-        case RADIO_STATE_WAITING_RX_FRAME:
-            auto_ack_abort(RADIO_STATE_DISABLING);
-
-            assert(nrf_radio_shorts_get() == SHORTS_IDLE);
-
-            // Clear events that could have happened in critical section due to receiving frame
-            // or RX ramp up.
-            nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-
-            result = true;
-
-            break;
-
-        case RADIO_STATE_RX_HEADER:
-        case RADIO_STATE_RX_FRAME:
-        case RADIO_STATE_TX_ACK:
-            break;
-
-        case RADIO_STATE_CCA_BEFORE_TX:
-        case RADIO_STATE_TX_FRAME:
-        case RADIO_STATE_RX_ACK:
-            tx_procedure_abort(RADIO_STATE_DISABLING);
-            result = true;
-            break;
-
-        default:
-            assert(false); // This should not happen.
-    }
-
-    if (result)
+    // TODO: Provide API to check if PSDU is being received and allow transition to sleep state
+    //       even during PSDU reception. It's up to MAC layer.
+    if (!psdu_is_being_received())
     {
         current_operation_abort();
+        state_set(RADIO_STATE_DISABLING);
+        result = true;
     }
 
     return result;
@@ -1966,66 +2006,14 @@ bool nrf_drv_radio802154_fsm_sleep(void)
 
 bool nrf_drv_radio802154_fsm_receive(void)
 {
-    bool result = false;
-
-    switch (m_state)
-    {
-        case RADIO_STATE_WAITING_RX_FRAME:
-        case RADIO_STATE_RX_HEADER:
-        case RADIO_STATE_RX_FRAME:
-        case RADIO_STATE_TX_ACK:
-            result = true;
-            break;
-
-        case RADIO_STATE_DISABLING:
-            state_set(RADIO_STATE_WAITING_RX_FRAME);
-            result = true;
-            // TASK DISABLE was already triggered. Wait for event DISABLED.
-            break;
-
-        case RADIO_STATE_SLEEP:
-            state_set(RADIO_STATE_WAITING_TIMESLOT);
-            nrf_raal_continuous_mode_enter();
-
-            result = true;
-
-            break;
-
-        case RADIO_STATE_CCA_BEFORE_TX:
-        case RADIO_STATE_TX_FRAME:
-        case RADIO_STATE_RX_ACK:
-            tx_procedure_abort(RADIO_STATE_WAITING_RX_FRAME);
-            result = true;
-            break;
-
-        case RADIO_STATE_CONTINUOUS_CARRIER:
-            state_set(RADIO_STATE_WAITING_RX_FRAME);
-            nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
-            result = true;
-            break;
-
-        case RADIO_STATE_ED:
-        case RADIO_STATE_CCA:
-            // Ignore receive function during energy detection or CCA procedure.
-            break;
-
-        case RADIO_STATE_WAITING_TIMESLOT:
-            // Ignore receive function in WAITING_TIMESLOT state - the radio will receive when time
-            // slot starts.
-            result = true;
-            break;
-
-        default:
-            assert(false);
-    }
-
-    // Abort ongoing operations if succeeded
-    if (result)
+    if (!psdu_is_being_received())
     {
         current_operation_abort();
+        state_set(((m_state == RADIO_STATE_SLEEP) || (m_state == RADIO_STATE_WAITING_TIMESLOT)) ?
+                RADIO_STATE_WAITING_TIMESLOT : RADIO_STATE_WAITING_RX_FRAME);
     }
 
-    return result;
+    return true;
 }
 
 bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca)
