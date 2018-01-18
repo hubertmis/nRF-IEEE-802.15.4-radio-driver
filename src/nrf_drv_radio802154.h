@@ -228,8 +228,11 @@ bool nrf_drv_radio802154_sleep(void);
  *
  * In Receive state radio receives frames and automatically sends ACK frames when appropriate.
  * Received frame is reported to higher layer by nrf_radio802154_received() call.
+ *
+ * @return  true   If the radio enters Receive state.
+ * @return  false  If the driver could not enter Receive state.
  */
-void nrf_drv_radio802154_receive(void);
+bool nrf_drv_radio802154_receive(void);
 
 /**
  * @brief Change radio state to Transmit.
@@ -256,16 +259,16 @@ void nrf_drv_radio802154_receive(void);
  *       |                                                                        |
  *       | <---------------------------- PHR -----------------------------------> |
  *
- * @param[in]  p_data   Pointer to array containing data to transmit. First byte should contain
- *                      frame length (including PHR and FCS). Following bytes should contain data.
- *                      CRC is computed automatically by radio hardware and because of that FCS
- *                      field can contain any bytes.
- * @param[in]  cca      If the driver should perform CCA procedure before transmission.
+ * @param[in]  p_data    Pointer to array containing data to transmit. First byte should contain
+ *                       frame length (including PHR and FCS). Following bytes should contain data.
+ *                       CRC is computed automatically by radio hardware and because of that FCS
+ *                       field can contain any bytes.
+ * @param[in]  cca       If the driver should perform CCA procedure before transmission.
  *
  * @return  true   If the transmission procedure was scheduled.
  * @return  false  If the driver could not schedule the transmission procedure.
  */
-bool nrf_drv_radio802154_transmit_raw(const uint8_t *p_data, bool cca);
+bool nrf_drv_radio802154_transmit_raw(const uint8_t * p_data, bool cca);
 
 /**
  * @brief Change radio state to Transmit.
@@ -294,11 +297,11 @@ bool nrf_drv_radio802154_transmit_raw(const uint8_t *p_data, bool cca);
  *       |                                                           |
  *       | <------------------ length -----------------------------> |
  *
- * @param[in]  p_data   Pointer to array containing payload of a data to transmit. The array
- *                      should exclude PHR or FCS fields of 802.15.4 frame.
- * @param[in]  length   Length of given frame. This value shall exclude PHR and FCS fields from
- *                      the given frame (exact size of buffer pointed by @p p_data).
- * @param[in]  cca      If the driver should perform CCA procedure before transmission.
+ * @param[in]  p_data    Pointer to array containing payload of a data to transmit. The array
+ *                       should exclude PHR or FCS fields of 802.15.4 frame.
+ * @param[in]  length    Length of given frame. This value shall exclude PHR and FCS fields from
+ *                       the given frame (exact size of buffer pointed by @p p_data).
+ * @param[in]  cca       If the driver should perform CCA procedure before transmission.
  *
  * @return  true   If the transmission procedure was scheduled.
  * @return  false  If the driver could not schedule the transmission procedure.
@@ -315,8 +318,8 @@ bool nrf_drv_radio802154_transmit(const uint8_t * p_data, uint8_t length, bool c
  * In Energy Detection state radio detects maximum energy for given time. Result of the detection
  * is reported to the higher layer by @sa nrf_drv_radio802154_energy_detected() call.
  *
- * @param[in]  time_us  Duration of energy detection procedure. Given value is rounded up to
- *                      multiplication of 8s (128 us).
+ * @param[in]  time_us   Duration of energy detection procedure. Given value is rounded up to
+ *                       multiplication of 8s (128 us).
  *
  * @return  true   If the energy detection procedure was scheduled.
  * @return  false  If the driver could not schedule the energy detection procedure.
@@ -735,7 +738,7 @@ void nrf_drv_radio802154_cca_cfg_get(nrf_drv_radio802154_cca_cfg_t * p_cca_cfg);
  *
  * @note Before CSMA-CA procedure is used, application should initialize random seed with srand().
  *
- * @param[in]  p_data  Pointer to frame to transmit @sa nrf_drv_radio802154_transmit_raw()
+ * @param[in]  p_data    Pointer to frame to transmit @sa nrf_drv_radio802154_transmit_raw()
  */
 void nrf_drv_radio802154_transmit_csma_ca_raw(const uint8_t * p_data);
 
@@ -751,8 +754,8 @@ void nrf_drv_radio802154_transmit_csma_ca_raw(const uint8_t * p_data);
  *       expires MAC layer should call @sa nrf_drv_radio802154_receive() to stop waiting for ACK
  *       frame.
  *
- * @param[in]  p_data  Pointer to frame to transmit. @sa nrf_drv_radio802154_transmit()
- * @param[in]  length  Length of given frame. @sa nrf_drv_radio802154_transmit()
+ * @param[in]  p_data    Pointer to frame to transmit. @sa nrf_drv_radio802154_transmit()
+ * @param[in]  length    Length of given frame. @sa nrf_drv_radio802154_transmit()
  */
 void nrf_drv_radio802154_transmit_csma_ca(const uint8_t * p_data, uint8_t length);
 

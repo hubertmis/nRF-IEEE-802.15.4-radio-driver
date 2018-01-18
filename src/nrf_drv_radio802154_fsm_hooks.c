@@ -47,7 +47,7 @@
 #include "nrf_drv_radio802154_types.h"
 
 
-typedef void (* abort_hook)(void);
+typedef bool (* abort_hook)(nrf_drv_radio802154_term_t term_lvl);
 typedef void (* transmitted_hook)(void);
 typedef bool (* tx_failed_hook)(nrf_drv_radio802154_tx_error_t error);
 typedef bool (* tx_started_hook)(void);
@@ -113,8 +113,10 @@ static const tx_started_hook m_tx_started_hooks[] =
 #endif
 };
 
-void nrf_drv_radio802154_fsm_hooks_abort(void)
+bool nrf_drv_radio802154_fsm_hooks_terminate(nrf_drv_radio802154_term_t term_lvl)
 {
+    bool result = true;
+
     for (uint32_t i = 0; i < sizeof(m_abort_hooks) / sizeof(m_abort_hooks[0]); i++)
     {
         if (m_abort_hooks[i] == NULL)
@@ -122,8 +124,15 @@ void nrf_drv_radio802154_fsm_hooks_abort(void)
             break;
         }
 
-        m_abort_hooks[i]();
+        result = m_abort_hooks[i](term_lvl);
+
+        if (!result)
+        {
+            break;
+        }
     }
+
+    return result;
 }
 
 void nrf_drv_radio802154_fsm_hooks_transmitted(void)

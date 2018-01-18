@@ -241,7 +241,7 @@ bool nrf_drv_radio802154_sleep(void)
     case RADIO_STATE_CCA_BEFORE_TX:
     case RADIO_STATE_TX_FRAME:
     case RADIO_STATE_RX_ACK:
-        result = nrf_drv_radio802154_request_sleep();
+        result = nrf_drv_radio802154_request_sleep(NRF_DRV_RADIO802154_TERM_802154);
         break;
 
     default:
@@ -252,15 +252,15 @@ bool nrf_drv_radio802154_sleep(void)
     return result;
 }
 
-void nrf_drv_radio802154_receive(void)
+bool nrf_drv_radio802154_receive(void)
 {
     bool result;
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RECEIVE);
 
-    result = nrf_drv_radio802154_request_receive();
-    assert(result == true);
+    result = nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RECEIVE);
+    return result;
 }
 
 bool nrf_drv_radio802154_transmit_raw(const uint8_t * p_data, bool cca)
@@ -268,7 +268,7 @@ bool nrf_drv_radio802154_transmit_raw(const uint8_t * p_data, bool cca)
     bool result;
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_TRANSMIT);
 
-    result = nrf_drv_radio802154_request_transmit(p_data, cca);
+    result = nrf_drv_radio802154_request_transmit(NRF_DRV_RADIO802154_TERM_NONE, p_data, cca);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_TRANSMIT);
     return result;
@@ -286,7 +286,7 @@ bool nrf_drv_radio802154_energy_detection(uint32_t time_us)
     bool result;
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_ENERGY_DETECTION);
 
-    result = nrf_drv_radio802154_request_energy_detection(time_us);
+    result = nrf_drv_radio802154_request_energy_detection(NRF_DRV_RADIO802154_TERM_NONE, time_us);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_ENERGY_DETECTION);
     return result;
@@ -297,7 +297,7 @@ bool nrf_drv_radio802154_cca(void)
     bool result;
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_CCA);
 
-    result = nrf_drv_radio802154_request_cca();
+    result = nrf_drv_radio802154_request_cca(NRF_DRV_RADIO802154_TERM_NONE);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_CCA);
     return result;
@@ -308,7 +308,7 @@ bool nrf_drv_radio802154_continuous_carrier(void)
     bool result;
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_CONTINUOUS_CARRIER);
 
-    result = nrf_drv_radio802154_request_continuous_carrier();
+    result = nrf_drv_radio802154_request_continuous_carrier(NRF_DRV_RADIO802154_TERM_NONE);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_CONTINUOUS_CARRIER);
     return result;
@@ -431,7 +431,7 @@ void nrf_drv_radio802154_transmit_csma_ca_raw(const uint8_t * p_data)
 {
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_CSMACA);
 
-    nrf_drv_radio802154_csma_ca_start(p_data);
+    nrf_drv_radio802154_csma_ca_start(NRF_DRV_RADIO802154_TERM_NONE, p_data);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_CSMACA);
 }

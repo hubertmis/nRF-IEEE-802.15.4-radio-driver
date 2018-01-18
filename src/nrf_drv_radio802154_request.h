@@ -34,6 +34,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "nrf_drv_radio802154_types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,55 +55,68 @@ void nrf_drv_radio802154_request_init(void);
 /**
  * @brief Request entering sleep state.
  *
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ *
  * @retval  true   The driver will enter sleep state.
  * @retval  false  The driver cannot enter sleep state due to ongoing operation.
  */
-bool nrf_drv_radio802154_request_sleep(void);
+bool nrf_drv_radio802154_request_sleep(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Request entering receive state.
  *
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ *
  * @retval  true   The driver will enter receive state.
  * @retval  false  The driver cannot enter receive state due to ongoing operation.
  */
-bool nrf_drv_radio802154_request_receive(void);
+bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Request entering transmit state.
  *
- * @param[in]  p_data   Pointer to the frame to transmit.
- * @param[in]  cca      If the driver should perform CCA procedure before transmission.
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]  p_data    Pointer to the frame to transmit.
+ * @param[in]  cca       If the driver should perform CCA procedure before transmission.
  *
  * @retval  true   The driver will enter transmit state.
  * @retval  false  The driver cannot enter transmit state due to ongoing operation.
  */
-bool nrf_drv_radio802154_request_transmit(const uint8_t * p_data, bool cca);
+bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t term_lvl,
+                                          const uint8_t            * p_data,
+                                          bool                       cca);
 
 /**
  * @brief Request entering energy detection state.
  *
- * @param[in]  time_us  Requested duration of energy detection procedure.
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]  time_us   Requested duration of energy detection procedure.
  *
  * @retval  true   The driver will enter energy detection state.
  * @retval  false  The driver cannot enter energy detection state due to ongoing operation.
  */
-bool nrf_drv_radio802154_request_energy_detection(uint32_t time_us);
+bool nrf_drv_radio802154_request_energy_detection(nrf_drv_radio802154_term_t term_lvl,
+                                                  uint32_t                   time_us);
 
 /**
  * @brief Request entering CCA state.
  *
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ *
  * @retval  true   The driver will enter CCA state.
  * @retval  false  The driver cannot enter CCA state due to ongoing operation.
  */
-bool nrf_drv_radio802154_request_cca(void);
+bool nrf_drv_radio802154_request_cca(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Request entering continuous carrier state.
  *
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ *
  * @retval  true   The driver will enter continuous carrier state.
  * @retval  false  The driver cannot enter continuous carrier state due to ongoing operation.
  */
-bool nrf_drv_radio802154_request_continuous_carrier(void);
+bool nrf_drv_radio802154_request_continuous_carrier(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Request the driver to free given buffer.

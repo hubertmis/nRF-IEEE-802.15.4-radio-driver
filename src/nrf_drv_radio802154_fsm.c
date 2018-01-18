@@ -54,6 +54,7 @@
 #include "nrf_drv_radio802154_procedures_duration.h"
 #include "nrf_drv_radio802154_revision.h"
 #include "nrf_drv_radio802154_rx_buffer.h"
+#include "nrf_drv_radio802154_types.h"
 #include "fem/nrf_fem_control_api.h"
 #include "hal/nrf_radio.h"
 #include "mac_features/nrf_drv_radio802154_filter.h"
@@ -319,29 +320,6 @@ static void tx_enable(void)
     nrf_fem_control_pa_set(false, false);
 }
 
-/** Verify if PSDU is being received.
- *
- * @retval true   RADIO is currently receiving PSDU.
- * @retval false  RADIO is currently not receiving PSDU.
- */
-static bool psdu_is_being_received(void)
-{
-    bool result;
-
-    switch (m_state)
-    {
-        case RADIO_STATE_RX_HEADER:
-        case RADIO_STATE_RX_FRAME:
-        case RADIO_STATE_TX_ACK:
-            result = true;
-            break;
-
-        default:
-            result = false;
-    }
-
-    return result;
-}
 
 /***************************************************************************************************
  * @section Radio parameters calculators
@@ -1899,7 +1877,7 @@ static inline void tx_procedure_abort(radio_state_t state)
     nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
 }
 
-/** Abort ongoing operation.
+/** Terminate ongoing operation.
  *
  * This function is called when MAC layer requests transition to another operation.
  *
@@ -1907,57 +1885,88 @@ static inline void tx_procedure_abort(radio_state_t state)
  * mode.
  *
  */
-static void current_operation_abort(void)
+static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
 {
-    nrf_drv_radio802154_fsm_hooks_abort();
+    bool result = nrf_drv_radio802154_fsm_hooks_terminate(term_lvl);
 
-    switch (m_state)
+    if (result)
     {
-        case RADIO_STATE_DISABLING:
-            // Do nothing: radio is disabled and RAAL is in continuous mode.
-            break;
+        switch (m_state)
+        {
+            case RADIO_STATE_DISABLING:
+                // Do nothing: radio is disabled and RAAL is in continuous mode.
+                break;
 
-        case RADIO_STATE_SLEEP:
-            state_set(RADIO_STATE_WAITING_TIMESLOT);
-            nrf_raal_continuous_mode_enter();
-            break;
+            case RADIO_STATE_SLEEP:
+                state_set(RADIO_STATE_WAITING_TIMESLOT);
+                nrf_raal_continuous_mode_enter();
+                break;
 
-        case RADIO_STATE_WAITING_TIMESLOT:
-            // Do nothing: radio is disabled and RAAL is in continuous mode.
-            break;
+            case RADIO_STATE_WAITING_TIMESLOT:
+                // Do nothing: radio is disabled and RAAL is in continuous mode.
+                break;
 
-        case RADIO_STATE_WAITING_RX_FRAME:
-        case RADIO_STATE_RX_HEADER:
-        case RADIO_STATE_RX_FRAME:
-        case RADIO_STATE_TX_ACK:
-            auto_ack_abort(m_state);
+            case RADIO_STATE_WAITING_RX_FRAME:
+                auto_ack_abort(m_state);
 
-            nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-            nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-            break;
+                nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+                nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+                break;
 
-        case RADIO_STATE_CCA_BEFORE_TX:
-        case RADIO_STATE_TX_FRAME:
-        case RADIO_STATE_RX_ACK:
-            tx_procedure_abort(m_state);
-            break;
+            case RADIO_STATE_RX_HEADER:
+            case RADIO_STATE_RX_FRAME:
+            case RADIO_STATE_TX_ACK:
+                if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
+                {
+                    auto_ack_abort(m_state);
 
-        case RADIO_STATE_ED:
-        case RADIO_STATE_CCA:
-            // TODO: Implement procedures to exit these states.
-            break;
+                    nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
+                    nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+                    nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+                    nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+                }
+                else
+                {
+                    result = false;
+                }
 
-        case RADIO_STATE_CONTINUOUS_CARRIER:
-            nrf_radio_event_clear(NRF_RADIO_EVENT_DISABLED);
-            nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
-            break;
+                break;
 
-        default:
-            assert(false);
+            case RADIO_STATE_CCA_BEFORE_TX:
+            case RADIO_STATE_TX_FRAME:
+            case RADIO_STATE_RX_ACK:
+                if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
+                {
+                    tx_procedure_abort(m_state);
+                }
+                else
+                {
+                    result = false;
+                }
+
+                break;
+
+            case RADIO_STATE_ED:
+            case RADIO_STATE_CCA:
+                // TODO: Implement procedures to exit these states.
+                result = false;
+                break;
+
+            case RADIO_STATE_CONTINUOUS_CARRIER:
+                nrf_radio_event_clear(NRF_RADIO_EVENT_DISABLED);
+                nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+                break;
+
+            default:
+                assert(false);
+        }
     }
+
+    return result;
 }
 
 
@@ -1988,36 +1997,38 @@ radio_state_t nrf_drv_radio802154_fsm_state_get(void)
     return m_state;
 }
 
-bool nrf_drv_radio802154_fsm_sleep(void)
+bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
 {
-    bool result = false;
+    bool result = current_operation_terminate(term_lvl);
 
-    // TODO: Provide API to check if PSDU is being received and allow transition to sleep state
-    //       even during PSDU reception. It's up to MAC layer.
-    if (!psdu_is_being_received())
+    if (result)
     {
-        current_operation_abort();
         state_set(RADIO_STATE_DISABLING);
-        result = true;
     }
 
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_receive(void)
+bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl)
 {
-    if (!psdu_is_being_received())
+    bool result = current_operation_terminate(term_lvl);
+
+    if (result)
     {
-        current_operation_abort();
         state_set(((m_state == RADIO_STATE_SLEEP) || (m_state == RADIO_STATE_WAITING_TIMESLOT)) ?
                 RADIO_STATE_WAITING_TIMESLOT : RADIO_STATE_WAITING_RX_FRAME);
     }
 
-    return true;
+    return result;
 }
 
-bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca)
+bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
+                                      const uint8_t            * p_data,
+                                      bool                       cca)
 {
+    // TODO: Use priority to abort ongoing operations with current_operation_abort()
+    (void)term_lvl;
+
     bool result = false;
     mp_tx_data  = p_data;
 
@@ -2058,8 +2069,12 @@ bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca)
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_energy_detection(uint32_t time_us)
+bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lvl,
+                                              uint32_t                   time_us)
 {
+    // TODO: Use priority to abort ongoing operations with current_operation_abort()
+    (void)term_lvl;
+
     bool result = false;
 
     switch (m_state)
@@ -2115,8 +2130,11 @@ bool nrf_drv_radio802154_fsm_energy_detection(uint32_t time_us)
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_cca(void)
+bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
 {
+    // TODO: Use priority to abort ongoing operations with current_operation_abort()
+    (void)term_lvl;
+
     bool result = false;
 
     switch (m_state)
@@ -2166,8 +2184,11 @@ bool nrf_drv_radio802154_fsm_cca(void)
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_continuous_carrier(void)
+bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
 {
+    // TODO: Use priority to abort ongoing operations with current_operation_abort()
+    (void)term_lvl;
+
     bool result = false;
 
     if (m_state == RADIO_STATE_WAITING_RX_FRAME ||

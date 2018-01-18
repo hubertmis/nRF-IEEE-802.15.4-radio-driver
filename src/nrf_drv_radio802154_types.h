@@ -80,6 +80,17 @@ typedef uint8_t nrf_drv_radio802154_rx_error_t;
 #define NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED    0x05 /**< Radio timeslot ended during frame reception. */
 
 /**
+ * @brief Termination level selected for particular request.
+ *
+ * Each request is able to terminate ongoing operation. This type selects which operation should be
+ * aborted by given request.
+ */
+typedef uint8_t nrf_drv_radio802154_term_t;
+
+#define NRF_DRV_RADIO802154_TERM_NONE    0x00  /**< Request is skipped if another operation is ongoing. */
+#define NRF_DRV_RADIO802154_TERM_802154  0x01  /**< Request terminates ongoing 802.15.4 operation. */
+
+/**
  * @brief Structure for configuring CCA.
  */
 typedef struct

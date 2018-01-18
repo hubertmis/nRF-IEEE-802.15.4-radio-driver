@@ -54,9 +54,11 @@
  *       by the next layer. ACK timeout timer shall start when @sa nrf_drv_radio802154_tx_started()
  *       function is called.
  *
- * @param[in]  p_data  Pointer to PSDU of frame that should be transmitted.
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]  p_data    Pointer to PSDU of frame that should be transmitted.
  */
-void nrf_drv_radio802154_csma_ca_start(const uint8_t * p_data);
+void nrf_drv_radio802154_csma_ca_start(nrf_drv_radio802154_term_t term_lvl,
+                                       const uint8_t            * p_data);
 
 /**
  * @brief Abort ongoing CSMA-CA procedure.
@@ -64,9 +66,14 @@ void nrf_drv_radio802154_csma_ca_start(const uint8_t * p_data);
  * @note This function shall not be called during @sa nrf_drv_radio802154_csma_ca_start execution
  *       (i.e. from ISR with higher priority). It would result with unrecoverable runtime error.
  *
- * If CSMA-CA is not running during call, this function does nothing.
+ * If CSMA-CA is not running during call, this function does nothing and returns true.
+ *
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ *
+ * @retval true   CSMA-CA procedure is not running anymore.
+ * @retval false  CSMA-CA cannot be stopped due to too low termination level.
  */
-void nrf_drv_radio802154_csma_ca_abort(void);
+bool nrf_drv_radio802154_csma_ca_abort(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Handler of TX failed event.

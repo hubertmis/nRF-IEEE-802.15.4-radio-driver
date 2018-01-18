@@ -46,9 +46,14 @@
  */
 
 /**
- * @brief Process hooks for the abort request.
+ * @brief Process hooks for the terminate request.
+ *
+ * @param[in]  term_lvl  Termination level of request that terminates current operation.
+ *
+ * @retval true   All procedures are aborted.
+ * @retval false  There is ongoing procedure that cannot be aborted due to too low @p priority.
  */
-void nrf_drv_radio802154_fsm_hooks_abort(void);
+bool nrf_drv_radio802154_fsm_hooks_terminate(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Process hooks for the transmitted event.

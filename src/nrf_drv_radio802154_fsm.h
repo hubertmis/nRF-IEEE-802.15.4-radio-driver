@@ -41,6 +41,7 @@
 
 #include "nrf_drv_radio802154_config.h"
 #include "nrf_drv_radio802154_rx_buffer.h"
+#include "nrf_drv_radio802154_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -104,12 +105,12 @@ radio_state_t nrf_drv_radio802154_fsm_state_get(void);
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
- * @note This function shall be called when the driver is in RECEIVE state.
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *
  * @retval  true   Entering SLEEP state succeeded.
  * @retval  false  Entering SLEEP state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_sleep(void);
+bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Request transition to RECEIVE state.
@@ -117,12 +118,12 @@ bool nrf_drv_radio802154_fsm_sleep(void);
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
- * @note This function shall be called when the driver is in SLEEP or TRANSMIT state.
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *
  * @retval  true   Entering RECEIVE state succeeded.
  * @retval  false  Entering RECEIVE state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_receive(void);
+bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Request transition to TRANSMIT state.
@@ -130,15 +131,16 @@ bool nrf_drv_radio802154_fsm_receive(void);
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
- * @note This function shall be called when the driver is in RECEIVE state.
- *
- * @param[in]  p_data   Pointer to a frame to transmit.
- * @param[in]  cca      If the driver should perform CCA procedure before transmission.
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]  p_data    Pointer to a frame to transmit.
+ * @param[in]  cca       If the driver should perform CCA procedure before transmission.
  *
  * @retval  true   Entering TRANSMIT state succeeded.
  * @retval  false  Entering TRANSMIT state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca);
+bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
+                                      const uint8_t            * p_data,
+                                      bool                       cca);
 
 /**
  * @brief Request transition to ENERGY_DETECTION state.
@@ -149,12 +151,14 @@ bool nrf_drv_radio802154_fsm_transmit(const uint8_t * p_data, bool cca);
  * @note This function shall be called when the driver is in SLEEP or RECEIVE state. When Energy
  *       detection procedure is finished the driver will transit to RECEIVE state.
  *
- * @param[in]  time_us  Minimal time of energy detection procedure.
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]  time_us   Minimal time of energy detection procedure.
  *
  * @retval  true   Entering ENERGY_DETECTION state succeeded.
  * @retval  false  Entering ENERGY_DETECTION state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_energy_detection(uint32_t time_us);
+bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lvl,
+                                              uint32_t                   time_us);
 
 /**
  * @brief Request transition to CCA state.
@@ -162,13 +166,12 @@ bool nrf_drv_radio802154_fsm_energy_detection(uint32_t time_us);
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
- * @note This function shall be called when the driver is in SLEEP or RECEIVE state. When CCA
- *       procedure is finished the driver will transit to RECEIVE state.
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *
  * @retval  true   Entering CCA state succeeded.
  * @retval  false  Entering CCA state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_cca(void);
+bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Request transition to CONTINUOUS_CARRIER state.
@@ -176,13 +179,12 @@ bool nrf_drv_radio802154_fsm_cca(void);
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
- * @note This function shall be called when the driver is in RECEIVE or SLEEP state. When
- *       CONTINUOUS_CARRIER procedure is finished the driver will transit to RECEIVE state.
+ * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *
  * @retval  true   Entering CONTINUOUS_CARRIER state succeeded.
  * @retval  false  Entering CONTINUOUS_CARRIER state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_continuous_carrier(void);
+bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_lvl);
 
 /***************************************************************************************************
  * @section State machine notifications

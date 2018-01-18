@@ -153,53 +153,59 @@ typedef struct
     {
         struct
         {
-            bool * p_result;              ///< Sleep request result.
-        } sleep;                          ///< Sleep request details.
+            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
+            bool                     * p_result;  ///< Sleep request result.
+        } sleep;                                  ///< Sleep request details.
 
         struct
         {
-            bool  * p_result;             ///< Receive request result.
-        } receive;                        ///< Receive request details.
+            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
+            bool                     * p_result;  ///< Receive request result.
+        } receive;                                    ///< Receive request details.
 
         struct
         {
-            bool          * p_result;     ///< Transmit request result.
-            const uint8_t * p_data;       ///< Pointer to PSDU to transmit.
-            bool            cca;          ///< If CCA was requested prior to transmission.
-        } transmit;                       ///< Transmit request details.
+            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
+            bool                     * p_result;  ///< Transmit request result.
+            const uint8_t            * p_data;    ///< Pointer to PSDU to transmit.
+            bool                       cca;       ///< If CCA was requested prior to transmission.
+        } transmit;                               ///< Transmit request details.
 
         struct
         {
-            bool   * p_result;            ///< Energy detection request result.
-            uint32_t time_us;             ///< Requested time of energy detection procedure.
-        } energy_detection;               ///< Energy detection request details.
+            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
+            bool                     * p_result;  ///< Energy detection request result.
+            uint32_t                   time_us;   ///< Requested time of energy detection procedure.
+        } energy_detection;                       ///< Energy detection request details.
 
         struct
         {
-            bool * p_result;              ///< CCA request result.
-        } cca;                            ///< CCA request details.
+            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
+            bool                     * p_result;  ///< CCA request result.
+        } cca;                                    ///< CCA request details.
 
         struct
         {
-            bool * p_result;              ///< Continuous carrier request result.
-        } continuous_carrier;             ///< Continuous carrier request details.
+            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
+            bool                     * p_result;  ///< Continuous carrier request result.
+        } continuous_carrier;                     ///< Continuous carrier request details.
 
         struct
         {
-            uint8_t * p_data;             ///< Pointer to receive buffer to free.
-            bool    * p_result;           ///< Buffer free request result.
-        } buffer_free;                    ///< Buffer free request details.
+            uint8_t * p_data;                     ///< Pointer to receive buffer to free.
+            bool    * p_result;                   ///< Buffer free request result.
+        } buffer_free;                            ///< Buffer free request details.
 
         struct
         {
-            bool * p_result;              ///< Channel update request result.
-        } channel_update;                 ///< Channel update request details.
+            bool * p_result;                      ///< Channel update request result.
+        } channel_update;                         ///< Channel update request details.
 
         struct
         {
-            bool * p_result;              ///< CCA config update request result.
-        } cca_cfg_update;                 ///< CCA config update request details.
-    } data;                               ///< Request data depending on it's type.
+            bool * p_result;                      ///< CCA config update request result.
+        } cca_cfg_update;                         ///< CCA config update request details.
+    } data;                                       ///< Request data depending on it's type.
 } nrf_drv_radio802154_req_data_t;
 
 static nrf_drv_radio802154_ntf_data_t m_ntf_queue[NTF_QUEUE_SIZE];  ///< Notification queue.
@@ -473,31 +479,39 @@ void nrf_drv_radio802154_swi_timeslot_exit(void)
     nrf_egu_task_trigger(SWI_EGU, TIMESLOT_EXIT_TASK);
 }
 
-void nrf_drv_radio802154_swi_sleep(bool * p_result)
+void nrf_drv_radio802154_swi_sleep(nrf_drv_radio802154_term_t term_lvl,
+                                   bool                     * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
     p_slot->type                = REQ_TYPE_SLEEP;
+    p_slot->data.sleep.term_lvl = term_lvl;
     p_slot->data.sleep.p_result = p_result;
 
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_receive(bool * p_result)
+void nrf_drv_radio802154_swi_receive(nrf_drv_radio802154_term_t term_lvl,
+                                     bool                     * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
     p_slot->type                  = REQ_TYPE_RECEIVE;
+    p_slot->data.receive.term_lvl = term_lvl;
     p_slot->data.receive.p_result = p_result;
 
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_transmit(const uint8_t * p_data, bool cca, bool * p_result)
+void nrf_drv_radio802154_swi_transmit(nrf_drv_radio802154_term_t term_lvl,
+                                      const uint8_t            * p_data,
+                                      bool                       cca,
+                                      bool                     * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
     p_slot->type                   = REQ_TYPE_TRANSMIT;
+    p_slot->data.transmit.term_lvl = term_lvl;
     p_slot->data.transmit.p_data   = p_data;
     p_slot->data.transmit.cca      = cca;
     p_slot->data.transmit.p_result = p_result;
@@ -505,32 +519,39 @@ void nrf_drv_radio802154_swi_transmit(const uint8_t * p_data, bool cca, bool * p
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_energy_detection(uint32_t time_us, bool * p_result)
+void nrf_drv_radio802154_swi_energy_detection(nrf_drv_radio802154_term_t term_lvl,
+                                              uint32_t                   time_us,
+                                              bool                     * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
     p_slot->type                           = REQ_TYPE_ENERGY_DETECTION;
+    p_slot->data.energy_detection.term_lvl = term_lvl;
     p_slot->data.energy_detection.time_us  = time_us;
     p_slot->data.energy_detection.p_result = p_result;
 
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_cca(bool * p_result)
+void nrf_drv_radio802154_swi_cca(nrf_drv_radio802154_term_t term_lvl,
+                                 bool                     * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
     p_slot->type              = REQ_TYPE_CCA;
+    p_slot->data.cca.term_lvl = term_lvl;
     p_slot->data.cca.p_result = p_result;
 
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_continuous_carrier(bool * p_result)
+void nrf_drv_radio802154_swi_continuous_carrier(nrf_drv_radio802154_term_t term_lvl,
+                                                bool                     * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
     p_slot->type                             = REQ_TYPE_CONTINUOUS_CARRIER;
+    p_slot->data.continuous_carrier.term_lvl = term_lvl;
     p_slot->data.continuous_carrier.p_result = p_result;
 
     req_exit();
@@ -637,19 +658,20 @@ void SWI_IRQHandler(void)
             {
                 case REQ_TYPE_SLEEP:
                     *(p_slot->data.sleep.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_sleep() :
+                            nrf_drv_radio802154_fsm_sleep(p_slot->data.sleep.term_lvl) :
                             false;
                     break;
 
                 case REQ_TYPE_RECEIVE:
                     *(p_slot->data.receive.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_receive() :
+                            nrf_drv_radio802154_fsm_receive(p_slot->data.receive.term_lvl) :
                             false;
                     break;
 
                 case REQ_TYPE_TRANSMIT:
                     *(p_slot->data.transmit.p_result) = in_crit_sect ?
                             nrf_drv_radio802154_fsm_transmit(
+                                    p_slot->data.transmit.term_lvl,
                                     p_slot->data.transmit.p_data,
                                     p_slot->data.transmit.cca) :
                             false;
@@ -658,19 +680,21 @@ void SWI_IRQHandler(void)
                 case REQ_TYPE_ENERGY_DETECTION:
                     *(p_slot->data.energy_detection.p_result) = in_crit_sect ?
                             nrf_drv_radio802154_fsm_energy_detection(
+                                    p_slot->data.energy_detection.term_lvl,
                                     p_slot->data.energy_detection.time_us) :
                             false;
                     break;
 
                 case REQ_TYPE_CCA:
                     *(p_slot->data.cca.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_cca() :
+                            nrf_drv_radio802154_fsm_cca(p_slot->data.cca.term_lvl) :
                             false;
                     break;
 
                 case REQ_TYPE_CONTINUOUS_CARRIER:
                     *(p_slot->data.continuous_carrier.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_continuous_carrier() :
+                            nrf_drv_radio802154_fsm_continuous_carrier(
+                                    p_slot->data.continuous_carrier.term_lvl) :
                             false;
                     break;
 

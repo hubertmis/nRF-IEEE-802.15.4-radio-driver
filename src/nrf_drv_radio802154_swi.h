@@ -108,47 +108,62 @@ void nrf_drv_radio802154_swi_timeslot_exit(void);
 /**
  * @brief Request entering sleep state from SWI priority.
  *
+ * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[out]  p_result  Result of entering sleep state.
  */
-void nrf_drv_radio802154_swi_sleep(bool * p_result);
+void nrf_drv_radio802154_swi_sleep(nrf_drv_radio802154_term_t term_lvl,
+                                   bool                     * p_result);
 
 /**
  * @brief Request entering receive state from SWI priority.
  *
+ * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[out]  p_result  Result of entering receive state.
  */
-void nrf_drv_radio802154_swi_receive(bool * p_result);
+void nrf_drv_radio802154_swi_receive(nrf_drv_radio802154_term_t term_lvl,
+                                     bool                     * p_result);
 
 /**
  * @biref Request entering transmit state from SWI priority.
  *
+ * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[in]   p_data    Pointer to PSDU of the frame to transmit.
  * @param[in]   cca       If the driver should perform CCA procedure before transmission.
  * @param[out]  p_result  Result of entering transmit state.
  */
-void nrf_drv_radio802154_swi_transmit(const uint8_t * p_data, bool cca, bool * p_result);
+void nrf_drv_radio802154_swi_transmit(nrf_drv_radio802154_term_t term_lvl,
+                                      const uint8_t            * p_data,
+                                      bool                       cca,
+                                      bool                     * p_result);
 
 /**
  * @brief Request entering energy detection state from SWI priority.
  *
+ * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[in]   time_us   Requested duration of energy detection procedure.
  * @param[out]  p_result  Result of entering energy detection state.
  */
-void nrf_drv_radio802154_swi_energy_detection(uint32_t time_us, bool * p_result);
+void nrf_drv_radio802154_swi_energy_detection(nrf_drv_radio802154_term_t term_lvl,
+                                              uint32_t                   time_us,
+                                              bool                     * p_result);
 
 /**
  * @brief Request entering CCA state from SWI priority.
  *
+ * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[out]  p_result  Result of entering CCA state.
  */
-void nrf_drv_radio802154_swi_cca(bool * p_result);
+void nrf_drv_radio802154_swi_cca(nrf_drv_radio802154_term_t term_lvl,
+                                 bool                     * p_result);
 
 /**
  * @brief Request entering continuous carrier state from SWI priority.
  *
+ * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[out]  p_result  Result of entering continuous carrier state.
  */
-void nrf_drv_radio802154_swi_continuous_carrier(bool * p_result);
+void nrf_drv_radio802154_swi_continuous_carrier(nrf_drv_radio802154_term_t term_lvl,
+                                                bool                     * p_result);
 
 /**
  * @brief Notify FSM that given buffer is not used anymore and can be freed.

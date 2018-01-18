@@ -70,39 +70,45 @@
 #define REQUEST_FUNCTION_2_ARGS(func_fsm, arg1, arg2)                                              \
         REQUEST_FUNCTION(func_fsm, (arg1, arg2))
 
+#define REQUEST_FUNCTION_3_ARGS(func_fsm, arg1, arg2, arg3)                                        \
+        REQUEST_FUNCTION(func_fsm, (arg1, arg2, arg3))
+
 void nrf_drv_radio802154_request_init(void)
 {
     // Intentionally empty
 }
 
-bool nrf_drv_radio802154_request_sleep(void)
+bool nrf_drv_radio802154_request_sleep(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_sleep)
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_sleep, term_lvl)
 }
 
-bool nrf_drv_radio802154_request_receive(void)
+bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_receive)
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_receive, term_lvl)
 }
 
-bool nrf_drv_radio802154_request_transmit(const uint8_t * p_data, bool cca)
+bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t term_lvl,
+                                          const uint8_t            * p_data,
+                                          bool                       cca)
 {
-    REQUEST_FUNCTION_2_ARGS(nrf_drv_radio802154_fsm_transmit, p_data, cca);
+    REQUEST_FUNCTION_3_ARGS(nrf_drv_radio802154_fsm_transmit, term_lvl, p_data, cca)
 }
 
-bool nrf_drv_radio802154_request_energy_detection(uint32_t time_us)
+bool nrf_drv_radio802154_request_energy_detection(nrf_drv_radio802154_term_t term_lvl,
+                                                  uint32_t                   time_us)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_energy_detection, time_us)
+    REQUEST_FUNCTION_2_ARGS(nrf_drv_radio802154_fsm_energy_detection, term_lvl, time_us)
 }
 
-bool nrf_drv_radio802154_request_cca(void)
+bool nrf_drv_radio802154_request_cca(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_cca)
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_cca, term_lvl)
 }
 
-bool nrf_drv_radio802154_request_continuous_carrier(void)
+bool nrf_drv_radio802154_request_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_continuous_carrier)
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_continuous_carrier, term_lvl)
 }
 
 bool nrf_drv_radio802154_request_buffer_free(uint8_t * p_data)
