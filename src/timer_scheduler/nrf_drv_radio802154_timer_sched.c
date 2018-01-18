@@ -144,7 +144,15 @@ static inline void handle_timer(void)
             }
             else
             {
-                nrf_drv_radio802154_timer_start(p_head->t0, p_head->dt);
+                uint32_t t0 = p_head->t0;
+                uint32_t dt = p_head->dt;
+
+                // Set the timer only if current HEAD wasn't removed - otherwise t0 and dt might've been modified
+                // between reading t0 and dt and not be a valid combination.
+                if (p_head == mp_head)
+                {
+                    nrf_drv_radio802154_timer_start(t0, dt);
+                }
             }
 
             mutex_unlock();
