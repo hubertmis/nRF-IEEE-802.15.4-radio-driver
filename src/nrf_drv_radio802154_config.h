@@ -176,6 +176,21 @@ extern "C" {
 #endif
 
 /**
+ * @def NRF_DRV_RADIO802154_EXCLUDE_BCC_MATCHING
+ *
+ * Setting this flag will disable NRF_RADIO_EVENT_BCMATCH handling, and therefore address filtering during frame reception.
+ * With this flag set to 1, address filtering is done after receiving a frame, during NRF_RADIO_EVENT_END handling.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+#define NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING 0
+#endif
+
+/*******************************************************************************
+ * @section Clock Driver Configuration.
+ ******************************************************************************/
+
+/**
  * @def NRF_DRV_RADIO802154_CLOCK_IRQ_PRIORITY
  *
  * Priority of clock interrupt used in standalone clock driver implementation.
@@ -200,6 +215,10 @@ extern "C" {
 #ifndef NRF_DRV_RADIO802154_CLOCK_LFCLK_SOURCE
 #define NRF_DRV_RADIO802154_CLOCK_LFCLK_SOURCE NRF_CLOCK_LFCLK_Xtal
 #endif
+
+/*******************************************************************************
+ * @section RTC Driver Configuration.
+ ******************************************************************************/
 
 /**
  * @def NRF_DRV_RADIO802154_RTC_IRQ_PRIORITY

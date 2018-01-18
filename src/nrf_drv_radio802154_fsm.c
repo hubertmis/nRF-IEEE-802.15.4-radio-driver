@@ -71,15 +71,21 @@ static inline uint32_t short_phyend_disable_mask_get(void)
     return NRF_RADIO_SHORT_END_DISABLE_MASK;
 }
 
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+#define SHORT_FRAMESTART_BCSTART    0UL
+#else // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+#define SHORT_FRAMESTART_BCSTART    NRF_RADIO_SHORT_FRAMESTART_BCSTART_MASK
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHIN
+
 /// Value set to SHORTS register when no shorts should be enabled.
 #define SHORTS_IDLE         0
 /// Value set to SHORTS register when receiver is waiting for incoming frame.
 #define SHORTS_RX_INITIAL   (NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_DISABLED_TXEN_MASK | \
-                             NRF_RADIO_SHORT_FRAMESTART_BCSTART_MASK)
+                             SHORT_FRAMESTART_BCSTART)
 
 /// Value set to SHORTS register when receiver started receiving a frame.
 #define SHORTS_RX_FOLLOWING (short_phyend_disable_mask_get() | NRF_RADIO_SHORT_READY_START_MASK | \
-                             NRF_RADIO_SHORT_FRAMESTART_BCSTART_MASK)
+                             SHORT_FRAMESTART_BCSTART)
 /// Value set to SHORTS register when received frame should be acknowledged.
 #define SHORTS_TX_ACK       (short_phyend_disable_mask_get())
 #if NRF_DRV_RADIO802154_SHORT_CCAIDLE_TXEN
@@ -350,7 +356,9 @@ static inline void shorts_rx_initial_set(void)
 {
     nrf_radio_ifs_set(TIFS_ACK_US);
     nrf_radio_ramp_up_mode_set(NRF_RADIO_RAMP_UP_MODE_DEFAULT);
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_bcc_set(BCC_INIT);
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     nrf_radio_shorts_set(SHORTS_RX_INITIAL);
 }
@@ -523,7 +531,9 @@ static void nrf_radio_init(void)
     nrf_radio_int_enable(NRF_RADIO_INT_CCAIDLE_MASK);
     nrf_radio_int_enable(NRF_RADIO_INT_CCABUSY_MASK);
     nrf_radio_int_enable(NRF_RADIO_INT_READY_MASK);
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_int_enable(NRF_RADIO_INT_BCMATCH_MASK);
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_int_enable(NRF_RADIO_INT_EDEND_MASK);
 
     /// Workaround for missing PHYEND event in older chip revision.
@@ -736,10 +746,19 @@ void nrf_raal_timeslot_ended(void)
 /// This event is handled when the radio starts receiving a frame.
 static inline void irq_framestart_state_waiting_rx_frame(void)
 {
+    assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
+
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+
+    state_set(RADIO_STATE_RX_FRAME);
+    nrf_radio_task_trigger(NRF_RADIO_TASK_RSSISTART);
+    nrf_drv_radio802154_rx_started();
+
+#else // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+
     uint8_t num_psdu_bytes = PHR_SIZE;
 
     state_set(RADIO_STATE_RX_HEADER);
-    assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
 
     if (nrf_drv_radio802154_filter_frame_part(mp_current_rx_buffer->psdu, &num_psdu_bytes))
     {
@@ -749,7 +768,7 @@ static inline void irq_framestart_state_waiting_rx_frame(void)
         }
         else
         {
-            nrf_radio_bcc_set(PHR_SIZE + FCF_SIZE); // To request timeslot
+            nrf_radio_bcc_set(FCF_SIZE * 8); // To request timeslot
             m_flags.frame_filtered = true;
         }
 
@@ -766,6 +785,8 @@ static inline void irq_framestart_state_waiting_rx_frame(void)
         nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
         receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
     }
+
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     switch (nrf_radio_state_get())
     {
@@ -828,6 +849,7 @@ static inline void irq_framestart_state_tx_ack(void)
     nrf_drv_radio802154_tx_ack_started();
 }
 
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 /// This event is generated during frame reception to request RAAL timeslot and to filter frame
 static inline void irq_bcmatch_state_rx_header(void)
 {
@@ -920,6 +942,7 @@ static inline void irq_bcmatch_state_rx_header(void)
             assert(false);
     }
 }
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
 /** This event is generated when radio receives invalid frame with length set to 0.
  */
@@ -958,25 +981,85 @@ static inline void irq_end_state_rx_frame(void)
 
             if (nrf_radio_crc_status_get() == NRF_RADIO_CRC_STATUS_OK)
             {
-                if ((!ack_is_requested(mp_current_rx_buffer->psdu)) ||
-                    (!nrf_drv_radio802154_pib_auto_ack_get()) ||
-                    (!m_flags.frame_filtered && nrf_drv_radio802154_pib_promiscuous_get()))
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+                if (!ack_is_requested(mp_current_rx_buffer->psdu) ||
+                    m_flags.rx_timeslot_requested ||
+                    nrf_raal_timeslot_request(nrf_drv_radio802154_rx_duration_get(0, true)))
                 {
-                    auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+                    m_flags.rx_timeslot_requested = true;
 
-                    // Filter out received ACK frame if promiscuous mode is disabled.
-                    if (((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
-                            FRAME_TYPE_ACK) || nrf_drv_radio802154_pib_promiscuous_get())
+                    uint8_t num_psdu_bytes      = PHR_SIZE;
+                    uint8_t prev_num_psdu_bytes = 0;
+
+                    while (num_psdu_bytes != prev_num_psdu_bytes)
                     {
-                        received_frame_notify();
+                        prev_num_psdu_bytes = num_psdu_bytes;
+
+                        // Kepp checking consecutive parts of the frame header.
+                        if (nrf_drv_radio802154_filter_frame_part(mp_current_rx_buffer->psdu,
+                                                                  &num_psdu_bytes))
+                        {
+                            if (num_psdu_bytes == prev_num_psdu_bytes)
+                            {
+                                m_flags.frame_filtered = true;
+                            }
+                        }
+                        else
+                        {
+                            // If checking of any of the parts fails, break the loop.
+                            if (!nrf_drv_radio802154_pib_promiscuous_get())
+                            {
+                                auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
+                                nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+                                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+                                nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+
+                                if ((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
+                                    FRAME_TYPE_ACK)
+                                {
+                                    nrf_drv_radio802154_notify_receive_failed(
+                                            NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
+                                }
+                            }
+
+                            break;
+                        }
                     }
                 }
                 else
                 {
-                    ack_prepare();
-                    state_set(RADIO_STATE_TX_ACK);
+                    irq_deinit();
+                    nrf_radio_reset();
+
+                    state_set(RADIO_STATE_WAITING_TIMESLOT);
+
+                    nrf_drv_radio802154_notify_receive_failed(
+                            NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED);
+                }
+
+                if (m_flags.frame_filtered || nrf_drv_radio802154_pib_promiscuous_get())
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+                {
+                    if ((!ack_is_requested(mp_current_rx_buffer->psdu)) ||
+                        (!nrf_drv_radio802154_pib_auto_ack_get()) ||
+                        (!m_flags.frame_filtered && nrf_drv_radio802154_pib_promiscuous_get()))
+                    {
+                        auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
+                        nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+                        nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+
+                        // Filter out received ACK frame if promiscuous mode is disabled.
+                        if (((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
+                             FRAME_TYPE_ACK) || nrf_drv_radio802154_pib_promiscuous_get())
+                        {
+                            received_frame_notify();
+                        }
+                    }
+                    else
+                    {
+                        ack_prepare();
+                        state_set(RADIO_STATE_TX_ACK);
+                    }
                 }
             }
             else
@@ -1445,6 +1528,7 @@ static inline void irq_handler(void)
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_FRAMESTART);
     }
 
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     // Check MAC frame header.
     if (nrf_radio_event_get(NRF_RADIO_EVENT_BCMATCH))
     {
@@ -1466,6 +1550,7 @@ static inline void irq_handler(void)
 
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_BCMATCH);
     }
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     if (nrf_drv_radio802154_revision_has_phyend_event() && nrf_radio_event_get(NRF_RADIO_EVENT_PHYEND))
     {
