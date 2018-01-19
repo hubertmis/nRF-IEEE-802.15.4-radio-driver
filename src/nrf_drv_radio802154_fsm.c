@@ -220,6 +220,14 @@ static void receive_failed_notify(nrf_drv_radio802154_rx_error_t error)
     nrf_drv_radio802154_critical_section_nesting_deny();
 }
 
+static inline void transmit_started_notify(void)
+{
+    if (nrf_drv_radio802154_fsm_hooks_tx_started())
+    {
+        nrf_drv_radio802154_tx_started();
+    }
+
+}
 /// Notify MAC layer that a frame was received.
 static inline void transmitted_frame_notify(uint8_t * p_ack, int8_t power, int8_t lqi)
 {
@@ -811,7 +819,7 @@ static inline void irq_framestart_state_rx_ack(void)
 /// This event is handled when the radio starts transmitting a requested frame.
 static inline void irq_framestart_state_tx_frame(void)
 {
-    nrf_drv_radio802154_tx_started();
+    transmit_started_notify();
 }
 
 /// This event is handled when the radio starts transmitting an ACK frame.

@@ -143,6 +143,10 @@ static bool channel_busy(void)
             random_backoff_start();
             result = false;
         }
+        else
+        {
+            procedure_stop();
+        }
     }
 
     return result;
