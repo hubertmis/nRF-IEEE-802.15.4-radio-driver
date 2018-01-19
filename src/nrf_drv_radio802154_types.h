@@ -66,6 +66,7 @@ typedef uint8_t nrf_drv_radio802154_tx_error_t;
 #define NRF_DRV_RADIO802154_TX_ERROR_NO_MEM            0x03 /**< No receive buffer are available to receive an ACK. */
 #define NRF_DRV_RADIO802154_TX_ERROR_TIMESLOT_ENDED    0x04 /**< Radio timeslot ended during transmission procedure. */
 #define NRF_DRV_RADIO802154_TX_ERROR_NO_ACK            0x05 /**< ACK frame was not received during timeout period. */
+#define NRF_DRV_RADIO802154_TX_ERROR_ABORTED           0x06 /**< Procedure was aborted by other driver operation with FORCE priority. */
 
 /**
  * @brief Possible errors during frame reception.
@@ -78,6 +79,21 @@ typedef uint8_t nrf_drv_radio802154_rx_error_t;
 #define NRF_DRV_RADIO802154_RX_ERROR_INVALID_DEST_ADDR 0x03 /**< Received a frame with mismatched destination address. */
 #define NRF_DRV_RADIO802154_RX_ERROR_RUNTIME           0x04 /**< A runtime error occured (e.g. CPU was hold for too long.) */
 #define NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED    0x05 /**< Radio timeslot ended during frame reception. */
+#define NRF_DRV_RADIO802154_RX_ERROR_ABORTED           0x06 /**< Procedure was aborted by other driver operation with FORCE priority. */
+
+/**
+ * @brief Possible errors during energy detection.
+ */
+typedef uint8_t nrf_drv_radio802154_ed_error_t;
+
+#define NRF_DRV_RADIO802154_ED_ERROR_ABORTED           0x01 /**< Procedure was aborted by other driver operation with FORCE priority. */
+
+/**
+ * @brief Possible errors during CCA procedure.
+ */
+typedef uint8_t nrf_drv_radio802154_cca_error_t;
+
+#define NRF_DRV_RADIO802154_CCA_ERROR_ABORTED          0x01 /**< Procedure was aborted by other driver operation with FORCE priority. */
 
 /**
  * @brief Termination level selected for particular request.

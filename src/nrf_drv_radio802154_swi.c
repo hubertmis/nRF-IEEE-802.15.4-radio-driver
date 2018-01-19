@@ -81,12 +81,14 @@
 /// Types of notifications in notification queue.
 typedef enum
 {
-    NTF_TYPE_RECEIVED,         ///< Frame received
-    NTF_TYPE_RECEIVE_FAILED,   ///< Frame reception failed
-    NTF_TYPE_TRANSMITTED,      ///< Frame transmitted
-    NTF_TYPE_TRANSMIT_FAILED,     ///< Frame transmission failure
-    NTF_TYPE_ENERGY_DETECTED,  ///< Energy detection procedure ended
-    NTF_TYPE_CCA,              ///< CCA procedure ended
+    NTF_TYPE_RECEIVED,                 ///< Frame received
+    NTF_TYPE_RECEIVE_FAILED,           ///< Frame reception failed
+    NTF_TYPE_TRANSMITTED,              ///< Frame transmitted
+    NTF_TYPE_TRANSMIT_FAILED,          ///< Frame transmission failure
+    NTF_TYPE_ENERGY_DETECTED,          ///< Energy detection procedure ended
+    NTF_TYPE_ENERGY_DETECTION_FAILED,  ///< Energy detection procedure failed
+    NTF_TYPE_CCA,                      ///< CCA procedure ended
+    NTF_TYPE_CCA_FAILED,               ///< CCA procedure failed
 } nrf_drv_radio802154_ntf_type_t;
 
 /// Notification data in the notification queue.
@@ -104,6 +106,11 @@ typedef struct
 
         struct
         {
+            nrf_drv_radio802154_rx_error_t error;   ///< An error code that indicates reason of the failure.
+        } receive_failed;
+
+        struct
+        {
             uint8_t                      * p_psdu;  ///< Pointer to received ACK PSDU or NULL.
             int8_t                         power;   ///< RSSI of received ACK or 0.
             int8_t                         lqi;     ///< LQI of received ACK or 0.
@@ -116,18 +123,23 @@ typedef struct
 
         struct
         {
-            nrf_drv_radio802154_rx_error_t error;   ///< An error code that indicates reason of the failure.
-        } receive_failed;
-
-        struct
-        {
             int8_t                         result;  ///< Energy detection result.
         } energy_detected;                          ///< Energy detection details.
 
         struct
         {
+            nrf_drv_radio802154_ed_error_t error;   ///< An error code that indicates reason of the failure.
+        } energy_detection_failed;                  ///< Energy detection failure details.
+
+        struct
+        {
             bool                           result;  ///< CCA result.
         } cca;                                      ///< CCA details.
+
+        struct
+        {
+            nrf_drv_radio802154_cca_error_t error;  ///< An error code that indicates reason of the failure.
+        } cca_failed;                               ///< CCA failure details.
     } data;                                         ///< Notification data depending on it's type.
 } nrf_drv_radio802154_ntf_data_t;
 
@@ -458,6 +470,20 @@ void nrf_drv_radio802154_swi_notify_energy_detected(uint8_t result)
     nrf_egu_task_trigger(SWI_EGU, NTF_TASK);
 }
 
+void nrf_drv_radio802154_swi_notify_energy_detection_failed(nrf_drv_radio802154_ed_error_t error)
+{
+    assert(!ntf_queue_is_full());
+
+    nrf_drv_radio802154_ntf_data_t * p_slot = &m_ntf_queue[m_ntf_w_ptr];
+
+    p_slot->type                               = NTF_TYPE_ENERGY_DETECTION_FAILED;
+    p_slot->data.energy_detection_failed.error = error;
+
+    ntf_queue_ptr_increment(&m_ntf_w_ptr);
+
+    nrf_egu_task_trigger(SWI_EGU, NTF_TASK);
+}
+
 void nrf_drv_radio802154_swi_notify_cca(bool channel_free)
 {
     assert(!ntf_queue_is_full());
@@ -466,6 +492,20 @@ void nrf_drv_radio802154_swi_notify_cca(bool channel_free)
 
     p_slot->type            = NTF_TYPE_CCA;
     p_slot->data.cca.result = channel_free;
+
+    ntf_queue_ptr_increment(&m_ntf_w_ptr);
+
+    nrf_egu_task_trigger(SWI_EGU, NTF_TASK);
+}
+
+void nrf_drv_radio802154_swi_notify_cca_failed(nrf_drv_radio802154_cca_error_t error)
+{
+    assert(!ntf_queue_is_full());
+
+    nrf_drv_radio802154_ntf_data_t * p_slot = &m_ntf_queue[m_ntf_w_ptr];
+
+    p_slot->type                  = NTF_TYPE_CCA_FAILED;
+    p_slot->data.cca_failed.error = error;
 
     ntf_queue_ptr_increment(&m_ntf_w_ptr);
 
@@ -624,8 +664,17 @@ void SWI_IRQHandler(void)
                     nrf_drv_radio802154_energy_detected(p_slot->data.energy_detected.result);
                     break;
 
+                case NTF_TYPE_ENERGY_DETECTION_FAILED:
+                    nrf_drv_radio802154_energy_detection_failed(
+                            p_slot->data.energy_detection_failed.error);
+                    break;
+
                 case NTF_TYPE_CCA:
                     nrf_drv_radio802154_cca_done(p_slot->data.cca.result);
+                    break;
+
+                case NTF_TYPE_CCA_FAILED:
+                    nrf_drv_radio802154_cca_failed(p_slot->data.cca_failed.error);
                     break;
 
                 default:

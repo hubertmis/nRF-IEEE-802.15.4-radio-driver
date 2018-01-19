@@ -1928,6 +1928,8 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                     nrf_radio_event_clear(NRF_RADIO_EVENT_END);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
+
+                    nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_ABORTED);
                 }
                 else
                 {
@@ -1942,6 +1944,8 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
                 {
                     tx_procedure_abort(m_state);
+
+                    nrf_drv_radio802154_notify_transmit_failed(NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
                 }
                 else
                 {

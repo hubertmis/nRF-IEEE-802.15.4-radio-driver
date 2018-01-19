@@ -92,11 +92,25 @@ void nrf_drv_radio802154_swi_notify_transmit_failed(nrf_drv_radio802154_tx_error
 void nrf_drv_radio802154_swi_notify_energy_detected(uint8_t result);
 
 /**
+ * @brief Notify next higher layer that energy detection procedure failed from SWI priority level.
+ *
+ * @param[in]  error  Reason of the energy detection failure.
+ */
+void nrf_drv_radio802154_swi_notify_energy_detection_failed(nrf_drv_radio802154_ed_error_t error);
+
+/**
  * @brief Notify next higher layer that CCA procedure ended from SWI priority level.
  *
  * @param[in]  channel_free  If detected free channel.
  */
 void nrf_drv_radio802154_swi_notify_cca(bool channel_free);
+
+/**
+ * @brief Notify next higher layer that CCA procedure failed from SWI priority level.
+ *
+ * @param[in]  error  Reason of the CCA failure.
+ */
+void nrf_drv_radio802154_swi_notify_cca_failed(nrf_drv_radio802154_cca_error_t error);
 
 /**
  * @brief Request discarding of the timeslot from SWI priority level.

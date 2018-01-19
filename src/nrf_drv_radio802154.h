@@ -520,11 +520,25 @@ extern void nrf_drv_radio802154_transmit_failed(nrf_drv_radio802154_tx_error_t e
 extern void nrf_drv_radio802154_energy_detected(uint8_t result);
 
 /**
+ * @brief Notify that Energy Detection procedure failed.
+ *
+ * @param[in]  error  Reason of the failure.
+ */
+extern void nrf_drv_radio802154_energy_detection_failed(nrf_drv_radio802154_ed_error_t error);
+
+/**
  * @brief Notify that CCA procedure has finished.
  *
  * @param[in]  channel_free  Indication if channel is free.
  */
 extern void nrf_drv_radio802154_cca_done(bool channel_free);
+
+/**
+ * @brief Notify that CCA procedure failed.
+ *
+ * @param[in]  error  Reason of the failure.
+ */
+extern void nrf_drv_radio802154_cca_failed(nrf_drv_radio802154_cca_error_t error);
 
 
 /**
