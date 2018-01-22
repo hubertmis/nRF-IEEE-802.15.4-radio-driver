@@ -273,6 +273,9 @@
         "_class": "nRF_drv_radio_802_15_4",
         "_description": "HAL",
         "_headers": [
+            "external/hal/nrf_egu.h",
+            "external/hal/nrf_ppi.h",
+            "external/hal/nrf_timer.h",
             "src/hal/nrf_radio.h"
         ],
         "_includes": [
@@ -291,7 +294,10 @@
                     "private"
                 ], 
                 "_files": [
-                    "cmock\\mock_nrf_radio.c"
+                    "cmock\\mock_nrf_egu.c",
+                    "cmock\\mock_nrf_ppi.c",
+                    "cmock\\mock_nrf_radio.c",
+                    "cmock\\mock_nrf_timer.c"
                 ], 
                 "_includes": [
                     "3|cmock"

@@ -124,6 +124,26 @@ extern "C" {
 #endif
 
 /**
+ * @def NRF_DRV_RADIO802154_TIMER_INSTANCE
+ *
+ * TIMER instance used by FSM for Ack IFS and by FEM module.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_TIMER_INSTANCE
+#define NRF_DRV_RADIO802154_TIMER_INSTANCE NRF_TIMER1
+#endif
+
+/**
+ * @def NRF_DRV_RADIO802154_EGU_INSTANCE
+ *
+ * EGU instance used by FSM for synchronize PPIs.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_EGU_INSTANCE
+#define NRF_DRV_RADIO802154_EGU_INSTANCE NRF_EGU0
+#endif
+
+/**
  * @def NRF_DRV_RADIO802154_PENDING_SHORT_ADDRESSES
  *
  * Number of slots containing short addresses of nodes for which pending data is stored.

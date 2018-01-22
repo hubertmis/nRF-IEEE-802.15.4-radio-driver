@@ -80,15 +80,17 @@ typedef enum /*lint -save -e30 -esym(628,__INTADDR__) */
     NRF_RADIO_EVENT_ADDRESS    = offsetof(NRF_RADIO_Type, EVENTS_ADDRESS),    /**< Address sent or received. */
     NRF_RADIO_EVENT_END        = offsetof(NRF_RADIO_Type, EVENTS_END),        /**< Packet transmitted or received. */
     NRF_RADIO_EVENT_DISABLED   = offsetof(NRF_RADIO_Type, EVENTS_DISABLED),   /**< Radio has been disabled. */
+    NRF_RADIO_EVENT_RSSIEND    = offsetof(NRF_RADIO_Type, EVENTS_RSSIEND),    /**< Sampling of receive signal strength complete. */
+    NRF_RADIO_EVENT_BCMATCH    = offsetof(NRF_RADIO_Type, EVENTS_BCMATCH),    /**< Bit counter reached bit count value. */
     NRF_RADIO_EVENT_CRCOK      = offsetof(NRF_RADIO_Type, EVENTS_CRCOK),      /**< Packet received with correct CRC. */
     NRF_RADIO_EVENT_CRCERROR   = offsetof(NRF_RADIO_Type, EVENTS_CRCERROR),   /**< Packet received with incorrect CRC. */
-    NRF_RADIO_EVENT_CCAIDLE    = offsetof(NRF_RADIO_Type, EVENTS_CCAIDLE),    /**< Wireless medium is idle. */
-    NRF_RADIO_EVENT_CCABUSY    = offsetof(NRF_RADIO_Type, EVENTS_CCABUSY),    /**< Wireless medium is busy. */
-    NRF_RADIO_EVENT_RSSIEND    = offsetof(NRF_RADIO_Type, EVENTS_RSSIEND),    /**< Sampling of receive signal strength complete. */
-    NRF_RADIO_EVENT_MHRMATCH   = offsetof(NRF_RADIO_Type, EVENTS_MHRMATCH),   /**< MAC Header match found. */
     NRF_RADIO_EVENT_FRAMESTART = offsetof(NRF_RADIO_Type, EVENTS_FRAMESTART), /**< IEEE 802.15.4 length field received. */
     NRF_RADIO_EVENT_EDEND      = offsetof(NRF_RADIO_Type, EVENTS_EDEND),      /**< Energy Detection procedure ended. */
-    NRF_RADIO_EVENT_BCMATCH    = offsetof(NRF_RADIO_Type, EVENTS_BCMATCH),    /**< Bit counter reached bit count value. */
+    NRF_RADIO_EVENT_CCAIDLE    = offsetof(NRF_RADIO_Type, EVENTS_CCAIDLE),    /**< Wireless medium is idle. */
+    NRF_RADIO_EVENT_CCABUSY    = offsetof(NRF_RADIO_Type, EVENTS_CCABUSY),    /**< Wireless medium is busy. */
+    NRF_RADIO_EVENT_TXREADY    = offsetof(NRF_RADIO_Type, EVENTS_TXREADY),    /**< Radio has ramped up and is ready to be started TX path. */
+    NRF_RADIO_EVENT_RXREADY    = offsetof(NRF_RADIO_Type, EVENTS_RXREADY),    /**< Radio has ramped up and is ready to be started RX path. */
+    NRF_RADIO_EVENT_MHRMATCH   = offsetof(NRF_RADIO_Type, EVENTS_MHRMATCH),   /**< MAC Header match found. */
     NRF_RADIO_EVENT_PHYEND     = offsetof(NRF_RADIO_Type, EVENTS_PHYEND),     /**< Generated in Ble_LR125Kbit, Ble_LR500Kbit and Ieee802154_250Kbit modes when last bit is sent on air. */
 } nrf_radio_event_t;                                                          /*lint -restore */
 
@@ -102,14 +104,14 @@ typedef enum
     NRF_RADIO_INT_ADDRESS_MASK    = RADIO_INTENSET_ADDRESS_Msk,    /**< Mask for enabling or disabling an interrupt on ADDRESS event. */
     NRF_RADIO_INT_END_MASK        = RADIO_INTENSET_END_Msk,        /**< Mask for enabling or disabling an interrupt on END event. */
     NRF_RADIO_INT_DISABLED_MASK   = RADIO_INTENSET_DISABLED_Msk,   /**< Mask for enabling or disabling an interrupt on DISABLED event. */
+    NRF_RADIO_INT_RSSIEND_MASK    = RADIO_INTENSET_RSSIEND_Msk,    /**< Mask for enabling or disabling an interrupt on RSSIEND event. */
+    NRF_RADIO_INT_BCMATCH_MASK    = RADIO_INTENSET_BCMATCH_Msk,    /**< Mask for enabling or disabling an interrupt on BCMATCH event. */
     NRF_RADIO_INT_CRCOK_MASK      = RADIO_INTENSET_CRCOK_Msk,      /**< Mask for enabling or disabling an interrupt on CRCOK event. */
     NRF_RADIO_INT_CRCERROR_MASK   = RADIO_INTENSET_CRCERROR_Msk,   /**< Mask for enabling or disabling an interrupt on CRCERROR event. */
-    NRF_RADIO_INT_CCAIDLE_MASK    = RADIO_INTENSET_CCAIDLE_Msk,    /**< Mask for enabling or disabling an interrupt on CCAIDLE event. */
-    NRF_RADIO_INT_CCABUSY_MASK    = RADIO_INTENSET_CCABUSY_Msk,    /**< Mask for enabling or disabling an interrupt on CCABUSY event. */
-    NRF_RADIO_INT_RSSIEND_MASK    = RADIO_INTENSET_RSSIEND_Msk,    /**< Mask for enabling or disabling an interrupt on RSSIEND event. */
     NRF_RADIO_INT_FRAMESTART_MASK = RADIO_INTENSET_FRAMESTART_Msk, /**< Mask for enabling or disabling an interrupt on FRAMESTART event. */
     NRF_RADIO_INT_EDEND_MASK      = RADIO_INTENSET_EDEND_Msk,      /**< Mask for enabling or disabling an interrupt on EDEND event. */
-    NRF_RADIO_INT_BCMATCH_MASK    = RADIO_INTENSET_BCMATCH_Msk,    /**< Mask for enabling or disabling an interrupt on BCMATCH event. */
+    NRF_RADIO_INT_CCAIDLE_MASK    = RADIO_INTENSET_CCAIDLE_Msk,    /**< Mask for enabling or disabling an interrupt on CCAIDLE event. */
+    NRF_RADIO_INT_CCABUSY_MASK    = RADIO_INTENSET_CCABUSY_Msk,    /**< Mask for enabling or disabling an interrupt on CCABUSY event. */
     NRF_RADIO_INT_PHYEND_MASK     = RADIO_INTENSET_PHYEND_Msk,     /**< Mask for enabling or disabling an interrupt on PHYEND event. */
 } nrf_radio_int_mask_t;
 
@@ -120,12 +122,17 @@ typedef enum
 typedef enum
 {
     NRF_RADIO_SHORT_READY_START_MASK        = RADIO_SHORTS_READY_START_Msk,        /**< Mask for setting shortcut between EVENT_READY and TASK_START. */
-    NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK  = RADIO_SHORTS_ADDRESS_RSSISTART_Msk,  /**< Mask for setting shortcut between EVENT_ADDRESS and TASK_RSSISTART. */
     NRF_RADIO_SHORT_END_DISABLE_MASK        = RADIO_SHORTS_END_DISABLE_Msk,        /**< Mask for setting shortcut between EVENT_END and TASK_DISABLE. */
-    NRF_RADIO_SHORT_END_START_MASK          = RADIO_SHORTS_END_START_Msk,          /**< Mask for setting shortcut between EVENT_END and TASK_START. */
-    NRF_RADIO_SHORT_CCAIDLE_TXEN_MASK       = RADIO_SHORTS_CCAIDLE_TXEN_Msk,       /**< Mask for setting shortcut between EVENT_CCAIDLE and TASK_TXEN. */
     NRF_RADIO_SHORT_DISABLED_TXEN_MASK      = RADIO_SHORTS_DISABLED_TXEN_Msk,      /**< Mask for setting shortcut between EVENT_DISABLED and TASK_TXEN. */
+    NRF_RADIO_SHORT_DISABLED_RXEN_MASK      = RADIO_SHORTS_DISABLED_RXEN_Msk,      /**< Mask for setting shortcut between EVENT_DISABLED and TASK_RXEN. */
+    NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK  = RADIO_SHORTS_ADDRESS_RSSISTART_Msk,  /**< Mask for setting shortcut between EVENT_ADDRESS and TASK_RSSISTART. */
+    NRF_RADIO_SHORT_END_START_MASK          = RADIO_SHORTS_END_START_Msk,          /**< Mask for setting shortcut between EVENT_END and TASK_START. */
+    NRF_RADIO_SHORT_RXREADY_CCASTART_MASK   = RADIO_SHORTS_RXREADY_CCASTART_Msk,   /**< Mask for setting shortcut between EVENT_RXREADY and TASK_CCASTART. */
+    NRF_RADIO_SHORT_CCAIDLE_TXEN_MASK       = RADIO_SHORTS_CCAIDLE_TXEN_Msk,       /**< Mask for setting shortcut between EVENT_CCAIDLE and TASK_TXEN. */
+    NRF_RADIO_SHORT_CCABUSY_DISABLE_MASK    = RADIO_SHORTS_CCABUSY_DISABLE_Msk,    /**< Mask for setting shortcut between EVENT_CCABUSY and TASK_DISABLE. */
     NRF_RADIO_SHORT_FRAMESTART_BCSTART_MASK = RADIO_SHORTS_FRAMESTART_BCSTART_Msk, /**< Mask for setting shortcut between EVENT_FRAMESTART and TASK_BCSTART. */
+    NRF_RADIO_SHORT_TXREADY_START_MASK      = RADIO_SHORTS_TXREADY_START_Msk,      /**< Mask for setting shortcut between EVENT_TXREADY and TASK_START. */
+    NRF_RADIO_SHORT_RXREADY_START_MASK      = RADIO_SHORTS_RXREADY_START_Msk,      /**< Mask for setting shortcut between EVENT_RXREADY and TASK_START. */
     NRF_RADIO_SHORT_PHYEND_DISABLE_MASK     = RADIO_SHORTS_PHYEND_DISABLE_Msk,     /**< Mask for setting shortcut between EVENT_PHYEND and TASK_DISABLE. */
     NRF_RADIO_SHORT_PHYEND_START_MASK       = RADIO_SHORTS_PHYEND_START_Msk,       /**< Mask for setting shortcut between EVENT_PHYEND and TASK_START. */
 } nrf_radio_short_mask_t;
