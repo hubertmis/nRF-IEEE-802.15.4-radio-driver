@@ -229,9 +229,9 @@ static void receive_failed_notify(nrf_drv_radio802154_rx_error_t error)
 
 static inline void transmit_started_notify(void)
 {
-    if (nrf_drv_radio802154_fsm_hooks_tx_started())
+    if (nrf_drv_radio802154_fsm_hooks_tx_started(mp_tx_data))
     {
-        nrf_drv_radio802154_tx_started();
+        nrf_drv_radio802154_tx_started(mp_tx_data);
     }
 
 }
@@ -241,8 +241,8 @@ static inline void transmitted_frame_notify(uint8_t * p_ack, int8_t power, int8_
 {
     nrf_drv_radio802154_critical_section_nesting_allow();
 
-    nrf_drv_radio802154_fsm_hooks_transmitted();
-    nrf_drv_radio802154_notify_transmitted(p_ack, power, lqi);
+    nrf_drv_radio802154_fsm_hooks_transmitted(mp_tx_data);
+    nrf_drv_radio802154_notify_transmitted(mp_tx_data, p_ack, power, lqi);
 
     nrf_drv_radio802154_critical_section_nesting_deny();
 }
@@ -252,9 +252,9 @@ static void transmit_failed_notify(nrf_drv_radio802154_tx_error_t error)
 {
     nrf_drv_radio802154_critical_section_nesting_allow();
 
-    if (nrf_drv_radio802154_fsm_hooks_tx_failed(error))
+    if (nrf_drv_radio802154_fsm_hooks_tx_failed(mp_tx_data, error))
     {
-        nrf_drv_radio802154_notify_transmit_failed(error);
+        nrf_drv_radio802154_notify_transmit_failed(mp_tx_data, error);
     }
 
     nrf_drv_radio802154_critical_section_nesting_deny();
@@ -1945,7 +1945,7 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 {
                     tx_procedure_abort(m_state);
 
-                    nrf_drv_radio802154_notify_transmit_failed(NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
+                    nrf_drv_radio802154_notify_transmit_failed(mp_tx_data, NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
                 }
                 else
                 {

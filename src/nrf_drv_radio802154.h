@@ -440,8 +440,10 @@ extern void nrf_drv_radio802154_receive_failed(nrf_drv_radio802154_rx_error_t er
  * @note It is possible that transmit procedure is interrupted and
  *       @sa nrf_drv_radio802154_transmitted won't be called.
  * @note This function should be very short to prevent dropping frames by the driver.
+ *
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame being transmitted.
  */
-extern void nrf_drv_radio802154_tx_started(void);
+extern void nrf_drv_radio802154_tx_started(const uint8_t * p_frame);
 
 /**
  * @brief Notify that receiving ACK frame has started.
@@ -466,15 +468,19 @@ extern void nrf_drv_radio802154_rx_ack_started(void);
  * @note The next higher layer should handle @sa nrf_drv_radio802154_transmitted_raw() or @sa
  *       nrf_drv_radio802154_transmitted() function. It should not handle both.
  *
- * @param[in]  p_ack  Pointer to received ACK buffer. Fist byte in the buffer is length of the
- *                    frame (PHR) and following bytes are the ACK frame itself (PSDU). Length byte
- *                    (PHR) includes FCS. FCS is already verified by the hardware and may be
- *                    modified by the hardware.
- *                    If ACK was not requested @p p_ack is set to NULL.
- * @param[in]  power  RSSI of received frame or 0 if ACK was not requested.
- * @param[in]  lqi    LQI of received frame or 0 if ACK was not requested.
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of transmitted frame.
+ * @param[in]  p_ack    Pointer to received ACK buffer. Fist byte in the buffer is length of the
+ *                      frame (PHR) and following bytes are the ACK frame itself (PSDU). Length byte
+ *                      (PHR) includes FCS. FCS is already verified by the hardware and may be
+ *                      modified by the hardware.
+ *                      If ACK was not requested @p p_ack is set to NULL.
+ * @param[in]  power    RSSI of received frame or 0 if ACK was not requested.
+ * @param[in]  lqi      LQI of received frame or 0 if ACK was not requested.
  */
-extern void nrf_drv_radio802154_transmitted_raw(uint8_t * p_ack, int8_t power, int8_t lqi);
+extern void nrf_drv_radio802154_transmitted_raw(const uint8_t * p_frame,
+                                                uint8_t       * p_ack,
+                                                int8_t          power,
+                                                int8_t          lqi);
 
 /**
  * @brief Notify that frame was transmitted.
@@ -490,13 +496,18 @@ extern void nrf_drv_radio802154_transmitted_raw(uint8_t * p_ack, int8_t power, i
  * @note The next higher layer should handle @sa nrf_drv_radio802154_transmitted() or @sa
  *       nrf_drv_radio802154_transmitted() function. It should not handle both.
  *
- * @param[in]  p_ack   Pointer to buffer containing received ACK payload (PHR excluding FCS).
-  *                    If ACK was not requested @p p_ack is set to NULL.
- * @param[in]  length  Length of received ACK payload.
- * @param[in]  power   RSSI of received frame or 0 if ACK was not requested.
- * @param[in]  lqi     LQI of received frame or 0 if ACK was not requested.
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of transmitted frame.
+ * @param[in]  p_ack    Pointer to buffer containing received ACK payload (PHR excluding FCS).
+  *                     If ACK was not requested @p p_ack is set to NULL.
+ * @param[in]  length   Length of received ACK payload.
+ * @param[in]  power    RSSI of received frame or 0 if ACK was not requested.
+ * @param[in]  lqi      LQI of received frame or 0 if ACK was not requested.
  */
-extern void nrf_drv_radio802154_transmitted(uint8_t * p_ack, uint8_t length, int8_t power, int8_t lqi);
+extern void nrf_drv_radio802154_transmitted(const uint8_t * p_frame,
+                                            uint8_t       * p_ack,
+                                            uint8_t         length,
+                                            int8_t          power,
+                                            int8_t          lqi);
 
 
 /**
@@ -504,9 +515,11 @@ extern void nrf_drv_radio802154_transmitted(uint8_t * p_ack, uint8_t length, int
  *
  * This function is called if transmission procedure fails.
  *
- * @param[in]  error  Reason of the failure.
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of frame that was not transmitted.
+ * @param[in]  error    Reason of the failure.
  */
-extern void nrf_drv_radio802154_transmit_failed(nrf_drv_radio802154_tx_error_t error);
+extern void nrf_drv_radio802154_transmit_failed(const uint8_t                * p_frame,
+                                                nrf_drv_radio802154_tx_error_t error);
 
 /**
  * @brief Notify that Energy Detection procedure finished.

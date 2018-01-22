@@ -57,14 +57,18 @@ void nrf_drv_radio802154_notify_receive_failed(nrf_drv_radio802154_rx_error_t er
     nrf_drv_radio802154_receive_failed(error);
 }
 
-void nrf_drv_radio802154_notify_transmitted(uint8_t * p_ack, int8_t power, int8_t lqi)
+void nrf_drv_radio802154_notify_transmitted(const uint8_t * p_frame,
+                                            uint8_t       * p_ack,
+                                            int8_t          power,
+                                            int8_t          lqi)
 {
-    nrf_drv_radio802154_transmitted_raw(p_ack, power, lqi);
+    nrf_drv_radio802154_transmitted_raw(p_frame, p_ack, power, lqi);
 }
 
-void nrf_drv_radio802154_notify_transmit_failed(nrf_drv_radio802154_tx_error_t error)
+void nrf_drv_radio802154_notify_transmit_failed(const uint8_t                * p_frame,
+                                                nrf_drv_radio802154_tx_error_t error)
 {
-    nrf_drv_radio802154_transmit_failed(error);
+    nrf_drv_radio802154_transmit_failed(p_frame, error);
 }
 
 void nrf_drv_radio802154_notify_energy_detected(uint8_t result)

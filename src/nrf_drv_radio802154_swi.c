@@ -99,48 +99,50 @@ typedef struct
     {
         struct
         {
-            uint8_t                      * p_psdu;  ///< Pointer to received frame PSDU.
-            int8_t                         power;   ///< RSSI of received frame.
-            int8_t                         lqi;     ///< LQI of received frame.
-        } received;                                 ///< Received frame details.
+            uint8_t                      * p_psdu;   ///< Pointer to received frame PSDU.
+            int8_t                         power;    ///< RSSI of received frame.
+            int8_t                         lqi;      ///< LQI of received frame.
+        } received;                                  ///< Received frame details.
 
         struct
         {
-            nrf_drv_radio802154_rx_error_t error;   ///< An error code that indicates reason of the failure.
+            nrf_drv_radio802154_rx_error_t error;    ///< An error code that indicates reason of the failure.
         } receive_failed;
 
         struct
         {
-            uint8_t                      * p_psdu;  ///< Pointer to received ACK PSDU or NULL.
-            int8_t                         power;   ///< RSSI of received ACK or 0.
-            int8_t                         lqi;     ///< LQI of received ACK or 0.
-        } transmitted;                              ///< Transmitted frame details.
+            const uint8_t                * p_frame;  ///< Pointer to frame that was transmitted.
+            uint8_t                      * p_psdu;   ///< Pointer to received ACK PSDU or NULL.
+            int8_t                         power;    ///< RSSI of received ACK or 0.
+            int8_t                         lqi;      ///< LQI of received ACK or 0.
+        } transmitted;                               ///< Transmitted frame details.
 
         struct
         {
-            nrf_drv_radio802154_tx_error_t error;   ///< An error code that indicates reason of the failure.
+            const uint8_t                * p_frame;  ///< Pointer to frame that was requested to be transmitted, but failed.
+            nrf_drv_radio802154_tx_error_t error;    ///< An error code that indicates reason of the failure.
         } transmit_failed;
 
         struct
         {
-            int8_t                         result;  ///< Energy detection result.
-        } energy_detected;                          ///< Energy detection details.
+            int8_t                         result;   ///< Energy detection result.
+        } energy_detected;                           ///< Energy detection details.
 
         struct
         {
-            nrf_drv_radio802154_ed_error_t error;   ///< An error code that indicates reason of the failure.
-        } energy_detection_failed;                  ///< Energy detection failure details.
+            nrf_drv_radio802154_ed_error_t error;    ///< An error code that indicates reason of the failure.
+        } energy_detection_failed;                   ///< Energy detection failure details.
 
         struct
         {
-            bool                           result;  ///< CCA result.
-        } cca;                                      ///< CCA details.
+            bool                           result;   ///< CCA result.
+        } cca;                                       ///< CCA details.
 
         struct
         {
-            nrf_drv_radio802154_cca_error_t error;  ///< An error code that indicates reason of the failure.
-        } cca_failed;                               ///< CCA failure details.
-    } data;                                         ///< Notification data depending on it's type.
+            nrf_drv_radio802154_cca_error_t error;   ///< An error code that indicates reason of the failure.
+        } cca_failed;                                ///< CCA failure details.
+    } data;                                          ///< Notification data depending on it's type.
 } nrf_drv_radio802154_ntf_data_t;
 
 /// Type of requests in request queue.
@@ -426,30 +428,36 @@ void nrf_drv_radio802154_swi_notify_receive_failed(nrf_drv_radio802154_rx_error_
     nrf_egu_task_trigger(SWI_EGU, NTF_TASK);
 }
 
-void nrf_drv_radio802154_swi_notify_transmitted(uint8_t * p_data, int8_t power, int8_t lqi)
+void nrf_drv_radio802154_swi_notify_transmitted(const uint8_t * p_frame,
+                                                uint8_t       * p_data,
+                                                int8_t          power,
+                                                int8_t          lqi)
 {
     assert(!ntf_queue_is_full());
 
     nrf_drv_radio802154_ntf_data_t * p_slot = &m_ntf_queue[m_ntf_w_ptr];
 
-    p_slot->type                    = NTF_TYPE_TRANSMITTED;
-    p_slot->data.transmitted.p_psdu = p_data;
-    p_slot->data.transmitted.power  = power;
-    p_slot->data.transmitted.lqi    = lqi;
+    p_slot->type                     = NTF_TYPE_TRANSMITTED;
+    p_slot->data.transmitted.p_frame = p_frame;
+    p_slot->data.transmitted.p_psdu  = p_data;
+    p_slot->data.transmitted.power   = power;
+    p_slot->data.transmitted.lqi     = lqi;
 
     ntf_queue_ptr_increment(&m_ntf_w_ptr);
 
     nrf_egu_task_trigger(SWI_EGU, NTF_TASK);
 }
 
-void nrf_drv_radio802154_swi_notify_transmit_failed(nrf_drv_radio802154_tx_error_t error)
+void nrf_drv_radio802154_swi_notify_transmit_failed(const uint8_t                * p_frame,
+                                                    nrf_drv_radio802154_tx_error_t error)
 {
     assert(!ntf_queue_is_full());
 
     nrf_drv_radio802154_ntf_data_t * p_slot = &m_ntf_queue[m_ntf_w_ptr];
 
-    p_slot->type                       = NTF_TYPE_TRANSMIT_FAILED;
-    p_slot->data.transmit_failed.error = error;
+    p_slot->type                         = NTF_TYPE_TRANSMIT_FAILED;
+    p_slot->data.transmit_failed.p_frame = p_frame;
+    p_slot->data.transmit_failed.error   = error;
 
     ntf_queue_ptr_increment(&m_ntf_w_ptr);
 
@@ -651,13 +659,15 @@ void SWI_IRQHandler(void)
                     break;
 
                 case NTF_TYPE_TRANSMITTED:
-                    nrf_drv_radio802154_transmitted_raw(p_slot->data.transmitted.p_psdu,
+                    nrf_drv_radio802154_transmitted_raw(p_slot->data.transmitted.p_frame,
+                                                        p_slot->data.transmitted.p_psdu,
                                                         p_slot->data.transmitted.power,
                                                         p_slot->data.transmitted.lqi);
                     break;
 
                 case NTF_TYPE_TRANSMIT_FAILED:
-                    nrf_drv_radio802154_transmit_failed(p_slot->data.transmit_failed.error);
+                    nrf_drv_radio802154_transmit_failed(p_slot->data.transmit_failed.p_frame,
+                                                        p_slot->data.transmit_failed.error);
                     break;
 
                 case NTF_TYPE_ENERGY_DETECTED:

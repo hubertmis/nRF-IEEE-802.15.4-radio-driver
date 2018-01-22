@@ -48,9 +48,9 @@
 
 
 typedef bool (* abort_hook)(nrf_drv_radio802154_term_t term_lvl);
-typedef void (* transmitted_hook)(void);
-typedef bool (* tx_failed_hook)(nrf_drv_radio802154_tx_error_t error);
-typedef bool (* tx_started_hook)(void);
+typedef void (* transmitted_hook)(const uint8_t * p_frame);
+typedef bool (* tx_failed_hook)(const uint8_t * p_frame, nrf_drv_radio802154_tx_error_t error);
+typedef bool (* tx_started_hook)(const uint8_t * p_frame);
 
 /* Since some compilers do not allow empty initializers for arrays with unspecified bounds,
  * NULL pointer is appended to below arrays if the compiler used is not GCC. It is intentionally
@@ -135,7 +135,7 @@ bool nrf_drv_radio802154_fsm_hooks_terminate(nrf_drv_radio802154_term_t term_lvl
     return result;
 }
 
-void nrf_drv_radio802154_fsm_hooks_transmitted(void)
+void nrf_drv_radio802154_fsm_hooks_transmitted(const uint8_t * p_frame)
 {
     for (uint32_t i = 0; i < sizeof(m_transmitted_hooks) / sizeof(m_transmitted_hooks[0]); i++)
     {
@@ -144,11 +144,12 @@ void nrf_drv_radio802154_fsm_hooks_transmitted(void)
             break;
         }
 
-        m_transmitted_hooks[i]();
+        m_transmitted_hooks[i](p_frame);
     }
 }
 
-bool nrf_drv_radio802154_fsm_hooks_tx_failed(nrf_drv_radio802154_tx_error_t error)
+bool nrf_drv_radio802154_fsm_hooks_tx_failed(const uint8_t                * p_frame,
+                                             nrf_drv_radio802154_tx_error_t error)
 {
     bool result = true;
 
@@ -159,7 +160,7 @@ bool nrf_drv_radio802154_fsm_hooks_tx_failed(nrf_drv_radio802154_tx_error_t erro
             break;
         }
 
-        result = m_tx_failed_hooks[i](error);
+        result = m_tx_failed_hooks[i](p_frame, error);
 
         if (!result)
         {
@@ -170,7 +171,7 @@ bool nrf_drv_radio802154_fsm_hooks_tx_failed(nrf_drv_radio802154_tx_error_t erro
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_hooks_tx_started(void)
+bool nrf_drv_radio802154_fsm_hooks_tx_started(const uint8_t * p_frame)
 {
     bool result = true;
 
@@ -181,7 +182,7 @@ bool nrf_drv_radio802154_fsm_hooks_tx_started(void)
             break;
         }
 
-        result = m_tx_started_hooks[i]();
+        result = m_tx_started_hooks[i](p_frame);
 
         if (!result)
         {

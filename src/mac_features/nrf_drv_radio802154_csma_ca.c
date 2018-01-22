@@ -88,7 +88,8 @@ static void frame_transmit(void * p_context)
 
     if (error_shall_be_notified)
     {
-        nrf_drv_radio802154_notify_transmit_failed(NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
+        nrf_drv_radio802154_notify_transmit_failed(mp_psdu,
+                                                   NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
     }
 }
 
@@ -195,18 +196,28 @@ bool nrf_drv_radio802154_csma_ca_abort(nrf_drv_radio802154_term_t term_lvl)
     return result;
 }
 
-bool nrf_drv_radio802154_csma_ca_tx_failed_hook(nrf_drv_radio802154_tx_error_t error)
+bool nrf_drv_radio802154_csma_ca_tx_failed_hook(const uint8_t                * p_frame,
+                                                nrf_drv_radio802154_tx_error_t error)
 {
     (void)error;
 
-    return channel_busy();
+    bool result = true;
+
+    if (p_frame == mp_psdu)
+    {
+        result = channel_busy();
+    }
+
+    return result;
 }
 
-bool nrf_drv_radio802154_csma_ca_tx_started_hook(void)
+bool nrf_drv_radio802154_csma_ca_tx_started_hook(const uint8_t * p_frame)
 {
-    assert(!nrf_drv_radio802154_timer_sched_is_running(&m_timer));
-
-    procedure_stop();
+    if (p_frame == mp_psdu)
+    {
+        assert(!nrf_drv_radio802154_timer_sched_is_running(&m_timer));
+        procedure_stop();
+    }
 
     return true;
 }

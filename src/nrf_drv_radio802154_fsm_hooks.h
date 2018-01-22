@@ -32,6 +32,7 @@
 #define NRF_DRIVER_RADIO802154_FSM_HOOKS_H__
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "nrf_drv_radio802154_types.h"
 
@@ -57,28 +58,34 @@ bool nrf_drv_radio802154_fsm_hooks_terminate(nrf_drv_radio802154_term_t term_lvl
 
 /**
  * @brief Process hooks for the transmitted event.
+ *
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame that was transmitted.
  */
-void nrf_drv_radio802154_fsm_hooks_transmitted(void);
+void nrf_drv_radio802154_fsm_hooks_transmitted(const uint8_t * p_frame);
 
 /**
  * @brief Process hooks for the TX failed event.
  *
- * @param[in]  error  Cause of failed transmission.
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame that was not transmitted.
+ * @param[in]  error    Cause of failed transmission.
  *
  * @retval  true   TX failed event should be propagated to the MAC layer.
  * @retval  false  TX failed event should not be propagated to the MAC layer. It is handled
  *                 internally.
  */
-bool nrf_drv_radio802154_fsm_hooks_tx_failed(nrf_drv_radio802154_tx_error_t error);
+bool nrf_drv_radio802154_fsm_hooks_tx_failed(const uint8_t                * p_frame,
+                                             nrf_drv_radio802154_tx_error_t error);
 
 /**
  * @brief Process hooks for the TX started event.
+ *
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame that is being transmitted.
  *
  * @retval  true   TX started event should be propagated to the MAC layer.
  * @retval  false  TX started event should not be propagated to the MAC layer. It is handled
  *                 internally.
  */
-bool nrf_drv_radio802154_fsm_hooks_tx_started(void);
+bool nrf_drv_radio802154_fsm_hooks_tx_started(const uint8_t * p_frame);
 
 /**
  *@}

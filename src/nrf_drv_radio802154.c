@@ -486,9 +486,9 @@ __WEAK void nrf_drv_radio802154_receive_failed(nrf_drv_radio802154_rx_error_t er
     (void) error;
 }
 
-__WEAK void nrf_drv_radio802154_tx_started(void)
+__WEAK void nrf_drv_radio802154_tx_started(const uint8_t * p_frame)
 {
-    // Intentionally empty
+    (void) p_frame;
 }
 
 __WEAK void nrf_drv_radio802154_rx_ack_started(void)
@@ -496,8 +496,13 @@ __WEAK void nrf_drv_radio802154_rx_ack_started(void)
     // Intentionally empty
 }
 
-__WEAK void nrf_drv_radio802154_transmitted(uint8_t * p_ack, uint8_t length, int8_t power, int8_t lqi)
+__WEAK void nrf_drv_radio802154_transmitted(const uint8_t * p_frame,
+                                            uint8_t       * p_ack,
+                                            uint8_t         length,
+                                            int8_t          power,
+                                            int8_t          lqi)
 {
+    (void) p_frame;
     (void) length;
     (void) power;
     (void) lqi;
@@ -508,16 +513,22 @@ __WEAK void nrf_drv_radio802154_transmitted(uint8_t * p_ack, uint8_t length, int
     }
 }
 
-__WEAK void nrf_drv_radio802154_transmitted_raw(uint8_t * p_ack, int8_t power, int8_t lqi)
+__WEAK void nrf_drv_radio802154_transmitted_raw(const uint8_t * p_frame,
+                                                uint8_t       * p_ack,
+                                                int8_t          power,
+                                                int8_t          lqi)
 {
-    nrf_drv_radio802154_transmitted(p_ack + RAW_PAYLOAD_OFFSET,
+    nrf_drv_radio802154_transmitted(p_frame,
+                                    p_ack + RAW_PAYLOAD_OFFSET,
                                     p_ack[RAW_LENGTH_OFFSET],
                                     power,
                                     lqi);
 }
 
-__WEAK void nrf_drv_radio802154_transmit_failed(nrf_drv_radio802154_tx_error_t error)
+__WEAK void nrf_drv_radio802154_transmit_failed(const uint8_t                * p_frame,
+                                                nrf_drv_radio802154_tx_error_t error)
 {
+    (void) p_frame;
     (void) error;
 }
 
@@ -526,7 +537,17 @@ __WEAK void nrf_drv_radio802154_energy_detected(uint8_t result)
     (void) result;
 }
 
+__WEAK void nrf_drv_radio802154_energy_detection_failed(nrf_drv_radio802154_ed_error_t error)
+{
+    (void) error;
+}
+
 __WEAK void nrf_drv_radio802154_cca_done(bool channel_free)
 {
     (void) channel_free;
+}
+
+__WEAK void nrf_drv_radio802154_cca_failed(nrf_drv_radio802154_cca_error_t error)
+{
+    (void) error;
 }

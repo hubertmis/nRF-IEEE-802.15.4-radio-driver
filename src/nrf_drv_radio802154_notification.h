@@ -71,18 +71,26 @@ void nrf_drv_radio802154_notify_receive_failed(nrf_drv_radio802154_rx_error_t er
 /**
  * @brief Notify next higher layer that a frame was transmitted.
  *
- * @param[in]  p_ack  Pointer to buffer containing PSDU of ACK frame. NULL if ACK was not requested.
- * @param[in]  power  RSSI of received frame or 0 if ACK was not requested.
- * @param[in]  lqi    LQI of received frame of 0 if ACK was not requested.
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of transmitted frame.
+ * @param[in]  p_ack    Pointer to buffer containing PSDU of ACK frame. NULL if ACK was not
+ *                      requested.
+ * @param[in]  power    RSSI of received frame or 0 if ACK was not requested.
+ * @param[in]  lqi      LQI of received frame of 0 if ACK was not requested.
  */
-void nrf_drv_radio802154_notify_transmitted(uint8_t * p_ack, int8_t power, int8_t lqi);
+void nrf_drv_radio802154_notify_transmitted(const uint8_t * p_frame,
+                                            uint8_t       * p_ack,
+                                            int8_t          power,
+                                            int8_t          lqi);
 
 /**
  * @brief Notify next higher layer that a frame was not transmitted.
  *
- * @param[in]  error  An error code indicating reason of the failure.
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame that failed transmit
+ *                      operation.
+ * @param[in]  error    An error code indicating reason of the failure.
  */
-void nrf_drv_radio802154_notify_transmit_failed(nrf_drv_radio802154_tx_error_t error);
+void nrf_drv_radio802154_notify_transmit_failed(const uint8_t                * p_frame,
+                                                nrf_drv_radio802154_tx_error_t error);
 
 /**
  * @brief Notify next higher layer that energy detection procedure ended.

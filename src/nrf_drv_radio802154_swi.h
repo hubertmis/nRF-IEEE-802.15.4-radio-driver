@@ -71,18 +71,25 @@ void nrf_drv_radio802154_swi_notify_receive_failed(nrf_drv_radio802154_rx_error_
 /**
  * @brief Notify next higher layer that a frame was transmitted from SWI priority level.
  *
- * @param[in]  p_ack  Pointer to buffer containing PSDU of ACK frame. NULL if ACK was not requested.
- * @param[in]  power  RSSI of received frame or 0 if ACK was not requested.
- * @param[in]  lqi    LQI of received frame of 0 if ACK was not requested.
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of transmitted frame.
+ * @param[in]  p_ack    Pointer to buffer containing PSDU of ACK frame. NULL if ACK was not requested.
+ * @param[in]  power    RSSI of received frame or 0 if ACK was not requested.
+ * @param[in]  lqi      LQI of received frame of 0 if ACK was not requested.
  */
-void nrf_drv_radio802154_swi_notify_transmitted(uint8_t * p_data, int8_t power, int8_t lqi);
+void nrf_drv_radio802154_swi_notify_transmitted(const uint8_t * p_frame,
+                                                uint8_t       * p_data,
+                                                int8_t          power,
+                                                int8_t          lqi);
 
 /**
  * @brief Notify next higher layer that a frame was not transmitted from SWI priority level.
  *
- * @param[in]  error  Reason of the transmission failure.
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame that failed transmit
+ *                      operation.
+ * @param[in]  error    Reason of the transmission failure.
  */
-void nrf_drv_radio802154_swi_notify_transmit_failed(nrf_drv_radio802154_tx_error_t error);
+void nrf_drv_radio802154_swi_notify_transmit_failed(const uint8_t                * p_frame,
+                                                    nrf_drv_radio802154_tx_error_t error);
 
 /**
  * @brief Notify next higher layer that energy detection procedure ended from SWI priority level.

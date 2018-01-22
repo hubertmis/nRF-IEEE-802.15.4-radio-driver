@@ -78,22 +78,26 @@ bool nrf_drv_radio802154_csma_ca_abort(nrf_drv_radio802154_term_t term_lvl);
 /**
  * @brief Handler of TX failed event.
  *
- * @param[in]  error  Cause of failed transmission.
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame that was not transmitted.
+ * @param[in]  error    Cause of failed transmission.
  *
  * @retval  true   TX failed event should be propagated to the MAC layer.
  * @retval  false  TX failed event should not be propagated to the MAC layer. It is handled
  *                 internally.
  */
-bool nrf_drv_radio802154_csma_ca_tx_failed_hook(nrf_drv_radio802154_tx_error_t error);
+bool nrf_drv_radio802154_csma_ca_tx_failed_hook(const uint8_t                * p_frame,
+                                                nrf_drv_radio802154_tx_error_t error);
 
 /**
  * @brief Handler of TX started event.
+ *
+ * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame that is being transmitted.
  *
  * @retval  true   TX started event should be propagated to the MAC layer.
  * @retval  false  TX started event should not be propagated to the MAC layer. It is handled
  *                 internally.
  */
-bool nrf_drv_radio802154_csma_ca_tx_started_hook(void);
+bool nrf_drv_radio802154_csma_ca_tx_started_hook(const uint8_t * p_frame);
 
 /**
  *@}
