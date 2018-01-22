@@ -234,11 +234,13 @@ static inline void transmit_started_notify(void)
     }
 
 }
-/// Notify MAC layer that a frame was received.
+
+/// Notify MAC layer that a frame was transmitted.
 static inline void transmitted_frame_notify(uint8_t * p_ack, int8_t power, int8_t lqi)
 {
     nrf_drv_radio802154_critical_section_nesting_allow();
 
+    nrf_drv_radio802154_fsm_hooks_transmitted();
     nrf_drv_radio802154_notify_transmitted(p_ack, power, lqi);
 
     nrf_drv_radio802154_critical_section_nesting_deny();

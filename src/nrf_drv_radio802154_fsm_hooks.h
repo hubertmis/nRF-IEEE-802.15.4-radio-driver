@@ -51,6 +51,11 @@
 void nrf_drv_radio802154_fsm_hooks_abort(void);
 
 /**
+ * @brief Process hooks for the transmitted event.
+ */
+void nrf_drv_radio802154_fsm_hooks_transmitted(void);
+
+/**
  * @brief Process hooks for the TX failed event.
  *
  * @param[in]  error  Cause of failed transmission.

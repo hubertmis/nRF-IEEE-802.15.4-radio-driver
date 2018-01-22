@@ -47,6 +47,7 @@
 
 
 typedef void (* abort_hook)(void);
+typedef void (* transmitted_hook)(void);
 typedef bool (* tx_failed_hook)(nrf_drv_radio802154_tx_error_t error);
 typedef bool (* tx_started_hook)(void);
 
@@ -55,6 +56,11 @@ static const abort_hook m_abort_hooks[] =
 #if NRF_DRV_RADIO802154_CSMA_CA_ENABLED
     nrf_drv_radio802154_csma_ca_abort,
 #endif
+};
+
+static const transmitted_hook m_transmitted_hooks[] =
+{
+
 };
 
 static const tx_failed_hook m_tx_failed_hooks[] =
@@ -76,6 +82,14 @@ void nrf_drv_radio802154_fsm_hooks_abort(void)
     for (uint32_t i = 0; i < sizeof(m_abort_hooks) / sizeof(m_abort_hooks[0]); i++)
     {
         m_abort_hooks[i]();
+    }
+}
+
+void nrf_drv_radio802154_fsm_hooks_transmitted(void)
+{
+    for (uint32_t i = 0; i < sizeof(m_transmitted_hooks) / sizeof(m_transmitted_hooks[0]); i++)
+    {
+        m_transmitted_hooks[i]();
     }
 }
 
