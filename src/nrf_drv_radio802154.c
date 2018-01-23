@@ -62,6 +62,7 @@
 
 #include <cmsis/core_cmFunc.h>
 #include "mac_features/nrf_drv_radio802154_csma_ca.h"
+#include "mac_features/nrf_drv_radio802154_ack_timeout.h"
 
 #if ENABLE_FEM
 #include "fem/nrf_fem_control_api.h"
@@ -443,6 +444,15 @@ void nrf_drv_radio802154_transmit_csma_ca(const uint8_t * p_data, uint8_t length
 }
 
 #endif // NRF_DRV_RADIO802154_CSMA_CA_ENABLED
+
+#if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+
+void nrf_drv_radio802154_ack_timeout_set(uint32_t time)
+{
+    nrf_drv_radio802154_ack_timeout_time_set(time);
+}
+
+#endif // NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
 
 __WEAK void nrf_drv_radio802154_rx_started(void)
 {

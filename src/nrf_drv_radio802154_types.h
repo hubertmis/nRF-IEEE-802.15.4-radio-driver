@@ -65,6 +65,7 @@ typedef uint8_t nrf_drv_radio802154_tx_error_t;
 #define NRF_DRV_RADIO802154_TX_ERROR_INVALID_ACK       0x02 /**< Received ACK frame is other than expected. */
 #define NRF_DRV_RADIO802154_TX_ERROR_NO_MEM            0x03 /**< No receive buffer are available to receive an ACK. */
 #define NRF_DRV_RADIO802154_TX_ERROR_TIMESLOT_ENDED    0x04 /**< Radio timeslot ended during transmission procedure. */
+#define NRF_DRV_RADIO802154_TX_ERROR_NO_ACK            0x05 /**< ACK frame was not received during timeout period. */
 
 /**
  * @brief Possible errors during frame reception.

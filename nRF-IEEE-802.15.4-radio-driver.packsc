@@ -46,6 +46,7 @@
                     "src/nrf_drv_radio802154_pib.c",
                     "src/nrf_drv_radio802154_revision.c",
                     "src/nrf_drv_radio802154_rx_buffer.c",
+                    "src/mac_features/nrf_drv_radio802154_ack_timeout.c",
                     "src/mac_features/nrf_drv_radio802154_csma_ca.c",
                     "src/mac_features/nrf_drv_radio802154_filter.c",
                     "src/platform/clock/nrf_drv_radio802154_clock_sdk.c",
@@ -76,6 +77,7 @@
                     "src/nrf_drv_radio802154_pib.c",
                     "src/nrf_drv_radio802154_revision.c",
                     "src/nrf_drv_radio802154_rx_buffer.c",
+                    "src/mac_features/nrf_drv_radio802154_ack_timeout.c",
                     "src/mac_features/nrf_drv_radio802154_csma_ca.c",
                     "src/mac_features/nrf_drv_radio802154_filter.c",
                     "src/platform/clock/nrf_drv_radio802154_clock_sdk.c",
@@ -267,24 +269,24 @@
         ]
     },
 
-  "hal": {
-      "_class": "nRF_drv_radio_802_15_4",
-      "_description": "HAL",
-      "_headers": [
-          "src/hal/nrf_radio.h"
-      ],
-      "_includes": [
-          "external",
-          "external/hal",
-          "src/hal"
-      ],
-      "_variants": [
-          {
+    "hal": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "HAL",
+        "_headers": [
+            "src/hal/nrf_radio.h"
+        ],
+        "_includes": [
+            "external",
+            "external/hal",
+            "src/hal"
+        ],
+        "_variants": [
+            {
                 "_attrs": [
                     "public"
                 ]
-          },
-          {
+            },
+            {
                 "_attrs": [
                     "private"
                 ], 
@@ -302,8 +304,8 @@
                 ],
                 "_name": "file_included_by_test"
             }
-      ]
-  },
+        ]
+    },
 
     "cli": {
         "_class": "nRF_drv_radio_802_15_4",

@@ -322,6 +322,29 @@ extern "C" {
 #define NRF_DRV_RADIO802154_CSMA_CA_MAX_CSMA_BACKOFFS 4
 #endif
 
+/*******************************************************************************
+ * @section ACK timeout feature configuration.
+ ******************************************************************************/
+
+/**
+ * @def NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+ *
+ * If ACK timeout feature should be enabled in the driver.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+#define NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED 1
+#endif
+
+/**
+ * @def NRF_DRV_RADIO802154_ACK_TIMEOUT_DEFAULT_TIMEOUT
+ *
+ * Default timeout time in us for ACK timeout feature.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_ACK_TIMEOUT_DEFAULT_TIMEOUT
+#define NRF_DRV_RADIO802154_ACK_TIMEOUT_DEFAULT_TIMEOUT 7000
+#endif
 
 /**
  *@}

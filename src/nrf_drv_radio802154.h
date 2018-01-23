@@ -758,6 +758,24 @@ void nrf_drv_radio802154_transmit_csma_ca(const uint8_t * p_data, uint8_t length
 
 #endif // NRF_DRV_RADIO802154_CSMA_CA_ENABLED
 
+/**
+ * @section ACK timeout procedure.
+ */
+#if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+
+/**
+ * @brief Set timeout time for ACK timeout feature.
+ * 
+ * Timeout is notified by @sa nrf_drv_radio802154_transmit_failed() function.
+ * 
+ * @param[in]  time  Timeout time in us. Timeout is started at the beginning of frame
+ *                   transmission (after transmission of PHR).
+ *                   Default value is defined in nrf_drv_radio802154_config.h.
+ */
+void nrf_drv_radio802154_ack_timeout_set(uint32_t time);
+
+#endif // NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+
 #ifdef __cplusplus
 }
 #endif

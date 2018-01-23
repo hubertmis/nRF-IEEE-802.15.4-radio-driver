@@ -41,6 +41,7 @@
 
 #include <stdbool.h>
 
+#include "mac_features/nrf_drv_radio802154_ack_timeout.h"
 #include "mac_features/nrf_drv_radio802154_csma_ca.h"
 #include "nrf_drv_radio802154_config.h"
 #include "nrf_drv_radio802154_types.h"
@@ -56,11 +57,17 @@ static const abort_hook m_abort_hooks[] =
 #if NRF_DRV_RADIO802154_CSMA_CA_ENABLED
     nrf_drv_radio802154_csma_ca_abort,
 #endif
+
+#if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+    nrf_drv_radio802154_ack_timeout_abort,
+#endif
 };
 
 static const transmitted_hook m_transmitted_hooks[] =
 {
-
+#if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+    nrf_drv_radio802154_ack_timeout_transmitted_hook,
+#endif
 };
 
 static const tx_failed_hook m_tx_failed_hooks[] =
@@ -68,12 +75,20 @@ static const tx_failed_hook m_tx_failed_hooks[] =
 #if NRF_DRV_RADIO802154_CSMA_CA_ENABLED
     nrf_drv_radio802154_csma_ca_tx_failed_hook,
 #endif
+
+#if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+    nrf_drv_radio802154_ack_timeout_tx_failed_hook,
+#endif
 };
 
 static const tx_started_hook m_tx_started_hooks[] =
 {
 #if NRF_DRV_RADIO802154_CSMA_CA_ENABLED
     nrf_drv_radio802154_csma_ca_tx_started_hook,
+#endif
+
+#if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+    nrf_drv_radio802154_ack_timeout_tx_started_hook,
 #endif
 };
 
