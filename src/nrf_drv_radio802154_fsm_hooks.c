@@ -52,6 +52,11 @@ typedef void (* transmitted_hook)(void);
 typedef bool (* tx_failed_hook)(nrf_drv_radio802154_tx_error_t error);
 typedef bool (* tx_started_hook)(void);
 
+/* Since some compilers do not allow empty initializers for arrays with unspecified bounds,
+ * NULL pointer is appended to below arrays if the compiler used is not GCC. It is intentionally
+ * unused, but it prevents the arrays from being empty. GCC manages to optimize empty arrays away,
+ * so such a solution is unnecessary. */
+
 static const abort_hook m_abort_hooks[] =
 {
 #if NRF_DRV_RADIO802154_CSMA_CA_ENABLED
@@ -61,12 +66,20 @@ static const abort_hook m_abort_hooks[] =
 #if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
     nrf_drv_radio802154_ack_timeout_abort,
 #endif
+
+#ifndef __GNUC__
+    NULL,
+#endif
 };
 
 static const transmitted_hook m_transmitted_hooks[] =
 {
 #if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
     nrf_drv_radio802154_ack_timeout_transmitted_hook,
+#endif
+
+#ifndef __GNUC__
+    NULL,
 #endif
 };
 
@@ -79,6 +92,10 @@ static const tx_failed_hook m_tx_failed_hooks[] =
 #if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
     nrf_drv_radio802154_ack_timeout_tx_failed_hook,
 #endif
+
+#ifndef __GNUC__
+    NULL,
+#endif
 };
 
 static const tx_started_hook m_tx_started_hooks[] =
@@ -90,12 +107,21 @@ static const tx_started_hook m_tx_started_hooks[] =
 #if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
     nrf_drv_radio802154_ack_timeout_tx_started_hook,
 #endif
+
+#ifndef __GNUC__
+    NULL,
+#endif
 };
 
 void nrf_drv_radio802154_fsm_hooks_abort(void)
 {
     for (uint32_t i = 0; i < sizeof(m_abort_hooks) / sizeof(m_abort_hooks[0]); i++)
     {
+        if (m_abort_hooks[i] == NULL)
+        {
+            break;
+        }
+
         m_abort_hooks[i]();
     }
 }
@@ -104,6 +130,11 @@ void nrf_drv_radio802154_fsm_hooks_transmitted(void)
 {
     for (uint32_t i = 0; i < sizeof(m_transmitted_hooks) / sizeof(m_transmitted_hooks[0]); i++)
     {
+        if (m_transmitted_hooks[i] == NULL)
+        {
+            break;
+        }
+
         m_transmitted_hooks[i]();
     }
 }
@@ -114,6 +145,11 @@ bool nrf_drv_radio802154_fsm_hooks_tx_failed(nrf_drv_radio802154_tx_error_t erro
 
     for (uint32_t i = 0; i < sizeof(m_tx_failed_hooks) / sizeof(m_tx_failed_hooks[0]); i++)
     {
+        if (m_tx_failed_hooks[i] == NULL)
+        {
+            break;
+        }
+
         result = m_tx_failed_hooks[i](error);
 
         if (!result)
@@ -131,6 +167,11 @@ bool nrf_drv_radio802154_fsm_hooks_tx_started(void)
 
     for (uint32_t i = 0; i < sizeof(m_tx_started_hooks) / sizeof(m_tx_started_hooks[0]); i++)
     {
+        if (m_tx_started_hooks[i] == NULL)
+        {
+            break;
+        }
+
         result = m_tx_started_hooks[i]();
 
         if (!result)
