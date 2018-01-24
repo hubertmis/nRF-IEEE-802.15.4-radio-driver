@@ -373,7 +373,7 @@ void nrf_drv_radio802154_timer_fired(void)
 
     if ((p_timer != NULL) && (callback != NULL))
     {
-        p_timer->callback(p_timer->p_context);
         nrf_drv_radio802154_timer_sched_remove(p_timer);
+        p_timer->callback(p_timer->p_context);
     }
 }
