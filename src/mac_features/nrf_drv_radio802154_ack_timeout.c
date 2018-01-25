@@ -68,10 +68,12 @@ static void timeout_timer_fired(void * p_context)
 
 static void timeout_timer_retry(void)
 {
-    m_timer.callback  = timeout_timer_fired;
-    m_timer.p_context = NULL;
-    m_timer.t0        = nrf_drv_radio802154_timer_sched_time_get();
-    m_timer.dt        = 1; // Fire on next timer tick
+    /* 
+     * Fire on next timer tick. dt value will be rounded up to nearest timer granularity
+     * by call to nrf_drv_radio802154_timer_sched_add this will prevent potential infinite
+     * recursion when short delays are called from same context as nrf_drv_radio802154_timer_sched_add.
+     */
+    m_timer.dt++;
 
     nrf_drv_radio802154_timer_sched_add(&m_timer, true);
 }
