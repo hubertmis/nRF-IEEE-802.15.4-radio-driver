@@ -257,12 +257,12 @@ void nrf_drv_radio802154_timer_sched_remove(nrf_drv_radio802154_timer_t * p_time
 {
     assert(p_timer != NULL);
 
-    nrf_drv_radio802154_timer_t ** pp_item;
-    nrf_drv_radio802154_timer_t  * p_next;
-    nrf_drv_radio802154_timer_t  * p_cur;
-    uint8_t                        queue_cntr;
-    bool                           timer_start;
-    bool                           timer_stop;
+    nrf_drv_radio802154_timer_t         ** pp_item;
+    nrf_drv_radio802154_timer_t * volatile p_next; // Volatile pointer to prevent compiler from removing any code related to this variable during optimization (IAR).
+    nrf_drv_radio802154_timer_t          * p_cur;
+    uint8_t                                queue_cntr;
+    bool                                   timer_start;
+    bool                                   timer_stop;
 
     while (true)
     {
@@ -331,7 +331,8 @@ void nrf_drv_radio802154_timer_sched_remove(nrf_drv_radio802154_timer_t * p_time
     {
         do
         {
-            (void)__LDREXW((uint32_t *)&p_cur->p_next);
+            // This assignment is used to prevent compiler from removing exclusive load during optimization (IAR).
+            p_next = (nrf_drv_radio802154_timer_t *)__LDREXW((uint32_t *)&p_cur->p_next);
         } while (__STREXW((uint32_t)NULL, (uint32_t *)&p_cur->p_next));
     }
 
