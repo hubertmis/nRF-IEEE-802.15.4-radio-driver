@@ -47,7 +47,6 @@
 #include "nrf_drv_radio802154_const.h"
 #include "nrf_drv_radio802154_pib.h"
 
-#define PHR_CHECK_OFFSET           PHR_SIZE
 #define FCF_CHECK_OFFSET           (PHR_SIZE + FCF_SIZE)
 #define SHORT_ADDR_CHECK_OFFSET    (DEST_ADDR_OFFSET + SHORT_ADDRESS_SIZE)
 #define EXTENDED_ADDR_CHECK_OFFSET (DEST_ADDR_OFFSET + EXTENDED_ADDRESS_SIZE)
@@ -375,23 +374,15 @@ bool nrf_drv_radio802154_filter_frame_part(const uint8_t * p_psdu, uint8_t * p_n
 
     switch (*p_num_bytes)
     {
-        case PHR_CHECK_OFFSET:
+        case FCF_CHECK_OFFSET:
+        {
             if (p_psdu[0] < ACK_LENGTH || p_psdu[0] > MAX_PACKET_SIZE)
             {
                 // Frame length is invalid
                 result = false;
-            }
-            else
-            {
-                // Check FCF during next iteration
-                *p_num_bytes = PHR_SIZE + FCF_SIZE;
-                result = true;
+                break;
             }
 
-            break;
-
-        case FCF_CHECK_OFFSET:
-        {
             uint8_t frame_type    = p_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK;
             uint8_t frame_version = p_psdu[FRAME_VERSION_OFFSET] & FRAME_VERSION_MASK;
 
