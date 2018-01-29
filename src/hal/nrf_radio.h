@@ -131,6 +131,8 @@ typedef enum
     NRF_RADIO_SHORT_CCAIDLE_TXEN_MASK       = RADIO_SHORTS_CCAIDLE_TXEN_Msk,       /**< Mask for setting shortcut between EVENT_CCAIDLE and TASK_TXEN. */
     NRF_RADIO_SHORT_CCABUSY_DISABLE_MASK    = RADIO_SHORTS_CCABUSY_DISABLE_Msk,    /**< Mask for setting shortcut between EVENT_CCABUSY and TASK_DISABLE. */
     NRF_RADIO_SHORT_FRAMESTART_BCSTART_MASK = RADIO_SHORTS_FRAMESTART_BCSTART_Msk, /**< Mask for setting shortcut between EVENT_FRAMESTART and TASK_BCSTART. */
+    NRF_RADIO_SHORT_READY_EDSTART_MASK      = RADIO_SHORTS_READY_EDSTART_Msk,      /**< Mask for setting shortcut between EVENT_READY and TASK_EDSTART. */
+    NRF_RADIO_SHORT_EDEND_DISABLE_MASK      = RADIO_SHORTS_EDEND_DISABLE_Msk,      /**< Mask for setting shortcut between EVENT_EDEND and TASK_DISABLE. */
     NRF_RADIO_SHORT_TXREADY_START_MASK      = RADIO_SHORTS_TXREADY_START_Msk,      /**< Mask for setting shortcut between EVENT_TXREADY and TASK_START. */
     NRF_RADIO_SHORT_RXREADY_START_MASK      = RADIO_SHORTS_RXREADY_START_Msk,      /**< Mask for setting shortcut between EVENT_RXREADY and TASK_START. */
     NRF_RADIO_SHORT_PHYEND_DISABLE_MASK     = RADIO_SHORTS_PHYEND_DISABLE_Msk,     /**< Mask for setting shortcut between EVENT_PHYEND and TASK_DISABLE. */

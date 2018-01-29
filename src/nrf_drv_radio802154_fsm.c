@@ -108,14 +108,16 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 #define SHORTS_CCA_TX         (NRF_RADIO_SHORT_RXREADY_CCASTART_MASK |                             \
                                NRF_RADIO_SHORT_CCABUSY_DISABLE_MASK  |                             \
                                NRF_RADIO_SHORT_CCAIDLE_TXEN_MASK     |                             \
-                               NRF_RADIO_SHORT_TXREADY_START_MASK |                                \
+                               NRF_RADIO_SHORT_TXREADY_START_MASK    |                             \
                                short_phyend_disable_mask_get())
 
 #define SHORTS_TX             (NRF_RADIO_SHORT_TXREADY_START_MASK |                                \
                                short_phyend_disable_mask_get())
 
-#define SHORTS_RX_ACK         (NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK  |                           \
+#define SHORTS_RX_ACK         (NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |                            \
                                NRF_RADIO_SHORT_END_DISABLE_MASK)
+
+#define SHORTS_ED             (NRF_RADIO_SHORT_READY_EDSTART_MASK)
 
 /// Value set to SHORTS register when receiver is waiting for incoming frame.
 #define SHORTS_RX_INITIAL   (NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_DISABLED_TXEN_MASK | \
@@ -686,8 +688,11 @@ static inline bool ed_iter_setup(uint32_t time_us)
     }
     else
     {
-        irq_deinit();
-        nrf_radio_reset();
+        if (nrf_raal_timeslot_is_granted())
+        {
+            irq_deinit();
+            nrf_radio_reset();
+        }
 
         m_ed_time_left = time_us;
 
@@ -885,6 +890,19 @@ static void rx_ack_terminate(void)
     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
 }
 
+/** Terminate ED procedure. */
+static void ed_terminate(void)
+{
+    nrf_ppi_channel_disable(PPI_CH1);
+    nrf_ppi_channel_disable(PPI_CH0);
+
+    nrf_ppi_channel_remove_from_group(PPI_CH0, PPI_CHGRP0);
+
+    nrf_radio_int_disable(NRF_RADIO_INT_EDEND_MASK);
+    nrf_radio_shorts_set(SHORTS_IDLE);
+    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+}
+
 /** Abort transmission procedure.
  *
  *  This function is called when MAC layer requests transition from transmit to receive state.
@@ -998,7 +1016,9 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 {
                     tx_terminate();
 
-                    nrf_drv_radio802154_notify_transmit_failed(mp_tx_data, NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
+                    nrf_drv_radio802154_notify_transmit_failed(
+                            mp_tx_data,
+                            NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
                 }
                 else
                 {
@@ -1012,7 +1032,9 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 {
                     rx_ack_terminate();
 
-                    nrf_drv_radio802154_notify_transmit_failed(mp_tx_data, NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
+                    nrf_drv_radio802154_notify_transmit_failed(
+                            mp_tx_data,
+                            NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
                 }
                 else
                 {
@@ -1022,6 +1044,20 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 break;
 
             case RADIO_STATE_ED:
+                if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
+                {
+                    ed_terminate();
+
+                    nrf_drv_radio802154_notify_energy_detection_failed(
+                            NRF_DRV_RADIO802154_ED_ERROR_ABORTED);
+                }
+                else
+                {
+                    result = false;
+                }
+
+                break;
+
             case RADIO_STATE_CCA:
                 // TODO: Implement procedures to exit these states.
                 result = false;
@@ -1038,6 +1074,34 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
     }
 
     return result;
+}
+
+/** Detect if PPI starting EGU for current operation worked.
+ *
+ * @retval  true   PPI worked.
+ * @retval  false  PPI did not work. DISABLED task should be triggered.
+ */
+static bool ppi_egu_worked(void)
+{
+    // Detect if PPIs were set before DISABLED event was notified. If not trigger DISABLE
+    //       if (!disabled_was_triggered) -> trigger and exit
+    if (nrf_radio_state_get() != NRF_RADIO_STATE_DISABLED)
+    {
+        // If RADIO state is not DISABLED, it means that RADIO is still ramping down.
+        return true;
+    }
+
+    //       wait for PPIs (TODO: test how long)
+
+    if (nrf_egu_event_check(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT))
+    {
+        // If EGU event is set, procedure is running.
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 /** Begin RX operation. */
@@ -1119,25 +1183,13 @@ static void receive_begin(bool disabled_was_triggered)
     {
         trigger_disable = true;
     }
+    else if (!ppi_egu_worked())
+    {
+        trigger_disable = true;
+    }
     else
     {
-        if (!nrf_radio_event_get(NRF_RADIO_EVENT_DISABLED))
-        {
-            // If DISABLED event is not set, it means that RADIO is still ramping down.
-            trigger_disable = false;
-        }
-
-        //       wait for PPIs (TODO: test how long)
-
-        else if (nrf_egu_event_check(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT))
-        {
-            // If EGU event is set, procedure is running.
-            trigger_disable = false;
-        }
-        else
-        {
-            trigger_disable = true;
-        }
+        trigger_disable = false;
     }
 
     if (trigger_disable)
@@ -1229,25 +1281,74 @@ static void transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_t
     {
         trigger_disable = true;
     }
+    else if (!ppi_egu_worked())
+    {
+        trigger_disable = true;
+    }
     else
     {
-        if (nrf_radio_state_get() != NRF_RADIO_STATE_DISABLED)
-        {
-            // If RADIO state is not DISABLED, it means that RADIO is still ramping down.
-            trigger_disable = false;
-        }
+        trigger_disable = false;
+    }
 
-        //       wait for PPIs (TODO: test how long)
+    if (trigger_disable)
+    {
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    }
+}
 
-        else if (nrf_egu_event_check(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT))
-        {
-            // If EGU event is set, procedure is running.
-            trigger_disable = false;
-        }
-        else
-        {
-            trigger_disable = true;
-        }
+/** Begin ED operation */
+static void ed_begin(bool disabled_was_triggered)
+{
+    bool trigger_disable;
+
+    if (!ed_iter_setup(m_ed_time_left))
+    {
+        // Just wait for next timeslot if there is not enough time in this one.
+        return;
+    }
+
+    // Set shorts
+    nrf_radio_shorts_set(SHORTS_ED);
+
+    // Enable IRQs
+    nrf_radio_event_clear(NRF_RADIO_EVENT_EDEND);
+    nrf_radio_int_enable(NRF_RADIO_INT_EDEND_MASK);
+
+    // TODO: Set FEM
+    // Clr event EGU
+    nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
+
+    // Set PPIs
+    nrf_ppi_channel_and_fork_endpoint_setup(PPI_CH0,
+                                            (uint32_t)nrf_egu_event_address_get(
+                                                    NRF_DRV_RADIO802154_EGU_INSTANCE,
+                                                    EGU_EVENT),
+                                            (uint32_t)nrf_radio_task_address_get(
+                                                    NRF_RADIO_TASK_RXEN),
+                                            (uint32_t)nrf_ppi_task_address_get(
+                                                    PPI_CHGRP0_DIS_TASK));
+    nrf_ppi_channel_endpoint_setup(PPI_CH1,
+                                   (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED),
+                                   (uint32_t) nrf_egu_task_address_get(NRF_EGU0,
+                                                                       NRF_EGU_TASK_TRIGGER0));
+
+    nrf_ppi_channel_include_in_group(PPI_CH0, PPI_CHGRP0);
+    nrf_ppi_group_enable(PPI_CHGRP0);
+
+    nrf_ppi_channel_enable(PPI_CH0);
+    nrf_ppi_channel_enable(PPI_CH1);
+
+    if (!disabled_was_triggered)
+    {
+        trigger_disable = true;
+    }
+    else if (!ppi_egu_worked())
+    {
+        trigger_disable = true;
+    }
+    else
+    {
+        trigger_disable = false;
     }
 
     if (trigger_disable)
@@ -2311,12 +2412,8 @@ static inline void irq_ccabusy_state_cca(void)
 }
 
 /// This event is generated when energy detection procedure ends.
-static inline void irq_edend(void)
+static inline void irq_edend_state_ed(void)
 {
-    assert(m_state == RADIO_STATE_ED);
-    assert(nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE);
-    assert(nrf_radio_shorts_get() == SHORTS_IDLE);
-
     uint32_t result = nrf_radio_ed_sample_get();
     m_ed_result     = result > m_ed_result ? result : m_ed_result;
 
@@ -2332,8 +2429,9 @@ static inline void irq_edend(void)
         // In case channel change was requested during energy detection procedure.
         channel_set(nrf_drv_radio802154_pib_channel_get());
 
+        ed_terminate();
         state_set(RADIO_STATE_WAITING_RX_FRAME);
-        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+        receive_begin(true);
 
         energy_detected_notify(m_ed_result);
     }
@@ -2699,17 +2797,23 @@ static inline void irq_handler(void)
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_CCABUSY);
     }
 
-#if 0
     if (nrf_radio_event_get(NRF_RADIO_EVENT_EDEND))
     {
         nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_EVENT_EDEND);
         nrf_radio_event_clear(NRF_RADIO_EVENT_EDEND);
 
-        irq_edend();
+        switch (m_state)
+        {
+            case RADIO_STATE_ED:
+                irq_edend_state_ed();
+                break;
+
+            default:
+                assert(false);
+        }
 
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_EDEND);
     }
-#endif
 
     nrf_drv_radio802154_critical_section_exit();
 
@@ -2765,10 +2869,7 @@ bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl)
     {
         state_set(((m_state == RADIO_STATE_SLEEP) || (m_state == RADIO_STATE_WAITING_TIMESLOT)) ?
                 RADIO_STATE_WAITING_TIMESLOT : RADIO_STATE_WAITING_RX_FRAME);
-    }
 
-    if (result)
-    {
         receive_begin(true);
     }
 
@@ -2785,15 +2886,12 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
     {
         mp_tx_data = p_data;
         state_set(RADIO_STATE_TX_FRAME);
-    }
 
-    if (result)
-    {
         transmit_begin(p_data, cca, true);
     }
 
     return result;
-
+#if 0
     result = false;
     mp_tx_data  = p_data;
 
@@ -2832,15 +2930,26 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
     }
 
     return result;
+#endif
 }
 
 bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lvl,
                                               uint32_t                   time_us)
 {
-    // TODO: Use priority to abort ongoing operations with current_operation_abort()
-    (void)term_lvl;
+    bool result = current_operation_terminate(term_lvl);
 
-    bool result = false;
+    if (result)
+    {
+        state_set(RADIO_STATE_ED);
+        m_ed_time_left = time_us;
+        m_ed_result    = 0;
+
+        ed_begin(true);
+    }
+
+    return result;
+#if 0
+    result = false;
 
     switch (m_state)
     {
@@ -2893,6 +3002,7 @@ bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lv
     }
 
     return result;
+#endif
 }
 
 bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
