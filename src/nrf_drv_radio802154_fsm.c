@@ -127,6 +127,9 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 
 #define SHORTS_ED             (NRF_RADIO_SHORT_READY_EDSTART_MASK)
 
+#define SHORTS_CCA            (NRF_RADIO_SHORT_RXREADY_CCASTART_MASK |                             \
+                               NRF_RADIO_SHORT_CCABUSY_DISABLE_MASK)
+
 /// Value set to SHORTS register when receiver is waiting for incoming frame.
 #define SHORTS_RX_INITIAL   (NRF_RADIO_SHORT_END_DISABLE_MASK | NRF_RADIO_SHORT_DISABLED_TXEN_MASK | \
                              SHORT_FRAMESTART_BCSTART)
@@ -914,6 +917,19 @@ static void ed_terminate(void)
     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
 }
 
+/** Terminate CCA procedure. */
+static void cca_terminate(void)
+{
+    nrf_ppi_channel_disable(PPI_CH1);
+    nrf_ppi_channel_disable(PPI_CH0);
+
+    nrf_ppi_channel_remove_from_group(PPI_CH0, PPI_CHGRP0);
+
+    nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
+    nrf_radio_shorts_set(SHORTS_IDLE);
+    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+}
+
 /** Abort transmission procedure.
  *
  *  This function is called when MAC layer requests transition from transmit to receive state.
@@ -1379,6 +1395,72 @@ static void ed_begin(bool disabled_was_triggered)
     }
 }
 
+static void cca_begin(bool disabled_was_triggered)
+{
+    bool trigger_disable;
+
+    if (!nrf_raal_timeslot_request(nrf_drv_radio802154_cca_duration_get()))
+    {
+        return;
+    }
+
+    // Set shorts
+    nrf_radio_shorts_set(SHORTS_CCA);
+
+    // Enable IRQs
+    nrf_radio_event_clear(NRF_RADIO_EVENT_CCABUSY | NRF_RADIO_EVENT_CCAIDLE);
+    nrf_radio_int_enable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
+
+    // TODO: Set FEM
+    // Clr event EGU
+    nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
+
+    // Set PPIs
+    nrf_ppi_channel_and_fork_endpoint_setup(PPI_CH0,
+                                            (uint32_t)nrf_egu_event_address_get(
+                                                    NRF_DRV_RADIO802154_EGU_INSTANCE,
+                                                    EGU_EVENT),
+                                            (uint32_t)nrf_radio_task_address_get(
+                                                    NRF_RADIO_TASK_RXEN),
+                                            (uint32_t)nrf_ppi_task_address_get(
+                                                    PPI_CHGRP0_DIS_TASK));
+    nrf_ppi_channel_endpoint_setup(PPI_CH1,
+                                   (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED),
+                                   (uint32_t) nrf_egu_task_address_get(NRF_EGU0,
+                                                                       NRF_EGU_TASK_TRIGGER0));
+
+    nrf_ppi_channel_include_in_group(PPI_CH0, PPI_CHGRP0);
+    nrf_ppi_group_enable(PPI_CHGRP0);
+
+    nrf_ppi_channel_enable(PPI_CH0);
+    nrf_ppi_channel_enable(PPI_CH1);
+
+    if (!disabled_was_triggered)
+    {
+        trigger_disable = true;
+    }
+    else if (!ppi_egu_worked())
+    {
+        trigger_disable = true;
+    }
+    else
+    {
+        trigger_disable = false;
+    }
+
+    if (trigger_disable)
+    {
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    }
+
+    if (!nrf_raal_timeslot_request(nrf_drv_radio802154_cca_duration_get()))
+    {
+        // There is not enough time to perform this procedure.
+        // Reset RADIO and wait for next timeslot.
+        irq_deinit();
+        nrf_radio_reset();
+    }
+}
 /***************************************************************************************************
  * @section RADIO interrupt handler
  **************************************************************************************************/
@@ -2417,11 +2499,9 @@ static inline void irq_ccaidle_state_tx_frame(void)
 /// This event is generated when CCA reports idle channel during stand-alone procedure.
 static inline void irq_ccaidle_state_cca(void)
 {
-    assert(nrf_radio_shorts_get() == SHORTS_IDLE);
-    assert(nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE);
-
+    cca_terminate();
     state_set(RADIO_STATE_WAITING_RX_FRAME);
-    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    receive_begin(true);
 
     cca_notify(true);
 }
@@ -2433,6 +2513,15 @@ static inline void irq_ccabusy_state_tx_frame(void)
     receive_begin(true);
 
     transmit_failed_notify(NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
+}
+
+static inline void irq_ccabusy_state_cca(void)
+{
+    cca_terminate();
+    state_set(RADIO_STATE_WAITING_RX_FRAME);
+    receive_begin(true);
+
+    cca_notify(false);
 }
 
 #if 0
@@ -2448,7 +2537,6 @@ static inline void irq_ccabusy_state_tx_frame(void)
 
     transmit_failed_notify(NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
 }
-#endif
 
 /// This event is generated when CCA reports busy channel during stand-alone procedure.
 static inline void irq_ccabusy_state_cca(void)
@@ -2461,6 +2549,7 @@ static inline void irq_ccabusy_state_cca(void)
 
     cca_notify(false);
 }
+#endif
 
 /// This event is generated when energy detection procedure ends.
 static inline void irq_edend_state_ed(void)
@@ -2768,6 +2857,7 @@ static inline void irq_handler(void)
             case RADIO_STATE_WAITING_TIMESLOT:
                 // Exit as soon as possible when waiting for timeslot.
                 break;
+#endif
 
             default:
                 assert(false);
@@ -2775,6 +2865,7 @@ static inline void irq_handler(void)
 
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_READY);
     }
+#endif
 
     if (nrf_radio_event_get(NRF_RADIO_EVENT_CCAIDLE))
     {
@@ -2783,6 +2874,7 @@ static inline void irq_handler(void)
 
         switch (m_state)
         {
+#if 0
             case RADIO_STATE_TX_FRAME:
 #if !NRF_DRV_RADIO802154_SHORT_CCAIDLE_TXEN
                 irq_ccaidle_state_tx_frame();
@@ -2792,11 +2884,13 @@ static inline void irq_handler(void)
                 nrf_fem_control_pa_set(true, true);
 #endif
                 break;
+#endif
 
             case RADIO_STATE_CCA:
                 irq_ccaidle_state_cca();
                 break;
 
+#if 0
 #if NRF_DRV_RADIO802154_SHORT_CCAIDLE_TXEN
             case RADIO_STATE_WAITING_RX_FRAME:
             case RADIO_STATE_RX_ACK:
@@ -2815,7 +2909,6 @@ static inline void irq_handler(void)
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_CCAIDLE);
     }
 
-#endif
     if (nrf_radio_event_get(NRF_RADIO_EVENT_CCABUSY))
     {
         nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_EVENT_CCABUSY);
@@ -2827,11 +2920,11 @@ static inline void irq_handler(void)
                 irq_ccabusy_state_tx_frame();
                 break;
 
-#if 0
             case RADIO_STATE_CCA:
                 irq_ccabusy_state_cca();
                 break;
 
+#if 0
             case RADIO_STATE_WAITING_TIMESLOT:
                 // Exit as soon as possible when waiting for timeslot.
                 break;
@@ -2903,6 +2996,7 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
     if (result)
     {
         state_set(RADIO_STATE_SLEEP);
+        // TODO: Exit continuous mode, perhaps reset radio as well
     }
 
     return result;
@@ -3054,10 +3148,17 @@ bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lv
 
 bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
 {
-    // TODO: Use priority to abort ongoing operations with current_operation_abort()
-    (void)term_lvl;
+    bool result = current_operation_terminate(term_lvl);
 
-    bool result = false;
+    if (result)
+    {
+        state_set(RADIO_STATE_CCA);
+        cca_begin(true);
+    }
+
+    return result;
+#if 0
+    result = false;
 
     switch (m_state)
     {
@@ -3104,6 +3205,7 @@ bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
     }
 
     return result;
+#endif
 }
 
 bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
