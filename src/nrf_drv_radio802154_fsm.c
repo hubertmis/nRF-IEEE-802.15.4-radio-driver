@@ -934,6 +934,15 @@ static void cca_terminate(void)
     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
 }
 
+/** Terminate Continuous Carrier procedure. */
+static void continuous_carrier_terminate(void)
+{
+    nrf_ppi_channel_disable(PPI_CH1);
+    nrf_ppi_channel_disable(PPI_CH0);
+
+    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+}
+
 /** Abort transmission procedure.
  *
  *  This function is called when MAC layer requests transition from transmit to receive state.
@@ -1090,13 +1099,21 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 break;
 
             case RADIO_STATE_CCA:
-                // TODO: Implement procedures to exit these states.
-                result = false;
+                if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
+                {
+                    cca_terminate();
+
+                    nrf_drv_radio802154_notify_cca_failed(
+                            NRF_DRV_RADIO802154_CCA_ERROR_ABORTED);
+                }
+                else
+                {
+                    result = false;
+                }
                 break;
 
             case RADIO_STATE_CONTINUOUS_CARRIER:
-                nrf_radio_event_clear(NRF_RADIO_EVENT_DISABLED);
-                nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+                continuous_carrier_terminate();
                 break;
 
             default:
@@ -1465,6 +1482,53 @@ static void cca_begin(bool disabled_was_triggered)
         // Reset RADIO and wait for next timeslot.
         irq_deinit();
         nrf_radio_reset();
+    }
+}
+
+static void continuous_carrier_begin(bool disabled_was_triggered)
+{
+    bool trigger_task_disable;
+
+    if (!nrf_raal_timeslot_is_granted())
+    {
+        return;
+    }
+
+    // TODO: Set FEM
+    // Clr event EGU
+    nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
+
+    // Set PPIs
+    nrf_ppi_channel_endpoint_setup(PPI_CH0,
+                                   (uint32_t)nrf_egu_event_address_get(
+                                           NRF_DRV_RADIO802154_EGU_INSTANCE,
+                                           EGU_EVENT),
+                                   (uint32_t)nrf_radio_task_address_get(NRF_RADIO_TASK_TXEN));
+    nrf_ppi_channel_endpoint_setup(PPI_CH1,
+                                   (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED),
+                                   (uint32_t) nrf_egu_task_address_get(
+                                           NRF_DRV_RADIO802154_EGU_INSTANCE,
+                                           NRF_EGU_TASK_TRIGGER0));
+
+    nrf_ppi_channel_enable(PPI_CH0);
+    nrf_ppi_channel_enable(PPI_CH1);
+
+    if (!disabled_was_triggered)
+    {
+        trigger_task_disable = true;
+    }
+    else if (!ppi_egu_worked())
+    {
+        trigger_task_disable = true;
+    }
+    else
+    {
+        trigger_task_disable = false;
+    }
+
+    if (trigger_task_disable)
+    {
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
 }
 /***************************************************************************************************
@@ -3180,6 +3244,16 @@ bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
 
 bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
 {
+    bool result = current_operation_terminate(term_lvl);
+
+    if (result)
+    {
+        state_set(RADIO_STATE_CONTINUOUS_CARRIER);
+        continuous_carrier_begin(true);
+    }
+
+    return result;
+#if 0
     // TODO: Use priority to abort ongoing operations with current_operation_abort()
     (void)term_lvl;
 
@@ -3201,6 +3275,7 @@ bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_
     }
 
     return result;
+#endif
 }
 
 bool nrf_drv_radio802154_fsm_notify_buffer_free(uint8_t * p_data)
