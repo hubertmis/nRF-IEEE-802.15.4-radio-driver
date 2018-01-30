@@ -1146,7 +1146,7 @@ static void receive_begin(bool disabled_was_triggered)
 {
     bool     free_buffer;
     uint32_t shorts;
-    bool     trigger_disable;
+    bool     trigger_task_disable;
 
     if (!nrf_raal_timeslot_is_granted())
     {
@@ -1228,18 +1228,18 @@ static void receive_begin(bool disabled_was_triggered)
     // Detect if PPIs were set before DISABLED event was notified. If not trigger DISABLE
     if (!disabled_was_triggered)
     {
-        trigger_disable = true;
+        trigger_task_disable = true;
     }
     else if (!ppi_egu_worked())
     {
-        trigger_disable = true;
+        trigger_task_disable = true;
     }
     else
     {
-        trigger_disable = false;
+        trigger_task_disable = false;
     }
 
-    if (trigger_disable)
+    if (trigger_task_disable)
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
@@ -1264,7 +1264,7 @@ static void receive_begin(bool disabled_was_triggered)
 /** Begin TX operation. */
 static void transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_triggered)
 {
-    bool trigger_disable;
+    bool trigger_task_disable;
 
     // TODO: Instead of checking if timeslot is granted, request timeslot for the operation
     if (!nrf_raal_timeslot_is_granted())
@@ -1325,18 +1325,18 @@ static void transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_t
     //       if (!disabled_was_triggered) -> trigger and exit
     if (!disabled_was_triggered)
     {
-        trigger_disable = true;
+        trigger_task_disable = true;
     }
     else if (!ppi_egu_worked())
     {
-        trigger_disable = true;
+        trigger_task_disable = true;
     }
     else
     {
-        trigger_disable = false;
+        trigger_task_disable = false;
     }
 
-    if (trigger_disable)
+    if (trigger_task_disable)
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
@@ -1345,7 +1345,7 @@ static void transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_t
 /** Begin ED operation */
 static void ed_begin(bool disabled_was_triggered)
 {
-    bool trigger_disable;
+    bool trigger_task_disable;
 
     if (!ed_iter_setup(m_ed_time_left))
     {
@@ -1385,18 +1385,18 @@ static void ed_begin(bool disabled_was_triggered)
 
     if (!disabled_was_triggered)
     {
-        trigger_disable = true;
+        trigger_task_disable = true;
     }
     else if (!ppi_egu_worked())
     {
-        trigger_disable = true;
+        trigger_task_disable = true;
     }
     else
     {
-        trigger_disable = false;
+        trigger_task_disable = false;
     }
 
-    if (trigger_disable)
+    if (trigger_task_disable)
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
@@ -1404,7 +1404,7 @@ static void ed_begin(bool disabled_was_triggered)
 
 static void cca_begin(bool disabled_was_triggered)
 {
-    bool trigger_disable;
+    bool trigger_task_disable;
 
     if (!nrf_raal_timeslot_request(nrf_drv_radio802154_cca_duration_get()))
     {
@@ -1443,18 +1443,18 @@ static void cca_begin(bool disabled_was_triggered)
 
     if (!disabled_was_triggered)
     {
-        trigger_disable = true;
+        trigger_task_disable = true;
     }
     else if (!ppi_egu_worked())
     {
-        trigger_disable = true;
+        trigger_task_disable = true;
     }
     else
     {
-        trigger_disable = false;
+        trigger_task_disable = false;
     }
 
-    if (trigger_disable)
+    if (trigger_task_disable)
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
@@ -2038,7 +2038,7 @@ static void irq_phyend_state_tx_frame(void)
 {
     if (ack_is_requested(mp_tx_data))
     {
-        bool     trigger_disable;
+        bool     trigger_task_disable;
         bool     rx_buffer_free = rx_buffer_is_available();
         uint32_t shorts = rx_buffer_free ? SHORTS_RX_ACK | SHORTS_RX_FREE_BUFFER : SHORTS_RX_ACK;
 
@@ -2080,7 +2080,7 @@ static void irq_phyend_state_tx_frame(void)
         if (nrf_radio_state_get() != NRF_RADIO_STATE_DISABLED)
         {
             // If state is not DISABLED, it means that RADIO is still ramping down or PPI worked.
-            trigger_disable = false;
+            trigger_task_disable = false;
         }
 
         //       wait for PPIs (TODO: test how long)
@@ -2088,14 +2088,14 @@ static void irq_phyend_state_tx_frame(void)
         else if (nrf_egu_event_check(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT))
         {
             // If EGU event is set, procedure is running.
-            trigger_disable = false;
+            trigger_task_disable = false;
         }
         else
         {
-            trigger_disable = true;
+            trigger_task_disable = true;
         }
 
-        if (trigger_disable)
+        if (trigger_task_disable)
         {
             nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
         }
@@ -2824,7 +2824,6 @@ static inline void irq_handler(void)
             case RADIO_STATE_WAITING_TIMESLOT:
                 // Exit as soon as possible when waiting for timeslot.
                 break;
-#endif
 
             default:
                 assert(false);
@@ -2868,6 +2867,7 @@ static inline void irq_handler(void)
             case RADIO_STATE_WAITING_TIMESLOT:
                 // Exit as soon as possible when waiting for timeslot.
                 break;
+#endif
 
             default:
                 assert(false);
