@@ -883,6 +883,7 @@ static void tx_terminate(void)
     nrf_ppi_channel_disable(PPI_CH0);
 
     nrf_ppi_channel_remove_from_group(PPI_CH0, PPI_CHGRP0);
+    nrf_ppi_fork_endpoint_setup(PPI_CH0, 0);
 
     nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK);
     nrf_radio_int_disable(nrf_drv_radio802154_revision_has_phyend_event() ?
@@ -898,6 +899,7 @@ static void rx_ack_terminate(void)
     nrf_ppi_channel_disable(PPI_CH0);
 
     nrf_ppi_channel_remove_from_group(PPI_CH0, PPI_CHGRP0);
+    nrf_ppi_fork_endpoint_setup(PPI_CH0, 0);
 
     nrf_radio_int_disable(NRF_RADIO_INT_END_MASK);
     nrf_radio_shorts_set(SHORTS_IDLE);
@@ -911,6 +913,7 @@ static void ed_terminate(void)
     nrf_ppi_channel_disable(PPI_CH0);
 
     nrf_ppi_channel_remove_from_group(PPI_CH0, PPI_CHGRP0);
+    nrf_ppi_fork_endpoint_setup(PPI_CH0, 0);
 
     nrf_radio_int_disable(NRF_RADIO_INT_EDEND_MASK);
     nrf_radio_shorts_set(SHORTS_IDLE);
@@ -924,6 +927,7 @@ static void cca_terminate(void)
     nrf_ppi_channel_disable(PPI_CH0);
 
     nrf_ppi_channel_remove_from_group(PPI_CH0, PPI_CHGRP0);
+    nrf_ppi_fork_endpoint_setup(PPI_CH0, 0);
 
     nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
     nrf_radio_shorts_set(SHORTS_IDLE);
@@ -1111,14 +1115,20 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
 static bool ppi_egu_worked(void)
 {
     // Detect if PPIs were set before DISABLED event was notified. If not trigger DISABLE
-    //       if (!disabled_was_triggered) -> trigger and exit
     if (nrf_radio_state_get() != NRF_RADIO_STATE_DISABLED)
     {
-        // If RADIO state is not DISABLED, it means that RADIO is still ramping down.
+        // If RADIO state is not DISABLED, it means that RADIO is still ramping down or already
+        // started ramping up.
         return true;
     }
 
-    //       wait for PPIs (TODO: test how long)
+    // Wait for PPIs
+    __ASM("nop");
+    __ASM("nop");
+    __ASM("nop");
+    __ASM("nop");
+    __ASM("nop");
+    __ASM("nop");
 
     if (nrf_egu_event_check(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT))
     {
@@ -1206,9 +1216,8 @@ static void receive_begin(bool disabled_was_triggered)
                                    (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCOK),
                                    (uint32_t) nrf_ppi_task_address_get(PPI_CHGRP0_DIS_TASK));
     nrf_ppi_channel_include_in_group(PPI_CH0, PPI_CHGRP0);
-    nrf_ppi_group_enable(PPI_CHGRP0);
 
-    nrf_ppi_channel_endpoint_setup(PPI_CH4, (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED), (uint32_t) nrf_egu_task_address_get(NRF_EGU0, NRF_EGU_TASK_TRIGGER0));
+    nrf_ppi_channel_endpoint_setup(PPI_CH4, (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED), (uint32_t) nrf_egu_task_address_get(NRF_DRV_RADIO802154_EGU_INSTANCE, NRF_EGU_TASK_TRIGGER0));
 
     nrf_ppi_channel_enable(PPI_CH0);
     nrf_ppi_channel_enable(PPI_CH1);
@@ -1304,11 +1313,10 @@ static void transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_t
 
     nrf_ppi_channel_endpoint_setup(PPI_CH1,
                                    (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED),
-                                   (uint32_t) nrf_egu_task_address_get(NRF_EGU0,
+                                   (uint32_t) nrf_egu_task_address_get(NRF_DRV_RADIO802154_EGU_INSTANCE,
                                                                        NRF_EGU_TASK_TRIGGER0));
 
     nrf_ppi_channel_include_in_group(PPI_CH0, PPI_CHGRP0);
-    nrf_ppi_group_enable(PPI_CHGRP0);
 
     nrf_ppi_channel_enable(PPI_CH0);
     nrf_ppi_channel_enable(PPI_CH1);
@@ -1367,11 +1375,10 @@ static void ed_begin(bool disabled_was_triggered)
                                                     PPI_CHGRP0_DIS_TASK));
     nrf_ppi_channel_endpoint_setup(PPI_CH1,
                                    (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED),
-                                   (uint32_t) nrf_egu_task_address_get(NRF_EGU0,
+                                   (uint32_t) nrf_egu_task_address_get(NRF_DRV_RADIO802154_EGU_INSTANCE,
                                                                        NRF_EGU_TASK_TRIGGER0));
 
     nrf_ppi_channel_include_in_group(PPI_CH0, PPI_CHGRP0);
-    nrf_ppi_group_enable(PPI_CHGRP0);
 
     nrf_ppi_channel_enable(PPI_CH0);
     nrf_ppi_channel_enable(PPI_CH1);
@@ -1426,11 +1433,10 @@ static void cca_begin(bool disabled_was_triggered)
                                                     PPI_CHGRP0_DIS_TASK));
     nrf_ppi_channel_endpoint_setup(PPI_CH1,
                                    (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED),
-                                   (uint32_t) nrf_egu_task_address_get(NRF_EGU0,
+                                   (uint32_t) nrf_egu_task_address_get(NRF_DRV_RADIO802154_EGU_INSTANCE,
                                                                        NRF_EGU_TASK_TRIGGER0));
 
     nrf_ppi_channel_include_in_group(PPI_CH0, PPI_CHGRP0);
-    nrf_ppi_group_enable(PPI_CHGRP0);
 
     nrf_ppi_channel_enable(PPI_CH0);
     nrf_ppi_channel_enable(PPI_CH1);
@@ -1757,8 +1763,6 @@ static inline void irq_crcok_state_rx(void)
         }
         else
         {
-            bool trigger_disabled;
-
             // Disable PPIs on DISABLED event to control TIMER.
             nrf_ppi_channel_disable(PPI_CH4);
 
@@ -1768,38 +1772,19 @@ static inline void irq_crcok_state_rx(void)
             nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
             nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
 
-            // Enable PPI group that was disabled by short.
-            nrf_ppi_group_enable(PPI_CHGRP0);
+            // Enable PPI disabled by CRCOK
+            nrf_ppi_channel_enable(PPI_CH0);
 
             // Enable PPIs on DISABLED event and clear event to detect if PPI worked
             nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
             nrf_ppi_channel_enable(PPI_CH4);
 
-            // If radio is not in DISABLED state it means it is during ramp down or PPI worked.
-            if (nrf_radio_state_get() != NRF_RADIO_STATE_DISABLED)
-            {
-                trigger_disabled = false;
-            }
-            // TODO: Wait for PPIs and EGU
-            // If radio was is DISABLED state, wait PPI delay and check if it worked.
-            else if (nrf_egu_event_check(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT))
-            {
-                trigger_disabled = false;
-            }
-            else
-            {
-                trigger_disabled = true;
-            }
-
-            if (trigger_disabled)
+            if (!ppi_egu_worked())
             {
                 nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
             }
 
             // Find new RX buffer
-            mp_current_rx_buffer->free = false;
-            rx_buffer_in_use_set(nrf_drv_radio802154_rx_buffer_free_find());
-
             if (rx_buffer_is_available())
             {
                 nrf_radio_packet_ptr_set(rx_buffer_get());
@@ -1986,7 +1971,6 @@ static inline void irq_phyend_state_tx_ack(void)
 #endif
 static void irq_phyend_state_tx_ack(void)
 {
-    bool      trigger_disabled;
     uint8_t * p_received_psdu = mp_current_rx_buffer->psdu;
 
     // Disable PPIs on DISABLED event to control TIMER.
@@ -2015,30 +1999,15 @@ static void irq_phyend_state_tx_ack(void)
 
     // Reset PPI CH2 for RX mode
     nrf_ppi_channel_endpoint_setup(PPI_CH2, (uint32_t) nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCERROR), (uint32_t) nrf_timer_task_address_get(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR));
-    // Enable PPI group that was disabled by short.
-    nrf_ppi_group_enable(PPI_CHGRP0);
+
+    // Enable PPI disabled by CRCOK
+    nrf_ppi_channel_enable(PPI_CH0);
 
     // Enable PPIs on DISABLED event and clear event to detect if PPI worked
     nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
     nrf_ppi_channel_enable(PPI_CH4);
 
-    // If radio is not in DISABLED state it means it is during ramp down or PPI worked.
-    if (nrf_radio_state_get() != NRF_RADIO_STATE_DISABLED)
-    {
-        trigger_disabled = false;
-    }
-    // TODO: Wait for PPIs and EGU
-    // If radio was is DISABLED state, wait PPI delay and check if it worked.
-    else if (nrf_egu_event_check(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT))
-    {
-        trigger_disabled = false;
-    }
-    else
-    {
-        trigger_disabled = true;
-    }
-
-    if (trigger_disabled)
+    if (!ppi_egu_worked())
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
@@ -2101,8 +2070,6 @@ static void irq_phyend_state_tx_frame(void)
                                                         NRF_RADIO_TASK_RXEN),
                                                 (uint32_t)nrf_ppi_task_address_get(
                                                         PPI_CHGRP0_DIS_TASK));
-
-        nrf_ppi_group_enable(PPI_CHGRP0);
 
         nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
 
