@@ -192,19 +192,15 @@ nrf_drv_radio802154_state_t nrf_drv_radio802154_state_get(void)
 {
     switch (nrf_drv_radio802154_fsm_state_get())
     {
-    case RADIO_STATE_DISABLING:
     case RADIO_STATE_SLEEP:
         return NRF_DRV_RADIO802154_STATE_SLEEP;
 
-    case RADIO_STATE_WAITING_TIMESLOT:
-    case RADIO_STATE_WAITING_RX_FRAME:
-    case RADIO_STATE_RX_HEADER:
-    case RADIO_STATE_RX_FRAME:
+    case RADIO_STATE_RX:
     case RADIO_STATE_TX_ACK:
         return NRF_DRV_RADIO802154_STATE_RECEIVE;
 
-    case RADIO_STATE_CCA_BEFORE_TX:
-    case RADIO_STATE_TX_FRAME:
+    case RADIO_STATE_CCA_TX:
+    case RADIO_STATE_TX:
     case RADIO_STATE_RX_ACK:
         return NRF_DRV_RADIO802154_STATE_TRANSMIT;
 
@@ -223,30 +219,10 @@ nrf_drv_radio802154_state_t nrf_drv_radio802154_state_get(void)
 
 bool nrf_drv_radio802154_sleep(void)
 {
+    bool result;
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_SLEEP);
 
-    bool result = true;
-
-    switch (nrf_drv_radio802154_fsm_state_get())
-    {
-    case RADIO_STATE_DISABLING:
-    case RADIO_STATE_SLEEP:
-        break;
-
-    case RADIO_STATE_WAITING_TIMESLOT:
-    case RADIO_STATE_WAITING_RX_FRAME:
-    case RADIO_STATE_RX_HEADER:
-    case RADIO_STATE_RX_FRAME:
-    case RADIO_STATE_TX_ACK:
-    case RADIO_STATE_CCA_BEFORE_TX:
-    case RADIO_STATE_TX_FRAME:
-    case RADIO_STATE_RX_ACK:
-        result = nrf_drv_radio802154_request_sleep(NRF_DRV_RADIO802154_TERM_802154);
-        break;
-
-    default:
-        assert(false);
-    }
+    result = nrf_drv_radio802154_request_sleep(NRF_DRV_RADIO802154_TERM_802154);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_SLEEP);
     return result;

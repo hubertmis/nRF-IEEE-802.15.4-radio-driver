@@ -53,19 +53,15 @@ extern "C" {
 typedef enum
 {
     // Sleep
-    RADIO_STATE_DISABLING,          // Entering low power (DISABLED) mode
     RADIO_STATE_SLEEP,              // Low power (DISABLED) mode
 
     // Receive
-    RADIO_STATE_WAITING_TIMESLOT,   // Radio is inactive due to denied time slot
-    RADIO_STATE_WAITING_RX_FRAME,   // Waiting for frame in receiver mode
-    RADIO_STATE_RX_HEADER,          // Received SFD, receiving MAC header
-    RADIO_STATE_RX_FRAME,           // Received MAC destination address, receiving rest of the frame
+    RADIO_STATE_RX,                 // Receiver is enabled and it is receiving frames
     RADIO_STATE_TX_ACK,             // Received frame and transmitting ACK
 
     // Transmit
-    RADIO_STATE_CCA_BEFORE_TX,      // Performing CCA prior to transmission
-    RADIO_STATE_TX_FRAME,           // Transmitting data frame (or beacon)
+    RADIO_STATE_CCA_TX,             // Performing CCA followed by frame transmission
+    RADIO_STATE_TX,                 // Transmitting data frame (or beacon)
     RADIO_STATE_RX_ACK,             // Receiving ACK after transmitted frame
 
     // Energy Detection
