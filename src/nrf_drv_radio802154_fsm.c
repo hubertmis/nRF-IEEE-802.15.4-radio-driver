@@ -729,7 +729,10 @@ static inline bool ed_iter_setup(uint32_t time_us)
 /** Terminate Sleep procedure. */
 static void sleep_terminate(void)
 {
-    nrf_radio_int_disable(NRF_RADIO_INT_DISABLED_MASK);
+    if (nrf_raal_timeslot_is_granted())
+    {
+        nrf_radio_int_disable(NRF_RADIO_INT_DISABLED_MASK);
+    }
 }
 
 /** Terminate RX procedure. */
@@ -747,12 +750,15 @@ static void rx_terminate(void)
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
     nrf_timer_shorts_disable(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK | NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
+    if (nrf_raal_timeslot_is_granted())
+    {
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-    nrf_radio_int_disable(NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
+        nrf_radio_int_disable(NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-    nrf_radio_int_disable(NRF_RADIO_INT_CRCOK_MASK);
-    nrf_radio_shorts_set(SHORTS_IDLE);
-    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+        nrf_radio_int_disable(NRF_RADIO_INT_CRCOK_MASK);
+        nrf_radio_shorts_set(SHORTS_IDLE);
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    }
 }
 
 /** Terminate TX ACK procedure. */
@@ -770,10 +776,13 @@ static void tx_ack_terminate(void)
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
     nrf_timer_shorts_disable(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK | NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
-    nrf_radio_int_disable(nrf_drv_radio802154_revision_has_phyend_event() ?
-                          NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK);
-    nrf_radio_shorts_set(SHORTS_IDLE);
-    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    if (nrf_raal_timeslot_is_granted())
+    {
+        nrf_radio_int_disable(nrf_drv_radio802154_revision_has_phyend_event() ?
+                              NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK);
+        nrf_radio_shorts_set(SHORTS_IDLE);
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    }
 }
 
 /** Terminate TX procedure. */
@@ -785,11 +794,14 @@ static void tx_terminate(void)
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
-    nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK);
-    nrf_radio_int_disable(nrf_drv_radio802154_revision_has_phyend_event() ?
-                          NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK);
-    nrf_radio_shorts_set(SHORTS_IDLE);
-    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    if (nrf_raal_timeslot_is_granted())
+    {
+        nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK);
+        nrf_radio_int_disable(nrf_drv_radio802154_revision_has_phyend_event() ?
+                              NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK);
+        nrf_radio_shorts_set(SHORTS_IDLE);
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    }
 }
 
 /** Terminate RX ACK procedure. */
@@ -801,11 +813,14 @@ static void rx_ack_terminate(void)
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
-    nrf_radio_int_disable(NRF_RADIO_INT_END_MASK);
-    nrf_radio_shorts_set(SHORTS_IDLE);
-    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    if (nrf_raal_timeslot_is_granted())
+    {
+        nrf_radio_int_disable(NRF_RADIO_INT_END_MASK);
+        nrf_radio_shorts_set(SHORTS_IDLE);
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
 
-    ack_matching_disable();
+        ack_matching_disable();
+    }
 }
 
 /** Terminate ED procedure. */
@@ -817,9 +832,12 @@ static void ed_terminate(void)
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
-    nrf_radio_int_disable(NRF_RADIO_INT_EDEND_MASK);
-    nrf_radio_shorts_set(SHORTS_IDLE);
-    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    if (nrf_raal_timeslot_is_granted())
+    {
+        nrf_radio_int_disable(NRF_RADIO_INT_EDEND_MASK);
+        nrf_radio_shorts_set(SHORTS_IDLE);
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    }
 }
 
 /** Terminate CCA procedure. */
@@ -831,9 +849,12 @@ static void cca_terminate(void)
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
-    nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
-    nrf_radio_shorts_set(SHORTS_IDLE);
-    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    if (nrf_raal_timeslot_is_granted())
+    {
+        nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
+        nrf_radio_shorts_set(SHORTS_IDLE);
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    }
 }
 
 /** Terminate Continuous Carrier procedure. */
@@ -842,7 +863,10 @@ static void continuous_carrier_terminate(void)
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
 
-    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    if (nrf_raal_timeslot_is_granted())
+    {
+        nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+    }
 }
 
 /** Abort transmission procedure.
@@ -908,29 +932,6 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 // TODO: Check if PSDU is being received. If it is term_lvl must be high enough to stop it.
                 rx_terminate();
                 break;
-
-#if 0
-            case RADIO_STATE_RX_HEADER:
-            case RADIO_STATE_RX_FRAME:
-                if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
-                {
-                    auto_ack_abort(m_state);
-
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_FRAMESTART);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-
-                    nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_ABORTED);
-                }
-                else
-                {
-                    result = false;
-                }
-
-                break;
-#endif
 
             case RADIO_STATE_TX_ACK:
                 if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
@@ -1052,6 +1053,13 @@ static bool ppi_egu_worked(void)
     }
 }
 
+/** Clear flags describing frame being received. */
+static void rx_flags_clear(void)
+{
+    m_flags.frame_filtered        = false;
+    m_flags.rx_timeslot_requested = false;
+}
+
 /** Prepare to enter Sleep state. */
 static void sleep_begin(void)
 {
@@ -1078,7 +1086,7 @@ static void receive_begin(bool disabled_was_triggered)
     }
 
     // Clear filtering flag
-    m_flags.frame_filtered = false;
+    rx_flags_clear();
 
     free_buffer = rx_buffer_is_available();
     shorts      = free_buffer ? (SHORTS_RX | SHORTS_RX_FREE_BUFFER) : (SHORTS_RX);
@@ -1190,14 +1198,14 @@ static void receive_begin(bool disabled_was_triggered)
 }
 
 /** Begin TX operation. */
-static void transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_triggered)
+static bool transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_triggered)
 {
     bool trigger_task_disable;
 
-    // TODO: Instead of checking if timeslot is granted, request timeslot for the operation
-    if (!nrf_raal_timeslot_is_granted())
+    if (!nrf_raal_timeslot_request(
+            nrf_drv_radio802154_tx_duration_get(p_data[0], cca, ack_is_requested(p_data))))
     {
-        return;
+        return false;
     }
 
     nrf_radio_tx_power_set(nrf_drv_radio802154_pib_tx_power_get());
@@ -1269,6 +1277,8 @@ static void transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_t
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
+
+    return true;
 }
 
 /** Begin ED operation */
@@ -1389,14 +1399,6 @@ static void cca_begin(bool disabled_was_triggered)
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
-
-    if (!nrf_raal_timeslot_request(nrf_drv_radio802154_cca_duration_get()))
-    {
-        // There is not enough time to perform this procedure.
-        // Reset RADIO and wait for next timeslot.
-        irq_deinit();
-        nrf_radio_reset();
-    }
 }
 
 static void continuous_carrier_begin(bool disabled_was_triggered)
@@ -1471,11 +1473,11 @@ void nrf_raal_timeslot_started(void)
             break;
 
         case RADIO_STATE_CCA_TX:
-            transmit_begin(mp_tx_data, true, false);
+            (void)transmit_begin(mp_tx_data, true, false);
             break;
 
         case RADIO_STATE_TX:
-            transmit_begin(mp_tx_data, false, false);
+            (void)transmit_begin(mp_tx_data, false, false);
             break;
 
         case RADIO_STATE_ED:
@@ -1509,6 +1511,8 @@ void nrf_raal_timeslot_started(void)
 
 void nrf_raal_timeslot_ended(void)
 {
+    bool result;
+
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_ENDED);
 
     // Prevent interrupting of this handler by requests from higher priority code.
@@ -1518,10 +1522,14 @@ void nrf_raal_timeslot_ended(void)
     nrf_radio_reset();
     nrf_fem_control_deactivate();
 
+    result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_802154);
+    assert(result);
+
     switch (m_state)
     {
         case RADIO_STATE_SLEEP:
-            // Intentionally empty.
+            // Detect if timeslot is incorrectly entered again by current_operation_terminate()
+            assert(false);
             break;
 
         case RADIO_STATE_RX:
@@ -1681,60 +1689,65 @@ static inline void irq_bcmatch_state_rx(void)
     uint8_t prev_num_psdu_bytes;
     uint8_t num_psdu_bytes;
 
-    //assert(nrf_radio_shorts_get() == SHORTS_RX_INITIAL);
+    num_psdu_bytes      = nrf_radio_bcc_get() / 8;
+    prev_num_psdu_bytes = num_psdu_bytes;
 
-    switch (nrf_radio_state_get())
+    if (!m_flags.rx_timeslot_requested)
     {
-        // TODO: Verify this switch - it does not look good.
-        case NRF_RADIO_STATE_RX:
-        case NRF_RADIO_STATE_RX_IDLE:
-        case NRF_RADIO_STATE_RX_DISABLE:
-        case NRF_RADIO_STATE_DISABLED:
-        case NRF_RADIO_STATE_TX_RU:      // A lot of states due to shorts.
-            num_psdu_bytes      = nrf_radio_bcc_get() / 8;
-            prev_num_psdu_bytes = num_psdu_bytes;
+        assert(num_psdu_bytes >= PHR_SIZE + FCF_SIZE);
 
-            if (!m_flags.frame_filtered)
+        if (nrf_raal_timeslot_request(nrf_drv_radio802154_rx_duration_get(
+                mp_current_rx_buffer->psdu[0],
+                ack_is_requested(mp_current_rx_buffer->psdu))))
+        {
+            m_flags.rx_timeslot_requested = true;
+        }
+        else
+        {
+            irq_deinit();
+            nrf_radio_reset();
+
+            nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED);
+
+            return;
+        }
+    }
+
+    if (!m_flags.frame_filtered)
+    {
+        if (nrf_drv_radio802154_filter_frame_part(mp_current_rx_buffer->psdu,
+                                                  &num_psdu_bytes))
+        {
+            if (num_psdu_bytes != prev_num_psdu_bytes)
             {
-                if (nrf_drv_radio802154_filter_frame_part(mp_current_rx_buffer->psdu,
-                                                          &num_psdu_bytes))
-                {
-                    if (num_psdu_bytes != prev_num_psdu_bytes)
-                    {
-                        nrf_radio_bcc_set(num_psdu_bytes * 8);
-                    }
-                    else
-                    {
-                        m_flags.frame_filtered = true;
-                    }
-                }
-                else if (!nrf_drv_radio802154_pib_promiscuous_get())
-                {
-                    rx_terminate();
-                    receive_begin(true);
-
-                    if ((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
-                        FRAME_TYPE_ACK)
-                    {
-                        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
-                    }
-                }
-                else
-                {
-                    // Promiscuous mode, allow incorrect frames. Nothing to do here.
-                }
+                nrf_radio_bcc_set(num_psdu_bytes * 8);
             }
+            else
+            {
+                m_flags.frame_filtered = true;
+            }
+        }
+        else if (!nrf_drv_radio802154_pib_promiscuous_get())
+        {
+            rx_terminate();
+            receive_begin(true);
 
-            break;
-
-        default:
-            assert(false);
+            if ((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
+                FRAME_TYPE_ACK)
+            {
+                receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
+            }
+        }
+        else
+        {
+            // Promiscuous mode, allow incorrect frames. Nothing to do here.
+        }
     }
 }
 
 static inline void irq_crcerror_state_rx(void)
 {
-    m_flags.frame_filtered = false;
+    rx_flags_clear();
     nrf_radio_bcc_set(BCC_INIT);
 }
 #endif //!NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
@@ -1746,6 +1759,7 @@ static inline void irq_crcok_state_rx(void)
     uint8_t num_psdu_bytes      = PHR_SIZE + FCF_SIZE;
     uint8_t prev_num_psdu_bytes = 0;
 
+    // Frame filtering
     while (num_psdu_bytes != prev_num_psdu_bytes)
     {
         prev_num_psdu_bytes = num_psdu_bytes;
@@ -1775,6 +1789,28 @@ static inline void irq_crcok_state_rx(void)
 
             break;
         }
+    }
+
+    // Timeslot request
+    if (m_flags.frame_filtered &&
+        ack_is_requested(p_received_psdu) &&
+        !nrf_raal_timeslot_request(nrf_drv_radio802154_rx_duration_get(0, true)))
+    {
+        // Frame is destined to this node but there is no timeslot to transmit ACK
+        irq_deinit();
+        nrf_radio_reset();
+
+        rx_flags_clear();
+
+        // Filter out received ACK frame if promiscuous mode is disabled.
+        if (((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK) ||
+            nrf_drv_radio802154_pib_promiscuous_get())
+        {
+            mp_current_rx_buffer->free = false;
+            received_frame_notify(p_received_psdu);
+        }
+
+        return;
     }
 #endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
@@ -1850,6 +1886,8 @@ static inline void irq_crcok_state_rx(void)
             }
             else
             {
+                mp_current_rx_buffer->free = false;
+
                 // RX uses the same peripherals as TX_ACK until RADIO ints are updated.
                 rx_terminate();
                 receive_begin(true);
@@ -1880,28 +1918,37 @@ static inline void irq_crcok_state_rx(void)
                 nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
             }
 
-            // Find new RX buffer
-            mp_current_rx_buffer->free = false;
-            rx_buffer_in_use_set(nrf_drv_radio802154_rx_buffer_free_find());
+            rx_flags_clear();
 
-            if (rx_buffer_is_available())
+            // Filter out received ACK frame if promiscuous mode is disabled.
+            if (((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK) ||
+                nrf_drv_radio802154_pib_promiscuous_get())
             {
-                nrf_radio_packet_ptr_set(rx_buffer_get());
+                // Find new RX buffer
+                mp_current_rx_buffer->free = false;
+                rx_buffer_in_use_set(nrf_drv_radio802154_rx_buffer_free_find());
+
+                if (rx_buffer_is_available())
+                {
+                    nrf_radio_packet_ptr_set(rx_buffer_get());
+                    nrf_radio_shorts_set(SHORTS_RX | SHORTS_RX_FREE_BUFFER);
+
+                    if (nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE)
+                    {
+                        nrf_radio_task_trigger(NRF_RADIO_TASK_START);
+                    }
+                }
+
+                received_frame_notify(p_received_psdu);
+            }
+            else
+            {
                 nrf_radio_shorts_set(SHORTS_RX | SHORTS_RX_FREE_BUFFER);
 
                 if (nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE)
                 {
                     nrf_radio_task_trigger(NRF_RADIO_TASK_START);
                 }
-            }
-
-            m_flags.frame_filtered = false;
-
-            // Filter out received ACK frame if promiscuous mode is disabled.
-            if (((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK) ||
-                nrf_drv_radio802154_pib_promiscuous_get())
-            {
-                received_frame_notify(p_received_psdu);
             }
         }
     }
@@ -2137,7 +2184,7 @@ static void irq_phyend_state_tx_ack(void)
 
     state_set(RADIO_STATE_RX);
 
-    m_flags.frame_filtered = false;
+    rx_flags_clear();
 
     received_frame_notify(p_received_psdu);
 }
@@ -3136,8 +3183,12 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
     if (result)
     {
         mp_tx_data = p_data;
+        result     = transmit_begin(p_data, cca, true);
+    }
+
+    if (result)
+    {
         state_set(cca ? RADIO_STATE_CCA_TX : RADIO_STATE_TX);
-        transmit_begin(p_data, cca, true);
     }
 
     return result;
@@ -3358,45 +3409,39 @@ bool nrf_drv_radio802154_fsm_notify_buffer_free(uint8_t * p_data)
 
     p_buffer->free = true;
 
+    if (!nrf_raal_timeslot_is_granted())
+    {
+        return true;
+    }
+
     switch (m_state)
     {
         case RADIO_STATE_RX:
-
-            switch (nrf_radio_state_get())
+            if (nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE)
             {
-                case NRF_RADIO_STATE_RX_DISABLE: // This one could happen after receive of broadcast frame.
-                case NRF_RADIO_STATE_TX_DISABLE: // This one could happen due to stopping ACK.
-                case NRF_RADIO_STATE_DISABLED:   // This one could happen during stopping ACK.
-                case NRF_RADIO_STATE_RX_RU:      // This one could happen during enabling receiver (after sending ACK).
-                case NRF_RADIO_STATE_RX:         // This one could happen if any other buffer is in use.
-                case NRF_RADIO_STATE_TX_RU:      // This one could happen if received a short frame.
-                case NRF_RADIO_STATE_TX_IDLE:    // This one could happen if received a short frame.
-                    break;
+                assert(nrf_radio_shorts_get() == SHORTS_RX);
 
-                case NRF_RADIO_STATE_RX_IDLE:
-                    {
-                        assert(nrf_radio_shorts_get() == SHORTS_RX);
+                rx_buffer_in_use_set(p_buffer);
 
-                        rx_buffer_in_use_set(p_buffer);
+                nrf_radio_packet_ptr_set(rx_buffer_get());
+                nrf_radio_shorts_set(SHORTS_RX | SHORTS_RX_FREE_BUFFER);
 
-                        nrf_radio_packet_ptr_set(rx_buffer_get());
-                        nrf_radio_shorts_set(SHORTS_RX | SHORTS_RX_FREE_BUFFER);
+                nrf_radio_task_trigger(NRF_RADIO_TASK_START);
+            }
 
-                        if (nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE)
-                        {
-                            nrf_radio_task_trigger(NRF_RADIO_TASK_START);
-                        }
+            break;
 
-                        //rx_frame_start();
+        case RADIO_STATE_RX_ACK:
+            if (nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE)
+            {
+                assert(nrf_radio_shorts_get() == SHORTS_RX_ACK);
 
-                        // Clear events that could have happened in critical section due to RX
-                        // ramp up.
-                        //nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-                    }
-                    break;
+                rx_buffer_in_use_set(p_buffer);
 
-                default:
-                    assert(false);
+                nrf_radio_packet_ptr_set(rx_buffer_get());
+                nrf_radio_shorts_set(SHORTS_RX_ACK | SHORTS_RX_FREE_BUFFER);
+
+                nrf_radio_task_trigger(NRF_RADIO_TASK_START);
             }
 
             break;

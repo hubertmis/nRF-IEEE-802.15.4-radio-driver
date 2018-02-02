@@ -292,13 +292,15 @@ bool nrf_drv_radio802154_continuous_carrier(void)
 
 void nrf_drv_radio802154_buffer_free_raw(uint8_t * p_data)
 {
+    bool          result;
     rx_buffer_t * p_buffer = (rx_buffer_t *)p_data;
 
     assert(p_buffer->free == false);
 
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_BUFFER_FREE);
 
-    nrf_drv_radio802154_request_buffer_free(p_data);
+    result = nrf_drv_radio802154_request_buffer_free(p_data);
+    assert(result);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_BUFFER_FREE);
 }
