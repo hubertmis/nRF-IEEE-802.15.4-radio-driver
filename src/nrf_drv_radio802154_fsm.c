@@ -804,6 +804,8 @@ static void rx_ack_terminate(void)
     nrf_radio_int_disable(NRF_RADIO_INT_END_MASK);
     nrf_radio_shorts_set(SHORTS_IDLE);
     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+
+    ack_matching_disable();
 }
 
 /** Terminate ED procedure. */
@@ -2226,6 +2228,8 @@ static void irq_phyend_state_tx_frame(void)
                 }
             }
         }
+
+        ack_matching_enable();
     }
     else
     {
@@ -2275,19 +2279,29 @@ static inline void irq_phyend_state_tx_frame(void)
 
 static void irq_end_state_rx_ack(void)
 {
-    rx_buffer_t * p_ack_buffer = mp_current_rx_buffer;
-    mp_current_rx_buffer->free = false;
+    bool          ack_match = ack_is_matched();
+    rx_buffer_t * p_ack_buffer;
+
+    if (ack_match)
+    {
+        p_ack_buffer = mp_current_rx_buffer;
+        mp_current_rx_buffer->free = false;
+    }
 
     rx_ack_terminate();
     state_set(RADIO_STATE_RX);
     receive_begin(true);
 
-    // TODO: Check MHR match
-
-    // TODO: There is a problem with ACK payload
-    transmitted_frame_notify(p_ack_buffer->psdu,                // psdu
-                             rssi_last_measurement_get(),       // rssi
-                             RX_FRAME_LQI(p_ack_buffer->psdu)); // lqi;
+    if (ack_match)
+    {
+        transmitted_frame_notify(p_ack_buffer->psdu,                // psdu
+                                 rssi_last_measurement_get(),       // rssi
+                                 RX_FRAME_LQI(p_ack_buffer->psdu)); // lqi;
+    }
+    else
+    {
+        transmit_failed_notify(NRF_DRV_RADIO802154_TX_ERROR_INVALID_ACK);
+    }
 }
 
 #if 0
