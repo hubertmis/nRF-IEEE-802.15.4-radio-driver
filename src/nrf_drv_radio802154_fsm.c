@@ -1785,6 +1785,9 @@ static inline void irq_crcok_state_rx(void)
             }
 
             // Find new RX buffer
+            mp_current_rx_buffer->free = false;
+            rx_buffer_in_use_set(nrf_drv_radio802154_rx_buffer_free_find());
+
             if (rx_buffer_is_available())
             {
                 nrf_radio_packet_ptr_set(rx_buffer_get());
