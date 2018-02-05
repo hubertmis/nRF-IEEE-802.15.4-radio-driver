@@ -738,6 +738,8 @@ static void sleep_terminate(void)
 /** Terminate RX procedure. */
 static void rx_terminate(void)
 {
+    uint32_t ints_to_disable = 0;
+
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_CRCERROR_CLEAR);
     nrf_ppi_channel_disable(PPI_CRCOK_DIS_PPI);
@@ -753,9 +755,10 @@ static void rx_terminate(void)
     if (nrf_raal_timeslot_is_granted())
     {
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-        nrf_radio_int_disable(NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
+        ints_to_disable |= (NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-        nrf_radio_int_disable(NRF_RADIO_INT_CRCOK_MASK);
+        ints_to_disable |= NRF_RADIO_INT_CRCOK_MASK;
+        nrf_radio_int_disable(ints_to_disable);
         nrf_radio_shorts_set(SHORTS_IDLE);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
@@ -788,6 +791,8 @@ static void tx_ack_terminate(void)
 /** Terminate TX procedure. */
 static void tx_terminate(void)
 {
+    uint32_t ints_to_disable;
+
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
 
@@ -796,9 +801,11 @@ static void tx_terminate(void)
 
     if (nrf_raal_timeslot_is_granted())
     {
-        nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK);
-        nrf_radio_int_disable(nrf_drv_radio802154_revision_has_phyend_event() ?
-                              NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK);
+        ints_to_disable = nrf_drv_radio802154_revision_has_phyend_event() ?
+                NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK;
+        ints_to_disable |= NRF_RADIO_INT_CCABUSY_MASK;
+
+        nrf_radio_int_disable(ints_to_disable);
         nrf_radio_shorts_set(SHORTS_IDLE);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
@@ -1079,6 +1086,7 @@ static void receive_begin(bool disabled_was_triggered)
     bool     free_buffer;
     uint32_t shorts;
     bool     trigger_task_disable;
+    int32_t  ints_to_enable = 0;
 
     if (!nrf_raal_timeslot_is_granted())
     {
@@ -1107,13 +1115,14 @@ static void receive_begin(bool disabled_was_triggered)
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     // Enable IRQs
-    //nrf_radio_int_enable(NRF_RADIO_INT_FRAMESTART_MASK);
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-    nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH | NRF_RADIO_EVENT_CRCERROR);
-    nrf_radio_int_enable(NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_CRCERROR);
+    ints_to_enable |= NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK;
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_event_clear(NRF_RADIO_EVENT_CRCOK);
-    nrf_radio_int_enable(NRF_RADIO_INT_CRCOK_MASK);
+    ints_to_enable |= NRF_RADIO_INT_CRCOK_MASK;
+    nrf_radio_int_enable(ints_to_enable);
 
     // TODO: Set FEM
 
@@ -1201,6 +1210,7 @@ static void receive_begin(bool disabled_was_triggered)
 static bool transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_triggered)
 {
     bool trigger_task_disable;
+    bool ints_to_enable = 0;
 
     if (!nrf_raal_timeslot_request(
             nrf_drv_radio802154_tx_duration_get(p_data[0], cca, ack_is_requested(p_data))))
@@ -1218,19 +1228,21 @@ static bool transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_t
     if (nrf_drv_radio802154_revision_has_phyend_event())
     {
         nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-        nrf_radio_int_enable(NRF_RADIO_INT_PHYEND_MASK);
+        ints_to_enable |= NRF_RADIO_INT_PHYEND_MASK;
     }
     else
     {
         nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-        nrf_radio_int_enable(NRF_RADIO_INT_END_MASK);
+        ints_to_enable |= NRF_RADIO_INT_END_MASK;
     }
 
     if (cca)
     {
         nrf_radio_event_clear(NRF_RADIO_EVENT_CCABUSY);
-        nrf_radio_int_enable(NRF_RADIO_INT_CCABUSY_MASK);
+        ints_to_enable |= NRF_RADIO_INT_CCABUSY_MASK;
     }
+
+    nrf_radio_int_enable(ints_to_enable);
 
     // TODO: Set FEM
     // Clr event EGU
@@ -1355,7 +1367,8 @@ static void cca_begin(bool disabled_was_triggered)
     nrf_radio_shorts_set(SHORTS_CCA);
 
     // Enable IRQs
-    nrf_radio_event_clear(NRF_RADIO_EVENT_CCABUSY | NRF_RADIO_EVENT_CCAIDLE);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_CCABUSY);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_CCAIDLE);
     nrf_radio_int_enable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
 
     // TODO: Set FEM
@@ -1755,6 +1768,7 @@ static inline void irq_crcerror_state_rx(void)
 static inline void irq_crcok_state_rx(void)
 {
     uint8_t * p_received_psdu = mp_current_rx_buffer->psdu;
+    uint32_t  ints_to_disable = 0;
 #if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     uint8_t num_psdu_bytes      = PHR_SIZE + FCF_SIZE;
     uint8_t prev_num_psdu_bytes = 0;
@@ -1869,9 +1883,10 @@ static inline void irq_crcok_state_rx(void)
 
                 // Set event handlers
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-                nrf_radio_int_disable(NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
+                ints_to_disable |= (NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-                nrf_radio_int_disable(NRF_RADIO_INT_CRCOK_MASK);
+                ints_to_disable |= NRF_RADIO_INT_CRCOK_MASK;
+                nrf_radio_int_disable(ints_to_disable);
 
                 if (nrf_drv_radio802154_revision_has_phyend_event())
                 {
@@ -2120,6 +2135,7 @@ static inline void irq_phyend_state_tx_ack(void)
 static void irq_phyend_state_tx_ack(void)
 {
     uint8_t * p_received_psdu = mp_current_rx_buffer->psdu;
+    uint32_t  int_to_enable   = 0;
 
     // Disable PPIs on DISABLED event to control TIMER.
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
@@ -2135,11 +2151,13 @@ static void irq_phyend_state_tx_ack(void)
                           NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK);
 
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-    nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH | NRF_RADIO_EVENT_CRCERROR);
-    nrf_radio_int_enable(NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
+    nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH)
+    nrf_radio_event_clear(NRF_RADIO_EVENT_CRCERROR);
+    int_to_enable |= NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK;
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_event_clear(NRF_RADIO_EVENT_CRCOK);
-    nrf_radio_int_enable(NRF_RADIO_INT_CRCOK_MASK);
+    int_to_enable |= NRF_RADIO_INT_CRCOK_MASK;
+    nrf_radio_int_enable(int_to_enable);
 
     // Restart TIMER.
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
