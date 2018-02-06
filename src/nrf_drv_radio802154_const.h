@@ -100,6 +100,10 @@
 #define CCA_TIME              128UL                         ///< aCcaTime [us]
 #define UNIT_BACKOFF_PERIOD   (TURNAROUND_TIME + CCA_TIME)  ///< aUnitBackoffPeriod [us]
 
+#define PHY_US_PER_SYMBOL     16  ///< Duration of single symbol in microseconds [us]
+#define PHY_SYMBOLS_PER_OCTET  2  ///< Number of symbols in single byte (octet)
+#define PHY_SHR_DURATION      10  ///< Number of symbols in Synchronization Header (SHR)
+
 #define BROADCAST_ADDRESS    ((uint8_t [SHORT_ADDRESS_SIZE]) {0xff, 0xff}) ///< Broadcast Short Address
 
 #endif // NRD_DRV_RADIO802154_CONST_H_

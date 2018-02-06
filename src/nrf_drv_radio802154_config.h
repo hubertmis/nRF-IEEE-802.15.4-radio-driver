@@ -206,6 +206,20 @@ extern "C" {
 #define NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING 0
 #endif
 
+/**
+ * @def NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
+ *
+ * If timestamps should be added to received frames.
+ * Enabling this feature enables @sa nrf_drv_radio802154_received_timsestamp_raw,
+ * @sa nrf_drv_radio802154_received_timestamp, @sa nrf_drv_radio802154_transmitted_timestamp_raw and
+ * @sa nrf_drv_radio802154_transmitted_timestamp functions that add timestamps to received frames.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
+#define NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED 1
+#endif
+
+
 /*******************************************************************************
  * @section Clock Driver Configuration.
  ******************************************************************************/
@@ -375,6 +389,8 @@ extern "C" {
  *
  * If notification of started transmission should be enabled in the driver.
  *
+ * @note This feature is enabled by default if Ack Timeout feature or CSMA-CA feature is enabled.
+ *       These features depend on notification of transmission start.
  */
 #ifndef NRF_DRV_RADIO802154_TX_STARTED_NOTIFY_ENABLED
 #if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED ||                                                     \

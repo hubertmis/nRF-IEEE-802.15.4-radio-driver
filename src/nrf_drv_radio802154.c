@@ -143,6 +143,14 @@ int8_t nrf_drv_radio802154_dbm_from_energy_level_calculate(uint8_t energy_level)
     return -94 + energy_level;
 }
 
+uint32_t nrf_drv_radio802154_first_symbol_timestamp_get(uint32_t end_timestamp, uint8_t psdu_length)
+{
+    uint32_t frame_symbols = PHY_SHR_DURATION;
+    frame_symbols += (PHR_SIZE + psdu_length) * PHY_SYMBOLS_PER_OCTET;
+
+    return end_timestamp - (frame_symbols * PHY_US_PER_SYMBOL);
+}
+
 void nrf_drv_radio802154_init(void)
 {
     nrf_drv_radio802154_ack_pending_bit_init();
@@ -432,14 +440,23 @@ void nrf_drv_radio802154_ack_timeout_set(uint32_t time)
 
 #endif // NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
 
-__WEAK void nrf_drv_radio802154_rx_started(void)
+__WEAK void nrf_drv_radio802154_tx_ack_started(void)
 {
     // Intentionally empty
 }
 
-__WEAK void nrf_drv_radio802154_tx_ack_started(void)
+__WEAK void nrf_drv_radio802154_received_raw(uint8_t * p_data, int8_t power, int8_t lqi)
 {
-    // Intentionally empty
+#if NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
+    uint32_t timestamp = nrf_drv_radio802154_timer_sched_time_get();
+
+    nrf_drv_radio802154_received_timestamp_raw(p_data, power, lqi, timestamp);
+#else // NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
+    nrf_drv_radio802154_received(p_data + RAW_PAYLOAD_OFFSET,
+                                 p_data[RAW_LENGTH_OFFSET],
+                                 power,
+                                 lqi);
+#endif // NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
 }
 
 __WEAK void nrf_drv_radio802154_received(uint8_t * p_data, uint8_t length, int8_t power, int8_t lqi)
@@ -451,13 +468,31 @@ __WEAK void nrf_drv_radio802154_received(uint8_t * p_data, uint8_t length, int8_
     nrf_drv_radio802154_buffer_free(p_data);
 }
 
-__WEAK void nrf_drv_radio802154_received_raw(uint8_t * p_data, int8_t power, int8_t lqi)
+#if NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
+
+__WEAK void nrf_drv_radio802154_received_timestamp_raw(uint8_t * p_data,
+                                                       int8_t    power,
+                                                       int8_t    lqi,
+                                                       uint32_t  time)
 {
-    nrf_drv_radio802154_received(p_data + RAW_PAYLOAD_OFFSET,
-                                 p_data[RAW_LENGTH_OFFSET],
-                                 power,
-                                 lqi);
+    nrf_drv_radio802154_received_timestamp(p_data + RAW_PAYLOAD_OFFSET,
+                                           p_data[RAW_LENGTH_OFFSET],
+                                           power,
+                                           lqi,
+                                           time);
 }
+
+__WEAK void nrf_drv_radio802154_received_timestamp(uint8_t * p_data,
+                                                   uint8_t   length,
+                                                   int8_t    power,
+                                                   int8_t    lqi,
+                                                   uint32_t  time)
+{
+    (void)time;
+
+    nrf_drv_radio802154_received(p_data, length, power, lqi);
+}
+#endif // NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
 
 __WEAK void nrf_drv_radio802154_receive_failed(nrf_drv_radio802154_rx_error_t error)
 {
@@ -467,11 +502,6 @@ __WEAK void nrf_drv_radio802154_receive_failed(nrf_drv_radio802154_rx_error_t er
 __WEAK void nrf_drv_radio802154_tx_started(const uint8_t * p_frame)
 {
     (void) p_frame;
-}
-
-__WEAK void nrf_drv_radio802154_rx_ack_started(void)
-{
-    // Intentionally empty
 }
 
 __WEAK void nrf_drv_radio802154_transmitted(const uint8_t * p_frame,
@@ -496,12 +526,47 @@ __WEAK void nrf_drv_radio802154_transmitted_raw(const uint8_t * p_frame,
                                                 int8_t          power,
                                                 int8_t          lqi)
 {
+#if NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
+    uint32_t timestamp = (p_ack == NULL) ? 0 : nrf_drv_radio802154_timer_sched_time_get();
+
+    nrf_drv_radio802154_transmitted_timestamp_raw(p_frame, p_ack, power, lqi, timestamp);
+#else // NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
     nrf_drv_radio802154_transmitted(p_frame,
                                     p_ack + RAW_PAYLOAD_OFFSET,
                                     p_ack[RAW_LENGTH_OFFSET],
                                     power,
                                     lqi);
+#endif // NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
 }
+
+#if NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
+
+__WEAK void nrf_drv_radio802154_transmitted_timestamp_raw(const uint8_t * p_frame,
+                                                          uint8_t       * p_ack,
+                                                          int8_t          power,
+                                                          int8_t          lqi,
+                                                          uint32_t        time)
+{
+    nrf_drv_radio802154_transmitted_timestamp(p_frame,
+                                              p_ack + RAW_PAYLOAD_OFFSET,
+                                              p_ack[RAW_LENGTH_OFFSET],
+                                              power,
+                                              lqi,
+                                              time);
+}
+
+__WEAK void nrf_drv_radio802154_transmitted_timestamp(const uint8_t * p_frame,
+                                                      uint8_t       * p_ack,
+                                                      uint8_t         length,
+                                                      int8_t          power,
+                                                      int8_t          lqi,
+                                                      uint32_t        time)
+{
+    (void)time;
+    nrf_drv_radio802154_transmitted(p_frame, p_ack, length, power, lqi);
+}
+
+#endif // NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
 
 __WEAK void nrf_drv_radio802154_transmit_failed(const uint8_t                * p_frame,
                                                 nrf_drv_radio802154_tx_error_t error)

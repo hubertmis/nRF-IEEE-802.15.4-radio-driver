@@ -1686,7 +1686,6 @@ static inline void irq_framestart_state_waiting_rx_frame(void)
     }
 #endif
 }
-#endif
 
 /// This event is handled when the radio starts receiving an ACK frame.
 static inline void irq_framestart_state_rx_ack(void)
@@ -1707,6 +1706,7 @@ static inline void irq_framestart_state_rx_ack(void)
         nrf_drv_radio802154_rx_ack_started();
     }
 }
+#endif
 
 /// This event is handled when the radio starts transmitting a requested frame.
 static inline void irq_framestart_state_tx_frame(void)

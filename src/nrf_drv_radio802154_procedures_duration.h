@@ -40,14 +40,12 @@
 #include <stdint.h>
 #include "nrf.h"
 
+#include "nrf_drv_radio802154_const.h"
+
 #define TX_RAMP_UP_TIME       40  // us
 #define RX_RAMP_UP_TIME       40  // us
 #define RX_RAMP_DOWN_TIME      0  // us
 #define MAX_RAMP_DOWN_TIME     6  // us
-
-#define PHY_US_PER_SYMBOL     16  // us/sym
-#define PHY_SYMBOLS_PER_OCTET  2  // sym/byte
-#define PHY_SHR_DURATION      10  // sym
 
 #define A_CCA_DURATION         8  // sym
 #define A_TURNAROUND_TIME     12  // sym
