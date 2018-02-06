@@ -196,6 +196,9 @@ typedef struct
 {
     bool frame_filtered        :1;  ///< If frame being received passed filtering operation.
     bool rx_timeslot_requested :1;  ///< If timeslot for the frame being received is already requested.
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    bool psdu_being_received   :1;  ///< If PSDU is currently being received.
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 } nrf_radio802154_flags_t;
 static nrf_radio802154_flags_t m_flags;  ///< Flags used to store current driver state.
 
@@ -226,6 +229,16 @@ static inline void state_set(radio_state_t state)
     nrf_drv_radio802154_log(EVENT_SET_STATE, (uint32_t)state);
 }
 
+/** Clear flags describing frame being received. */
+static void rx_flags_clear(void)
+{
+    m_flags.frame_filtered        = false;
+    m_flags.rx_timeslot_requested = false;
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    m_flags.psdu_being_received   = false;
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+}
+
 /// Common procedure when the driver enters SLEEP state.
 static inline void sleep_start(void)
 {
@@ -242,9 +255,7 @@ static inline void rx_start(void)
 /// Start receiver to wait for frame that can be acknowledged.
 static inline void rx_frame_start(void)
 {
-    m_flags.frame_filtered        = false;
-    m_flags.rx_timeslot_requested = false;
-
+    rx_flags_clear();
     rx_start();
 
     // Just after starting receiving to receive buffer set packet pointer to ACK frame that can be
@@ -392,6 +403,19 @@ static void tx_enable(void)
 {
     nrf_radio_task_trigger(NRF_RADIO_TASK_TXEN);
     nrf_fem_control_pa_ppi_enable();
+}
+
+/** Check if PSDU is currently being received.
+ *
+ * @returns True if radio is receiving PSDU, false otherwise.
+ */
+static bool psdu_is_being_received(void)
+{
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    // TODO Implementation.
+#else // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    return m_flags.psdu_being_received;
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 }
 
 /***************************************************************************************************
@@ -1076,13 +1100,6 @@ static bool ppi_egu_worked(void)
     }
 }
 
-/** Clear flags describing frame being received. */
-static void rx_flags_clear(void)
-{
-    m_flags.frame_filtered        = false;
-    m_flags.rx_timeslot_requested = false;
-}
-
 /** Prepare to enter Sleep state. */
 static void sleep_begin(void)
 {
@@ -1765,6 +1782,8 @@ static inline void irq_bcmatch_state_rx(void)
 
     if (!m_flags.frame_filtered)
     {
+        m_flags.psdu_being_received = true;
+
         if (nrf_drv_radio802154_filter_frame_part(mp_current_rx_buffer->psdu,
                                                   &num_psdu_bytes))
         {
