@@ -366,6 +366,25 @@ extern "C" {
 #define NRF_DRV_RADIO802154_ACK_TIMEOUT_DEFAULT_TIMEOUT 7000
 #endif
 
+/*******************************************************************************
+ * @section Transmission start notification feature configuration.
+ ******************************************************************************/
+
+/**
+ * @def NRF_DRV_RADIO802154_TX_STARTED_NOTIFY_ENABLED
+ *
+ * If notification of started transmission should be enabled in the driver.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_TX_STARTED_NOTIFY_ENABLED
+#if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED ||                                                     \
+    NRF_DRV_RADIO802154_CSMA_CA_ENABLED
+#define NRF_DRV_RADIO802154_TX_STARTED_NOTIFY_ENABLED 1
+#else
+#define NRF_DRV_RADIO802154_TX_STARTED_NOTIFY_ENABLED 0
+#endif
+#endif // NRF_DRV_RADIO802154_TX_STARTED_NOTIFY_ENABLED
+
 /**
  *@}
  **/
