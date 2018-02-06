@@ -131,11 +131,10 @@ typedef nrf_fem_control_cfg_t nrf_drv_radio802154_fem_control_cfg_t;
                 .active_high = 1,                                                                  \
                 .gpio_pin    = NRF_FEM_CONTROL_DEFAULT_LNA_PIN,                                    \
         },                                                                                         \
-        .ppi_ch_id_clr = NRF_FEM_CONTROL_DEFAULT_CLR_PPI_CHANNEL,                                  \
-        .ppi_ch_id_set = NRF_FEM_CONTROL_DEFAULT_SET_PPI_CHANNEL,                                  \
-        .radio_ppi_grp = NRF_FEM_CONTROL_DEFAULT_TIMER_MATCH_PPI_GROUP,                            \
-        .timer_ppi_grp = NRF_FEM_CONTROL_DEFAULT_RADIO_DISABLED_PPI_GROUP,                         \
-        .gpiote_ch_id  = NRF_FEM_CONTROL_DEFAULT_GPIOTE_CHANNEL,                                   \
+        .pa_gpiote_ch_id   = NRF_FEM_CONTROL_DEFAULT_PA_GPIOTE_CHANNEL,                            \
+        .lna_gpiote_ch_id  = NRF_FEM_CONTROL_DEFAULT_LNA_GPIOTE_CHANNEL,                           \
+        .ppi_ch_id_set     = NRF_FEM_CONTROL_DEFAULT_SET_PPI_CHANNEL,                              \
+        .ppi_ch_id_clr     = NRF_FEM_CONTROL_DEFAULT_CLR_PPI_CHANNEL,                              \
     })
 
 /**

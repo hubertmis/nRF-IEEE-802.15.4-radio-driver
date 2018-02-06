@@ -38,15 +38,18 @@
 
 #include "compiler_abstraction.h"
 #include "nrf_fem_control_config.h"
-#include "nrf_fem_control_internal.h"
+#include "nrf_drv_radio802154_config.h"
 #include "nrf.h"
 #include "hal/nrf_gpio.h"
 #include "hal/nrf_gpiote.h"
 #include "hal/nrf_ppi.h"
 #include "hal/nrf_radio.h"
 
+#define NRF_FEM_TIMER_INSTANCE         NRF_DRV_RADIO802154_TIMER_INSTANCE
+#define NRF_FEM_TIMER_LNA_CC_CHANNEL   0
+#define NRF_FEM_TIMER_PA_CC_CHANNEL    2
+
 static nrf_fem_control_cfg_t m_nrf_fem_control_cfg;     /**< FEM controller configuration. */
-static volatile uint32_t     m_time_latch;              /**< Recently latched timer value. */
 
 /**
  * @section GPIO control.
@@ -70,15 +73,21 @@ static void gpio_init(void)
     }
 }
 
-/** Configure GPIOTE task. */
-__STATIC_INLINE void gpiote_configure(uint8_t pin, nrf_gpiote_outinit_t init_val)
+static void gpiote_configure(void)
 {
-    nrf_gpiote_task_configure(m_nrf_fem_control_cfg.gpiote_ch_id,
-                              pin,
-                              NRF_GPIOTE_POLARITY_TOGGLE,
-                              init_val);
+    nrf_gpiote_task_configure(m_nrf_fem_control_cfg.lna_gpiote_ch_id,
+                              m_nrf_fem_control_cfg.lna_cfg.gpio_pin,
+                              (nrf_gpiote_polarity_t)GPIOTE_CONFIG_POLARITY_None,
+                              (nrf_gpiote_outinit_t)!m_nrf_fem_control_cfg.lna_cfg.active_high);
 
-    nrf_gpiote_task_enable(m_nrf_fem_control_cfg.gpiote_ch_id);
+    nrf_gpiote_task_enable(m_nrf_fem_control_cfg.lna_gpiote_ch_id);
+
+    nrf_gpiote_task_configure(m_nrf_fem_control_cfg.pa_gpiote_ch_id,
+                              m_nrf_fem_control_cfg.pa_cfg.gpio_pin,
+                              (nrf_gpiote_polarity_t)GPIOTE_CONFIG_POLARITY_None,
+                              (nrf_gpiote_outinit_t)!m_nrf_fem_control_cfg.pa_cfg.active_high);
+
+    nrf_gpiote_task_enable(m_nrf_fem_control_cfg.pa_gpiote_ch_id);
 }
 
 /**
@@ -88,37 +97,40 @@ __STATIC_INLINE void gpiote_configure(uint8_t pin, nrf_gpiote_outinit_t init_val
 /** Initialize PPI according to configuration provided. */
 static void ppi_init(void)
 {
-    nrf_ppi_channel_include_in_group((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_set,
-                                     (nrf_ppi_channel_group_t)m_nrf_fem_control_cfg.timer_ppi_grp);
-    nrf_ppi_channel_include_in_group((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_clr,
-                                     (nrf_ppi_channel_group_t)m_nrf_fem_control_cfg.radio_ppi_grp);
-
-    nrf_ppi_channel_and_fork_endpoint_setup(
-        (nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_set,
-        (uint32_t)(&NRF_TIMER0->EVENTS_COMPARE[TIMER_CC_FEM]),
-        (uint32_t)(&NRF_GPIOTE->TASKS_OUT[m_nrf_fem_control_cfg.gpiote_ch_id]),
-        (uint32_t)(&NRF_PPI->TASKS_CHG[m_nrf_fem_control_cfg.timer_ppi_grp].DIS));
-
-    // Workaround for FTPAN-114, disable PPI to prevent second radio DISABLED event trigger.
+    /* RADIO DISABLED --> clr LNA & clr PA PPI */
     nrf_ppi_channel_and_fork_endpoint_setup(
         (nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_clr,
         (uint32_t)(&NRF_RADIO->EVENTS_DISABLED),
-        (uint32_t)(&NRF_GPIOTE->TASKS_OUT[m_nrf_fem_control_cfg.gpiote_ch_id]),
-        (uint32_t)(&NRF_PPI->TASKS_CHG[m_nrf_fem_control_cfg.radio_ppi_grp].DIS));
+        (m_nrf_fem_control_cfg.lna_cfg.active_high ? 
+            (uint32_t)(&NRF_GPIOTE->TASKS_CLR[m_nrf_fem_control_cfg.lna_gpiote_ch_id]) : 
+            (uint32_t)(&NRF_GPIOTE->TASKS_SET[m_nrf_fem_control_cfg.lna_gpiote_ch_id])),
+        (m_nrf_fem_control_cfg.pa_cfg.active_high ? 
+            (uint32_t)(&NRF_GPIOTE->TASKS_CLR[m_nrf_fem_control_cfg.pa_gpiote_ch_id]) : 
+            (uint32_t)(&NRF_GPIOTE->TASKS_SET[m_nrf_fem_control_cfg.pa_gpiote_ch_id])));
 }
 
-/** Enable PPI. */
-__STATIC_INLINE void ppi_enable(void)
+/** Setup PPI to set LNA pin on a timer event. */
+static void ppi_lna_enable_setup(void)
 {
-    NRF_PPI->CHENSET = (1 << m_nrf_fem_control_cfg.ppi_ch_id_set) |
-                       (1 << m_nrf_fem_control_cfg.ppi_ch_id_clr);
+    /* TIMER0->COMPARE --> set LNA PPI */
+    nrf_ppi_channel_endpoint_setup(
+        (nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_set,
+        (uint32_t)(&NRF_FEM_TIMER_INSTANCE->EVENTS_COMPARE[NRF_FEM_TIMER_LNA_CC_CHANNEL]),
+        (m_nrf_fem_control_cfg.lna_cfg.active_high ?
+            (uint32_t)(&NRF_GPIOTE->TASKS_SET[m_nrf_fem_control_cfg.lna_gpiote_ch_id]) :
+            (uint32_t)(&NRF_GPIOTE->TASKS_CLR[m_nrf_fem_control_cfg.lna_gpiote_ch_id])));
 }
 
-/** Disable PPI. */
-__STATIC_INLINE void ppi_disable(void)
+/** Setup PPI to set PA pin on a timer event. */
+static void ppi_pa_enable_setup(void)
 {
-    NRF_PPI->CHENCLR = (1 << m_nrf_fem_control_cfg.ppi_ch_id_set) |
-                       (1 << m_nrf_fem_control_cfg.ppi_ch_id_clr);
+    /* TIMER2->COMPARE --> set PA PPI */
+    nrf_ppi_channel_endpoint_setup(
+        (nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_set,
+        (uint32_t)(&NRF_FEM_TIMER_INSTANCE->EVENTS_COMPARE[NRF_FEM_TIMER_PA_CC_CHANNEL]),
+        (m_nrf_fem_control_cfg.pa_cfg.active_high ?
+            (uint32_t)(&NRF_GPIOTE->TASKS_SET[m_nrf_fem_control_cfg.pa_gpiote_ch_id]) :
+            (uint32_t)(&NRF_GPIOTE->TASKS_CLR[m_nrf_fem_control_cfg.pa_gpiote_ch_id])));
 }
 
 /**
@@ -132,12 +144,10 @@ void nrf_fem_control_cfg_set(const nrf_fem_control_cfg_t * p_cfg)
     if (m_nrf_fem_control_cfg.pa_cfg.enable || m_nrf_fem_control_cfg.lna_cfg.enable)
     {
         gpio_init();
+        gpiote_configure();
         ppi_init();
-        nrf_fem_control_timer_init();
-    }
-    else
-    {
-        nrf_fem_control_timer_deinit();
+
+        nrf_ppi_channel_enable((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_clr);
     }
 }
 
@@ -150,7 +160,7 @@ void nrf_fem_control_activate(void)
 {
     if (m_nrf_fem_control_cfg.pa_cfg.enable || m_nrf_fem_control_cfg.lna_cfg.enable)
     {
-        nrf_fem_control_timer_start();
+        nrf_ppi_channel_enable((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_clr);
     }
 }
 
@@ -158,67 +168,76 @@ void nrf_fem_control_deactivate(void)
 {
     if (m_nrf_fem_control_cfg.pa_cfg.enable || m_nrf_fem_control_cfg.lna_cfg.enable)
     {
-        nrf_fem_control_timer_stop();
-        nrf_gpiote_task_disable(m_nrf_fem_control_cfg.gpiote_ch_id);
-        ppi_disable();
+        nrf_ppi_channel_disable((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_clr);
+        nrf_ppi_channel_disable((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_set);
     }
 }
 
-void nrf_fem_control_time_latch(void)
+void nrf_fem_control_pa_ppi_enable(void)
 {
-    if (m_nrf_fem_control_cfg.pa_cfg.enable || m_nrf_fem_control_cfg.lna_cfg.enable)
+    if (m_nrf_fem_control_cfg.pa_cfg.enable)
     {
-        m_time_latch = nrf_fem_control_timer_time_get();
+        /* PPI configuration. */
+        ppi_pa_enable_setup();
+
+        /* Enable the PPI. */
+        nrf_ppi_channel_enable((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_set);
     }
 }
 
-void nrf_fem_control_pa_set(bool shorts_used, bool turnaround)
+void nrf_fem_control_lna_ppi_enable(void)
 {
-    uint32_t target_time;
-    uint32_t latency;
+    if (m_nrf_fem_control_cfg.lna_cfg.enable)
+    {
+        /* PPI configuration. */
+        ppi_lna_enable_setup();
 
-    latency = turnaround ? NRF_FEM_RADIO_TX_TURNAROUND_LATENCY_US :
-                           NRF_FEM_RADIO_TX_STARTUP_LATENCY_US;
+        /* Enable the PPI. */
+        nrf_ppi_channel_enable((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_set);
+    }
+}
+
+void nrf_fem_control_pa_ppi_disable(void)
+{
+    nrf_ppi_channel_disable((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_set);
+}
+
+void nrf_fem_control_lna_ppi_disable(void)
+{
+    nrf_ppi_channel_disable((nrf_ppi_channel_t)m_nrf_fem_control_cfg.ppi_ch_id_set);
+}
+
+uint32_t nrf_fem_control_pa_delay_get(void)
+{
+    uint32_t target_time = 0;
 
     if (m_nrf_fem_control_cfg.pa_cfg.enable)
     {
-        gpiote_configure(m_nrf_fem_control_cfg.pa_cfg.gpio_pin,
-                         (nrf_gpiote_outinit_t)!m_nrf_fem_control_cfg.pa_cfg.active_high);
-        ppi_enable();
-
-        uint32_t tifs = nrf_radio_ifs_get();
-
-        target_time = tifs <= latency ?
-                      m_time_latch + latency - NRF_FEM_PA_TIME_IN_ADVANCE :
-                      m_time_latch + tifs - NRF_FEM_RADIO_TIFS_DRIFT_US - NRF_FEM_PA_TIME_IN_ADVANCE;
-
-        if (shorts_used)
-        {
-            target_time -= nrf_fem_control_irq_delay_get();
-        }
-
-        nrf_fem_control_timer_set(target_time);
+        /* Calculate timer target time. */        
+        target_time = NRF_FEM_RADIO_TX_STARTUP_LATENCY_US - NRF_FEM_PA_TIME_IN_ADVANCE;
     }
+
+    return target_time;
 }
 
-void nrf_fem_control_lna_set(bool shorts_used)
+uint32_t nrf_fem_control_lna_delay_get(void)
 {
-    uint32_t target_time;
+    uint32_t target_time = 1;
 
     if (m_nrf_fem_control_cfg.lna_cfg.enable)
     {
-        gpiote_configure(m_nrf_fem_control_cfg.lna_cfg.gpio_pin,
-                         (nrf_gpiote_outinit_t)!m_nrf_fem_control_cfg.lna_cfg.active_high);
-        ppi_enable();
-
-        target_time = m_time_latch + NRF_FEM_RADIO_RX_STARTUP_LATENCY_US -
-                      NRF_FEM_LNA_TIME_IN_ADVANCE;
-
-        if (shorts_used)
-        {
-            target_time -= nrf_fem_control_irq_delay_get();
-        }
-
-        nrf_fem_control_timer_set(target_time);
+        /* Calculate timer target time. */
+        target_time = NRF_FEM_RADIO_RX_STARTUP_LATENCY_US - NRF_FEM_LNA_TIME_IN_ADVANCE;
     }
+
+    return target_time;
+}
+
+void nrf_fem_control_pa_lna_clear(void)
+{
+    nrf_gpio_pin_write(m_nrf_fem_control_cfg.pa_cfg.gpio_pin,
+                       !m_nrf_fem_control_cfg.pa_cfg.active_high);
+
+    nrf_gpio_pin_write(m_nrf_fem_control_cfg.lna_cfg.gpio_pin,
+                       !m_nrf_fem_control_cfg.lna_cfg.active_high);
 }

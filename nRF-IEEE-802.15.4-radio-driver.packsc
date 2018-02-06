@@ -228,25 +228,8 @@
                     "public"
                 ],
                 "_files": [
-                    "src/fem/nrf_fem_control_common.c",
-                    "src/fem/nrf_fem_control_direct.c"
-                ],
-                "_links": [
-                    "!s140"
+                    "src/fem/nrf_fem_control_common.c"
                 ]
-            },
-            {
-                "_attrs": [
-                    "public"
-                ],
-                "_links": [
-                ["s140"]
-                ],
-                "_files": [
-                    "src/fem/nrf_fem_control_common.c",
-                    "src/fem/nrf_fem_control_softdevice.c"
-                ],
-                "_name": "softdevice"
             },
             {
                 "_attrs": [

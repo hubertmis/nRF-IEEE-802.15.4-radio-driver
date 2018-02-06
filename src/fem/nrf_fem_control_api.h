@@ -59,14 +59,11 @@ extern "C" {
 /** Default PPI channel for pin clearing. */
 #define NRF_FEM_CONTROL_DEFAULT_CLR_PPI_CHANNEL             19
 
-/** Default PPI channel group used to disable timer match PPI. */
-#define NRF_FEM_CONTROL_DEFAULT_TIMER_MATCH_PPI_GROUP       4
-
-/** Default PPI channel group used to disable radio disabled PPI. */
-#define NRF_FEM_CONTROL_DEFAULT_RADIO_DISABLED_PPI_GROUP    5
+/** Default GPIOTE channel for FEM control. */
+#define NRF_FEM_CONTROL_DEFAULT_LNA_GPIOTE_CHANNEL          6
 
 /** Default GPIOTE channel for FEM control. */
-#define NRF_FEM_CONTROL_DEFAULT_GPIOTE_CHANNEL              7
+#define NRF_FEM_CONTROL_DEFAULT_PA_GPIOTE_CHANNEL           7
 
 #if ENABLE_FEM
 
@@ -94,13 +91,12 @@ typedef struct
  */
 typedef struct
 {
-    nrf_fem_control_pa_lna_cfg_t pa_cfg;        /**< Power Amplifier configuration */
-    nrf_fem_control_pa_lna_cfg_t lna_cfg;       /**< Low Noise Amplifier configuration */
-    uint8_t                      ppi_ch_id_set; /**< PPI channel used for radio pin setting */
-    uint8_t                      ppi_ch_id_clr; /**< PPI channel used for radio pin clearing */
-    uint8_t                      timer_ppi_grp; /**< PPI group used for disabling timer match PPI. */
-    uint8_t                      radio_ppi_grp; /**< PPI group used for disabling radio disabled PPI. */
-    uint8_t                      gpiote_ch_id;  /**< GPIOTE channel used for radio pin toggling */
+    nrf_fem_control_pa_lna_cfg_t pa_cfg;            /**< Power Amplifier configuration */
+    nrf_fem_control_pa_lna_cfg_t lna_cfg;           /**< Low Noise Amplifier configuration */
+    uint8_t                      pa_gpiote_ch_id;   /**< GPIOTE channel used for Power Amplifier pin toggling */
+    uint8_t                      lna_gpiote_ch_id;  /**< GPIOTE channel used for Low Noise Amplifier pin toggling */
+    uint8_t                      ppi_ch_id_set;     /**< PPI channel used for radio Power Amplifier and Low Noise Amplifier pins setting */
+    uint8_t                      ppi_ch_id_clr;     /**< PPI channel used for radio pin clearing */
 } nrf_fem_control_cfg_t;
 
 /**@brief Set PA & LNA GPIO toggle configuration.
@@ -125,44 +121,56 @@ void nrf_fem_control_cfg_get(nrf_fem_control_cfg_t * p_cfg);
  */
 void nrf_fem_control_activate(void);
 
-/**@brief De-activate FEM controller.
+/**@brief Deactivate FEM controller.
  *
  * This function should be called when radio goes to sleep.
  */
 void nrf_fem_control_deactivate(void);
 
-/**@brief Latch current time in FEM controller.
+/**@brief Configure PPI to activate the Power Amplifier (TX) pin of the Front End Module on an
+ *        appropriate timer event.
  *
- * This function stores current time to enable precise time measurement and mitigate impact of code
- * execution time. It should be called before triggering RXEN or TXEN task, and calling
- * @ref nrf_fem_control_pa_set or @ref nrf_fem_control_lna_set funcitons.
- */
-void nrf_fem_control_time_latch(void);
-
-/**@brief Activate Power Amplifier (TX) pin of the Front End Module.
- *
- * @param[in] shorts_used Information if this operation is related to a task triggered by a short.
- * @param[in] turnaround  Information if TX mode is entered from RX mode (turnaround) or DISABLED (ramp up).
- *
- * This function will set up a timer to activate the pin 5 +/- 2.5 us before radio READY event is generated.
- * It will also set up a PPI to deactivate the pin on radio DISABLED event.
- *
- * @note This function shall always be called after @ref nrf_fem_control_time_latch function was called,
- *       to enable precise time measurement.
  * */
-void nrf_fem_control_pa_set(bool shorts_used, bool turnaround);
+void nrf_fem_control_pa_ppi_enable(void);
 
-/**@brief Activate Low Noise Amplifier (RX) pin of the Front End Module.
+/**@brief Configure PPI to activate the Low Noise Amplifier (RX) pin of the Front End Module on an
+ *        appropriate timer event.
  *
- * @param[in] shorts_used Information if this operation is related to a task triggered by a short.
- *
- * This function will set up a timer to activate the pin 5 +/- 2.5 us before radio READY event is generated.
- * It will also set up a PPI to deactivate the pin on radio DISABLED event.
- *
- * @note This function shall always be called after @ref nrf_fem_control_time_latch function was called,
- *       to enable precise time measurement.
  * */
-void nrf_fem_control_lna_set(bool shorts_used);
+void nrf_fem_control_lna_ppi_enable(void);
+
+/**@brief Clear PPI configuration that sets the Power Amplifier (TX) pin of the Front End Module.
+ *
+ * This function disables a PPI that sets the pin.
+ *
+ * */
+void nrf_fem_control_pa_ppi_disable(void);
+
+/**@brief Clear PPI configuration that sets the Low Noise Amplifier (RX) pin of the Front End Module.
+ *
+ * This function disables a PPI that sets the pin.
+ *
+ * */
+void nrf_fem_control_lna_ppi_disable(void);
+
+/**@brief Calculate target time for a timer, which activates the Power Amplifier pin.
+ * 
+ * @return Length of the Power Amplifier pin activation delay in microseconds.
+ *
+ * */
+uint32_t nrf_fem_control_pa_delay_get(void);
+
+/**@brief Calculate target time for a timer, which activates the Low Noise Amplifier pin.
+ * 
+ * @return Length of the Low Noise Amplifier pin activation delay in microseconds.
+ *
+ * */
+uint32_t nrf_fem_control_lna_delay_get(void);
+
+/**@brief Clear the Power Amplifier and the Low Noise Amplifier pins immediately.
+ *
+ * */
+void nrf_fem_control_pa_lna_clear(void);
 
 #else  // ENABLE_FEM
 
@@ -170,9 +178,13 @@ void nrf_fem_control_lna_set(bool shorts_used);
 #define nrf_fem_control_cfg_get(...)
 #define nrf_fem_control_activate(...)
 #define nrf_fem_control_deactivate(...)
-#define nrf_fem_control_time_latch(...)
-#define nrf_fem_control_pa_set(...)
-#define nrf_fem_control_lna_set(...)
+#define nrf_fem_control_pa_ppi_enable(...)
+#define nrf_fem_control_lna_ppi_enable(...)
+#define nrf_fem_control_pa_ppi_disable(...)
+#define nrf_fem_control_lna_ppi_disable(...)
+#define nrf_fem_control_pa_delay_get(...)    0
+#define nrf_fem_control_lna_delay_get(...)   1
+#define nrf_fem_control_pa_lna_clear(...)
 
 #endif // ENABLE_FEM
 

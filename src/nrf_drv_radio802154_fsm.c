@@ -383,19 +383,16 @@ static void cca_configuration_update(void)
 /** Trigger RX task. */
 static void rx_enable(void)
 {
-    nrf_fem_control_time_latch();
     nrf_radio_task_trigger(NRF_RADIO_TASK_RXEN);
-    nrf_fem_control_lna_set(false);
+    nrf_fem_control_lna_ppi_enable();
 }
 
 /** Trigger TX task. */
 static void tx_enable(void)
 {
-    nrf_fem_control_time_latch();
     nrf_radio_task_trigger(NRF_RADIO_TASK_TXEN);
-    nrf_fem_control_pa_set(false, false);
+    nrf_fem_control_pa_ppi_enable();
 }
-
 
 /***************************************************************************************************
  * @section Radio parameters calculators
@@ -712,6 +709,7 @@ static inline bool ed_iter_setup(uint32_t time_us)
         if (nrf_raal_timeslot_is_granted())
         {
             irq_deinit();
+            nrf_fem_control_pa_lna_clear();
             nrf_radio_reset();
         }
 
@@ -746,6 +744,8 @@ static void rx_terminate(void)
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
     nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
 
+    nrf_fem_control_lna_ppi_disable();
+
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
 
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
@@ -775,6 +775,8 @@ static void tx_ack_terminate(void)
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
     nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
 
+    nrf_fem_control_pa_ppi_disable();
+
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
 
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
@@ -803,6 +805,8 @@ static void tx_terminate(void)
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
 
+    nrf_fem_control_pa_ppi_disable();
+
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
@@ -827,6 +831,8 @@ static void rx_ack_terminate(void)
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
 
+    nrf_fem_control_lna_ppi_disable();
+
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
@@ -835,7 +841,7 @@ static void rx_ack_terminate(void)
         nrf_radio_int_disable(NRF_RADIO_INT_END_MASK);
         nrf_radio_shorts_set(SHORTS_IDLE);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
-
+        
         ack_matching_disable();
     }
 }
@@ -1097,6 +1103,8 @@ static void receive_begin(bool disabled_was_triggered)
     uint32_t shorts;
     bool     trigger_task_disable;
     int32_t  ints_to_enable = 0;
+    uint32_t lna_target_time;
+    uint32_t pa_target_time;
 
     if (!nrf_raal_timeslot_is_granted())
     {
@@ -1134,13 +1142,16 @@ static void receive_begin(bool disabled_was_triggered)
     ints_to_enable |= NRF_RADIO_INT_CRCOK_MASK;
     nrf_radio_int_enable(ints_to_enable);
 
-    // TODO: Set FEM
+    // Set FEM
+    nrf_fem_control_lna_ppi_enable();
+    lna_target_time = nrf_fem_control_lna_delay_get();
+    pa_target_time  = nrf_fem_control_pa_delay_get();
 
     // Set TIMERs
     nrf_timer_shorts_enable(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK | NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
-    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, 1);
-    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL1, 1 + 192 - 40 -23); // 40 is ramp up, 23 is event latency
-    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL2, 1 + 192 - 40 -23 + 1);
+    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, lna_target_time);
+    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL1, lna_target_time + 192 - 40 -23); // 40 is ramp up, 23 is event latency
+    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL2, lna_target_time + 192 - 40 -23 + pa_target_time);
 
     // Clr event EGU
     nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
@@ -1260,6 +1271,7 @@ static bool transmit_begin(const uint8_t * p_data, bool cca, bool disabled_was_t
     nrf_radio_int_enable(ints_to_enable);
 
     // TODO: Set FEM
+
     // Clr event EGU
     nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
 
@@ -1548,7 +1560,7 @@ void nrf_raal_timeslot_ended(void)
 
     irq_deinit();
     nrf_radio_reset();
-    nrf_fem_control_deactivate();
+    nrf_fem_control_pa_lna_clear();
 
     result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_802154);
     assert(result);
@@ -1804,7 +1816,7 @@ static inline void irq_crcok_state_rx(void)
     {
         prev_num_psdu_bytes = num_psdu_bytes;
 
-        // Kepp checking consecutive parts of the frame header.
+        // Keep checking consecutive parts of the frame header.
         if (nrf_drv_radio802154_filter_frame_part(mp_current_rx_buffer->psdu,
                                                   &num_psdu_bytes))
         {
@@ -1879,7 +1891,9 @@ static inline void irq_crcok_state_rx(void)
                                                    NRF_TIMER_EVENT_COMPARE1),
                                            (uint32_t)nrf_radio_task_address_get(
                                                    NRF_RADIO_TASK_TXEN));
-            // TODO: Set FEM PPIs
+            // Set FEM PPIs
+            nrf_fem_control_lna_ppi_disable();
+            nrf_fem_control_pa_ppi_enable();
 
             // Detect if PPI worked (timer is counting or TIMER event is marked)
             nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_CAPTURE3);
@@ -1935,6 +1949,9 @@ static inline void irq_crcok_state_rx(void)
             else
             {
                 mp_current_rx_buffer->free = false;
+
+                // Since radio state goes back to RX, PA PPI should be disabled.
+                nrf_fem_control_pa_ppi_disable();
 
                 // RX uses the same peripherals as TX_ACK until RADIO ints are updated.
                 rx_terminate();
@@ -2173,6 +2190,10 @@ static void irq_phyend_state_tx_ack(void)
 
     // Disable PPIs on DISABLED event to control TIMER.
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
+
+    // Set FEM PPIs
+    nrf_fem_control_pa_ppi_disable();
+    nrf_fem_control_lna_ppi_enable();
 
     nrf_radio_shorts_set(SHORTS_RX);
 
@@ -2519,7 +2540,7 @@ static inline void irq_disabled_state_tx_ack(void)
     {
         // nrf_fem_control_time_latch was called at the beginning of the irq handler,
         // to capture the time as close to short occurence as possible
-        nrf_fem_control_pa_set(true, false);
+        // nrf_fem_control_pa_set();
     }
 }
 
@@ -2789,8 +2810,6 @@ static inline void irq_edend_state_ed(void)
 /// Handler of radio interrupts.
 static inline void irq_handler(void)
 {
-    nrf_fem_control_time_latch();
-
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_IRQ_HANDLER);
 
     // Prevent interrupting of this handler by requests from higher priority code.
@@ -3218,7 +3237,8 @@ void nrf_drv_radio802154_fsm_deinit(void)
     {
         nrf_radio_reset();
     }
-
+    
+    nrf_fem_control_pa_lna_clear();
     irq_deinit();
 }
 
