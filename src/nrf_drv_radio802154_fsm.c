@@ -1001,8 +1001,13 @@ static inline void tx_procedure_abort(radio_state_t state)
  * After calling this function RADIO should enter DISABLED state and RAAL should be in continuous
  * mode.
  *
+ * @param[in]  term_lvl      Termination level of this request. Selects procedures to abort.
+ * @param[in]  notify_abort  If Termination of current operation shall be notified.
+ *
+ * @retval true   Terminated ongoing operation.
+ * @retval false  Ongoing operation was not terminated.
  */
-static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
+static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl, bool notify_abort)
 {
     bool result = nrf_drv_radio802154_fsm_hooks_terminate(term_lvl);
 
@@ -1054,9 +1059,12 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 {
                     tx_terminate();
 
-                    nrf_drv_radio802154_notify_transmit_failed(
-                            mp_tx_data,
-                            NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
+                    if (notify_abort)
+                    {
+                        nrf_drv_radio802154_notify_transmit_failed(
+                                mp_tx_data,
+                                NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
+                    }
                 }
                 else
                 {
@@ -1070,9 +1078,12 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 {
                     rx_ack_terminate();
 
-                    nrf_drv_radio802154_notify_transmit_failed(
-                            mp_tx_data,
-                            NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
+                    if (notify_abort)
+                    {
+                        nrf_drv_radio802154_notify_transmit_failed(
+                                mp_tx_data,
+                                NRF_DRV_RADIO802154_TX_ERROR_ABORTED);
+                    }
                 }
                 else
                 {
@@ -1086,8 +1097,11 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 {
                     ed_terminate();
 
-                    nrf_drv_radio802154_notify_energy_detection_failed(
-                            NRF_DRV_RADIO802154_ED_ERROR_ABORTED);
+                    if (notify_abort)
+                    {
+                        nrf_drv_radio802154_notify_energy_detection_failed(
+                                NRF_DRV_RADIO802154_ED_ERROR_ABORTED);
+                    }
                 }
                 else
                 {
@@ -1101,8 +1115,11 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 {
                     cca_terminate();
 
-                    nrf_drv_radio802154_notify_cca_failed(
-                            NRF_DRV_RADIO802154_CCA_ERROR_ABORTED);
+                    if (notify_abort)
+                    {
+                        nrf_drv_radio802154_notify_cca_failed(
+                                NRF_DRV_RADIO802154_CCA_ERROR_ABORTED);
+                    }
                 }
                 else
                 {
@@ -1673,7 +1690,7 @@ void nrf_raal_timeslot_ended(void)
     nrf_radio_reset();
     nrf_fem_control_pa_lna_clear();
 
-    result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_802154);
+    result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_802154, false);
     assert(result);
 
     switch (m_state)
@@ -3394,7 +3411,7 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
 
     if (m_state != RADIO_STATE_SLEEP)
     {
-        result = current_operation_terminate(term_lvl);
+        result = current_operation_terminate(term_lvl, true);
 
         if (result)
         {
@@ -3406,13 +3423,13 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl)
+bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl, bool notify_abort)
 {
     bool result = true;
 
     if ((m_state != RADIO_STATE_RX) && (m_state != RADIO_STATE_TX_ACK))
     {
-        result = current_operation_terminate(term_lvl);
+        result = current_operation_terminate(term_lvl, notify_abort);
 
         if (result)
         {
@@ -3428,7 +3445,7 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
                                       const uint8_t            * p_data,
                                       bool                       cca)
 {
-    bool result = current_operation_terminate(term_lvl);
+    bool result = current_operation_terminate(term_lvl, true);
 
     if (result)
     {
@@ -3487,7 +3504,7 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
 bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lvl,
                                               uint32_t                   time_us)
 {
-    bool result = current_operation_terminate(term_lvl);
+    bool result = current_operation_terminate(term_lvl, true);
 
     if (result)
     {
@@ -3557,7 +3574,7 @@ bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lv
 
 bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
 {
-    bool result = current_operation_terminate(term_lvl);
+    bool result = current_operation_terminate(term_lvl, true);
 
     if (result)
     {
@@ -3619,7 +3636,7 @@ bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
 
 bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
 {
-    bool result = current_operation_terminate(term_lvl);
+    bool result = current_operation_terminate(term_lvl, true);
 
     if (result)
     {
@@ -3717,7 +3734,7 @@ bool nrf_drv_radio802154_fsm_channel_update(void)
                 channel_set(nrf_drv_radio802154_pib_channel_get());
             }
 
-            result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_NONE);
+            result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_NONE, true);
 
             if (result)
             {

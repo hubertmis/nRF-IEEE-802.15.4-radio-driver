@@ -109,11 +109,12 @@ bool nrf_drv_radio802154_request_sleep(nrf_drv_radio802154_term_t term_lvl)
                            term_lvl)
 }
 
-bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t term_lvl)
+bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t term_lvl, bool notify_abort)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_receive,
-                           nrf_drv_radio802154_swi_receive,
-                           term_lvl)
+    REQUEST_FUNCTION_2_ARGS(nrf_drv_radio802154_fsm_receive,
+                            nrf_drv_radio802154_swi_receive,
+                            term_lvl,
+                            notify_abort)
 }
 
 bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t term_lvl,

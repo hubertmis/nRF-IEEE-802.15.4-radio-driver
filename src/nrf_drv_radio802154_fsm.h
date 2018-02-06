@@ -114,12 +114,13 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl);
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
- * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]  term_lvl      Termination level of this request. Selects procedures to abort.
+ * @param[in]  notify_abort  If termination of ongoing operation should be notified.
  *
  * @retval  true   Entering RECEIVE state succeeded.
  * @retval  false  Entering RECEIVE state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl);
+bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl, bool notify_abort);
 
 /**
  * @brief Request transition to TRANSMIT state.

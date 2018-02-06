@@ -56,7 +56,7 @@ static void timeout_timer_fired(void * p_context)
 
     if (m_timer_should_fire)
     {
-        if (nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154))
+        if (nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154, false))
         {
             nrf_drv_radio802154_notify_transmit_failed(mp_frame, NRF_DRV_RADIO802154_TX_ERROR_NO_ACK);
         }

@@ -241,7 +241,7 @@ bool nrf_drv_radio802154_receive(void)
     bool result;
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RECEIVE);
 
-    result = nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154);
+    result = nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154, true);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RECEIVE);
     return result;

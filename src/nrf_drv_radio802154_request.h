@@ -65,12 +65,13 @@ bool nrf_drv_radio802154_request_sleep(nrf_drv_radio802154_term_t term_lvl);
 /**
  * @brief Request entering receive state.
  *
- * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]  term_lvl      Termination level of this request. Selects procedures to abort.
+ * @param[in]  notify_abort  If termination of ongoing procedure should be notified.
  *
  * @retval  true   The driver will enter receive state.
  * @retval  false  The driver cannot enter receive state due to ongoing operation.
  */
-bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t term_lvl);
+bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t term_lvl, bool notify_abort);
 
 /**
  * @brief Request entering transmit state.

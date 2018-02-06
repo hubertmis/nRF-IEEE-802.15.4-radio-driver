@@ -138,10 +138,12 @@ void nrf_drv_radio802154_swi_sleep(nrf_drv_radio802154_term_t term_lvl,
 /**
  * @brief Request entering receive state from SWI priority.
  *
- * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
- * @param[out]  p_result  Result of entering receive state.
+ * @param[in]   term_lvl      Termination level of this request. Selects procedures to abort.
+ * @param[in]   notify_abort  If termination of ongoing operation shall be notified.
+ * @param[out]  p_result      Result of entering receive state.
  */
 void nrf_drv_radio802154_swi_receive(nrf_drv_radio802154_term_t term_lvl,
+                                     bool                       notify_abort,
                                      bool                     * p_result);
 
 /**

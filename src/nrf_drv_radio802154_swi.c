@@ -167,59 +167,60 @@ typedef struct
     {
         struct
         {
-            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
-            bool                     * p_result;  ///< Sleep request result.
-        } sleep;                                  ///< Sleep request details.
+            nrf_drv_radio802154_term_t term_lvl;      ///< Request priority.
+            bool                     * p_result;      ///< Sleep request result.
+        } sleep;                                      ///< Sleep request details.
 
         struct
         {
-            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
-            bool                     * p_result;  ///< Receive request result.
+            nrf_drv_radio802154_term_t term_lvl;      ///< Request priority.
+            bool                     * p_result;      ///< Receive request result.
+            bool                       notify_abort;  ///< If termination of ongoing operation shall be notified.
         } receive;                                    ///< Receive request details.
 
         struct
         {
-            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
-            bool                     * p_result;  ///< Transmit request result.
-            const uint8_t            * p_data;    ///< Pointer to PSDU to transmit.
-            bool                       cca;       ///< If CCA was requested prior to transmission.
-        } transmit;                               ///< Transmit request details.
+            nrf_drv_radio802154_term_t term_lvl;      ///< Request priority.
+            bool                     * p_result;      ///< Transmit request result.
+            const uint8_t            * p_data;        ///< Pointer to PSDU to transmit.
+            bool                       cca;           ///< If CCA was requested prior to transmission.
+        } transmit;                                   ///< Transmit request details.
 
         struct
         {
-            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
-            bool                     * p_result;  ///< Energy detection request result.
-            uint32_t                   time_us;   ///< Requested time of energy detection procedure.
-        } energy_detection;                       ///< Energy detection request details.
+            nrf_drv_radio802154_term_t term_lvl;      ///< Request priority.
+            bool                     * p_result;      ///< Energy detection request result.
+            uint32_t                   time_us;       ///< Requested time of energy detection procedure.
+        } energy_detection;                           ///< Energy detection request details.
 
         struct
         {
-            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
-            bool                     * p_result;  ///< CCA request result.
-        } cca;                                    ///< CCA request details.
+            nrf_drv_radio802154_term_t term_lvl;      ///< Request priority.
+            bool                     * p_result;      ///< CCA request result.
+        } cca;                                        ///< CCA request details.
 
         struct
         {
-            nrf_drv_radio802154_term_t term_lvl;  ///< Request priority.
-            bool                     * p_result;  ///< Continuous carrier request result.
-        } continuous_carrier;                     ///< Continuous carrier request details.
+            nrf_drv_radio802154_term_t term_lvl;      ///< Request priority.
+            bool                     * p_result;      ///< Continuous carrier request result.
+        } continuous_carrier;                         ///< Continuous carrier request details.
 
         struct
         {
-            uint8_t * p_data;                     ///< Pointer to receive buffer to free.
-            bool    * p_result;                   ///< Buffer free request result.
-        } buffer_free;                            ///< Buffer free request details.
+            uint8_t * p_data;                         ///< Pointer to receive buffer to free.
+            bool    * p_result;                       ///< Buffer free request result.
+        } buffer_free;                                ///< Buffer free request details.
 
         struct
         {
-            bool * p_result;                      ///< Channel update request result.
-        } channel_update;                         ///< Channel update request details.
+            bool * p_result;                          ///< Channel update request result.
+        } channel_update;                             ///< Channel update request details.
 
         struct
         {
-            bool * p_result;                      ///< CCA config update request result.
-        } cca_cfg_update;                         ///< CCA config update request details.
-    } data;                                       ///< Request data depending on it's type.
+            bool * p_result;                          ///< CCA config update request result.
+        } cca_cfg_update;                             ///< CCA config update request details.
+    } data;                                           ///< Request data depending on it's type.
 } nrf_drv_radio802154_req_data_t;
 
 static nrf_drv_radio802154_ntf_data_t m_ntf_queue[NTF_QUEUE_SIZE];  ///< Notification queue.
@@ -540,13 +541,15 @@ void nrf_drv_radio802154_swi_sleep(nrf_drv_radio802154_term_t term_lvl,
 }
 
 void nrf_drv_radio802154_swi_receive(nrf_drv_radio802154_term_t term_lvl,
+                                     bool                       notify_abort,
                                      bool                     * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
-    p_slot->type                  = REQ_TYPE_RECEIVE;
-    p_slot->data.receive.term_lvl = term_lvl;
-    p_slot->data.receive.p_result = p_result;
+    p_slot->type                      = REQ_TYPE_RECEIVE;
+    p_slot->data.receive.term_lvl     = term_lvl;
+    p_slot->data.receive.notify_abort = notify_abort;
+    p_slot->data.receive.p_result     = p_result;
 
     req_exit();
 }
@@ -723,7 +726,8 @@ void SWI_IRQHandler(void)
 
                 case REQ_TYPE_RECEIVE:
                     *(p_slot->data.receive.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_receive(p_slot->data.receive.term_lvl) :
+                            nrf_drv_radio802154_fsm_receive(p_slot->data.receive.term_lvl,
+                                                            p_slot->data.receive.notify_abort) :
                             false;
                     break;
 
