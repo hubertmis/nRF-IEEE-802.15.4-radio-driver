@@ -172,6 +172,30 @@ uint32_t nrf_fem_control_lna_delay_get(void);
  * */
 void nrf_fem_control_pa_lna_clear(void);
 
+/**@brief Configure and set a timer for the Power Amplifier pin activation.
+ *
+ * */
+void nrf_fem_control_pa_timer_set(void);
+
+/**@brief Clean timer configuration after Power Amplifier pin deactivation.
+ *
+ * */
+void nrf_fem_control_pa_timer_reset(void);
+
+/**@brief Setup a fork PPI to start a timer for the Power Amplifier pin activation.
+ * 
+ * @param[in] ppi_channel PPI channel to connect the fork task to.
+ *
+ * */
+void nrf_fem_control_pa_timer_ppi_fork_enable(uint32_t ppi_channel);
+
+/**@brief Clean a fork PPI configuration after Power Amplifier pin deactivation.
+ * 
+ * @param[in] ppi_channel PPI channel to disconnect the fork task from.
+ *
+ * */
+void nrf_fem_control_pa_timer_ppi_fork_disable(uint32_t ppi_channel);
+
 #else  // ENABLE_FEM
 
 #define nrf_fem_control_cfg_set(...)
@@ -182,9 +206,13 @@ void nrf_fem_control_pa_lna_clear(void);
 #define nrf_fem_control_lna_ppi_enable(...)
 #define nrf_fem_control_pa_ppi_disable(...)
 #define nrf_fem_control_lna_ppi_disable(...)
-#define nrf_fem_control_pa_delay_get(...)    0
-#define nrf_fem_control_lna_delay_get(...)   1
+#define nrf_fem_control_pa_delay_get(...)              0
+#define nrf_fem_control_lna_delay_get(...)             1
 #define nrf_fem_control_pa_lna_clear(...)
+#define nrf_fem_control_pa_timer_set(...)
+#define nrf_fem_control_pa_timer_reset(...)
+#define nrf_fem_control_pa_timer_ppi_fork_enable(...)
+#define nrf_fem_control_pa_timer_ppi_fork_disable(...)
 
 #endif // ENABLE_FEM
 

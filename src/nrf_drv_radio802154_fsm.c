@@ -946,6 +946,10 @@ static void continuous_carrier_terminate(void)
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
 
+    nrf_fem_control_pa_ppi_disable();
+    nrf_fem_control_pa_timer_reset();
+    nrf_fem_control_pa_timer_ppi_fork_disable(PPI_EGU_RAMP_UP);
+
     if (nrf_raal_timeslot_is_granted())
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
@@ -1553,15 +1557,19 @@ static void continuous_carrier_begin(bool disabled_was_triggered)
         return;
     }
 
-    // TODO: Set FEM
+    // Set FEM
+    nrf_fem_control_pa_ppi_enable();
+    nrf_fem_control_pa_timer_set();
+    nrf_fem_control_pa_timer_ppi_fork_enable(PPI_EGU_RAMP_UP);
+
     // Clr event EGU
     nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
 
     // Set PPIs
     nrf_ppi_channel_endpoint_setup(PPI_EGU_RAMP_UP,
                                    (uint32_t)nrf_egu_event_address_get(
-                                           NRF_DRV_RADIO802154_EGU_INSTANCE,
-                                           EGU_EVENT),
+                                       NRF_DRV_RADIO802154_EGU_INSTANCE,
+                                       EGU_EVENT),
                                    (uint32_t)nrf_radio_task_address_get(NRF_RADIO_TASK_TXEN));
     nrf_ppi_channel_endpoint_setup(PPI_DISABLED_EGU,
                                    (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED),

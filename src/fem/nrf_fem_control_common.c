@@ -44,10 +44,12 @@
 #include "hal/nrf_gpiote.h"
 #include "hal/nrf_ppi.h"
 #include "hal/nrf_radio.h"
+#include "hal/nrf_timer.h"
 
-#define NRF_FEM_TIMER_INSTANCE         NRF_DRV_RADIO802154_TIMER_INSTANCE
-#define NRF_FEM_TIMER_LNA_CC_CHANNEL   0
-#define NRF_FEM_TIMER_PA_CC_CHANNEL    2
+#define NRF_FEM_TIMER_INSTANCE           NRF_DRV_RADIO802154_TIMER_INSTANCE
+#define NRF_FEM_TIMER_LNA_CC_CHANNEL     0
+#define NRF_FEM_TIMER_PA_CC_CHANNEL      2
+#define NRF_FEM_TIMER_PA_SHORT_STOP_MASK NRF_TIMER_SHORT_COMPARE2_STOP_MASK
 
 static nrf_fem_control_cfg_t m_nrf_fem_control_cfg;     /**< FEM controller configuration. */
 
@@ -240,4 +242,48 @@ void nrf_fem_control_pa_lna_clear(void)
 
     nrf_gpio_pin_write(m_nrf_fem_control_cfg.lna_cfg.gpio_pin,
                        !m_nrf_fem_control_cfg.lna_cfg.active_high);
+}
+
+void nrf_fem_control_pa_timer_set(void)
+{
+    if (m_nrf_fem_control_cfg.pa_cfg.enable)
+    {
+        uint32_t pa_target_time = nrf_fem_control_pa_delay_get();
+
+        nrf_timer_shorts_enable(NRF_FEM_TIMER_INSTANCE,
+                                (nrf_timer_short_mask_t)NRF_FEM_TIMER_PA_SHORT_STOP_MASK);
+        nrf_timer_cc_write(NRF_FEM_TIMER_INSTANCE,
+                           (nrf_timer_cc_channel_t)NRF_FEM_TIMER_PA_CC_CHANNEL,
+                           pa_target_time);
+    }
+}
+
+void nrf_fem_control_pa_timer_reset(void)
+{
+    if (m_nrf_fem_control_cfg.pa_cfg.enable)
+    {
+        nrf_timer_task_trigger(NRF_FEM_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
+        nrf_timer_task_trigger(NRF_FEM_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+        nrf_timer_shorts_disable(NRF_FEM_TIMER_INSTANCE,
+                                 (nrf_timer_short_mask_t)NRF_FEM_TIMER_PA_SHORT_STOP_MASK);
+    }
+}
+
+void nrf_fem_control_pa_timer_ppi_fork_enable(uint32_t ppi_channel)
+{
+    if (m_nrf_fem_control_cfg.pa_cfg.enable)
+    {
+        nrf_ppi_fork_endpoint_setup((nrf_ppi_channel_t)ppi_channel,
+                                    (uint32_t)nrf_timer_task_address_get(
+                                        NRF_FEM_TIMER_INSTANCE,
+                                        NRF_TIMER_TASK_START));
+    }
+}
+
+void nrf_fem_control_pa_timer_ppi_fork_disable(uint32_t ppi_channel)
+{
+    if (m_nrf_fem_control_cfg.pa_cfg.enable)
+    {
+        nrf_ppi_fork_endpoint_setup((nrf_ppi_channel_t)ppi_channel, 0);
+    }
 }
