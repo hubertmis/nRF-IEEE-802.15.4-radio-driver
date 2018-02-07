@@ -78,12 +78,17 @@
 #define PPI_CHGRP0_DIS_TASK NRF_PPI_TASK_CHG0_DIS
 #define PPI_CHGRP0_EN_TASK  NRF_PPI_TASK_CHG0_EN
 
-#define PPI_DISABLED_EGU    PPI_CH0
-#define PPI_EGU_RAMP_UP     PPI_CH1
-#define PPI_EGU_TIMER_START PPI_CH2
-#define PPI_CRCERROR_CLEAR  PPI_CH3
-#define PPI_TIMER_TX_ACK    PPI_CH3
-#define PPI_CRCOK_DIS_PPI   PPI_CH4
+#define PPI_DISABLED_EGU            PPI_CH0
+#define PPI_EGU_RAMP_UP             PPI_CH1
+#define PPI_EGU_TIMER_START         PPI_CH2
+#define PPI_CRCERROR_CLEAR          PPI_CH3
+#define PPI_TIMER_TX_ACK            PPI_CH3
+#define PPI_CRCOK_DIS_PPI           PPI_CH4
+
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+#define PPI_ADDRESS_COUNTER_COUNT   PPI_CH5
+#define PPI_CRCERROR_COUNTER_CLEAR  PPI_CH6
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
 /// Workaround for missing PHYEND event in older chip revision.
 static inline uint32_t short_phyend_disable_mask_get(void)
@@ -198,7 +203,7 @@ typedef struct
     bool rx_timeslot_requested :1;  ///< If timeslot for the frame being received is already requested.
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     bool psdu_being_received   :1;  ///< If PSDU is currently being received.
-#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 } nrf_radio802154_flags_t;
 static nrf_radio802154_flags_t m_flags;  ///< Flags used to store current driver state.
 
@@ -236,7 +241,7 @@ static void rx_flags_clear(void)
     m_flags.rx_timeslot_requested = false;
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     m_flags.psdu_being_received   = false;
-#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 }
 
 /// Common procedure when the driver enters SLEEP state.
@@ -412,7 +417,12 @@ static void tx_enable(void)
 static bool psdu_is_being_received(void)
 {
 #if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-    // TODO Implementation.
+    nrf_timer_task_trigger(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, nrf_timer_capture_task_get(NRF_TIMER_CC_CHANNEL0));
+    uint32_t counter = nrf_timer_cc_read(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0);
+
+    assert(counter <= 1);
+
+    return counter > 0;
 #else // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     return m_flags.psdu_being_received;
 #endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
@@ -687,6 +697,12 @@ static void nrf_timer_init(void)
     nrf_timer_mode_set(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_MODE_TIMER);
     nrf_timer_bit_width_set(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_BIT_WIDTH_16);
     nrf_timer_frequency_set(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_FREQ_1MHz);
+
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    // Setup timer for detecting PSDU reception.
+    nrf_timer_mode_set(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_MODE_COUNTER);
+    nrf_timer_bit_width_set(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_BIT_WIDTH_8);
+#endif
 }
 
 /***************************************************************************************************
@@ -767,14 +783,28 @@ static void rx_terminate(void)
     nrf_ppi_channel_disable(PPI_CRCOK_DIS_PPI);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
     nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_ppi_channel_disable(PPI_ADDRESS_COUNTER_COUNT);
+    nrf_ppi_channel_disable(PPI_CRCERROR_COUNTER_CLEAR);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     nrf_fem_control_lna_ppi_disable();
 
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
 
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_ppi_fork_endpoint_setup(PPI_EGU_TIMER_START, 0);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
     nrf_timer_shorts_disable(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK | NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
+
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_timer_task_trigger(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
+    nrf_timer_task_trigger(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_shorts_disable(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     if (nrf_raal_timeslot_is_granted())
     {
@@ -806,6 +836,12 @@ static void tx_ack_terminate(void)
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
     nrf_timer_shorts_disable(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK | NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
+
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_timer_task_trigger(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
+    nrf_timer_task_trigger(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_shorts_disable(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     if (nrf_raal_timeslot_is_granted())
     {
@@ -976,8 +1012,24 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl)
                 break;
 
             case RADIO_STATE_RX:
-                // TODO: Check if PSDU is being received. If it is term_lvl must be high enough to stop it.
-                rx_terminate();
+                if (psdu_is_being_received())
+                {
+                    if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
+                    {
+                        rx_terminate();
+
+                        nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_ABORTED);
+                    }
+                    else
+                    {
+                        result = false;
+                    }
+                }
+                else
+                {
+                    rx_terminate();
+                }
+
                 break;
 
             case RADIO_STATE_TX_ACK:
@@ -1170,6 +1222,11 @@ static void receive_begin(bool disabled_was_triggered)
     nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL1, lna_target_time + 192 - 40 -23); // 40 is ramp up, 23 is event latency
     nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL2, lna_target_time + 192 - 40 -23 + pa_target_time);
 
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_timer_shorts_enable(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
+    nrf_timer_cc_write(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL1, 1);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+
     // Clr event EGU
     nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);
 
@@ -1179,6 +1236,18 @@ static void receive_begin(bool disabled_was_triggered)
                                            NRF_DRV_RADIO802154_EGU_INSTANCE,
                                            EGU_EVENT),
                                    (uint32_t)nrf_radio_task_address_get(NRF_RADIO_TASK_RXEN));
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_ppi_channel_and_fork_endpoint_setup(PPI_EGU_TIMER_START,
+                                            (uint32_t)nrf_egu_event_address_get(
+                                                    NRF_DRV_RADIO802154_EGU_INSTANCE,
+                                                    EGU_EVENT),
+                                            (uint32_t)nrf_timer_task_address_get(
+                                                    NRF_DRV_RADIO802154_TIMER_INSTANCE,
+                                                    NRF_TIMER_TASK_START),
+                                            (uint32_t)nrf_timer_task_address_get(
+                                                    NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE,
+                                                    NRF_TIMER_TASK_START));
+#else // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_ppi_channel_endpoint_setup(PPI_EGU_TIMER_START,
                                    (uint32_t)nrf_egu_event_address_get(
                                            NRF_DRV_RADIO802154_EGU_INSTANCE,
@@ -1186,6 +1255,7 @@ static void receive_begin(bool disabled_was_triggered)
                                    (uint32_t)nrf_timer_task_address_get(
                                            NRF_DRV_RADIO802154_TIMER_INSTANCE,
                                            NRF_TIMER_TASK_START));
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_ppi_channel_endpoint_setup(PPI_CRCERROR_CLEAR,
                                    (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCERROR),
                                    (uint32_t)nrf_timer_task_address_get(
@@ -1201,11 +1271,27 @@ static void receive_begin(bool disabled_was_triggered)
                                    (uint32_t)nrf_egu_task_address_get(
                                            NRF_DRV_RADIO802154_EGU_INSTANCE,
                                            NRF_EGU_TASK_TRIGGER0));
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_ppi_channel_endpoint_setup(PPI_ADDRESS_COUNTER_COUNT,
+                                   (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_ADDRESS),
+                                   (uint32_t)nrf_timer_task_address_get(
+                                           NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE,
+                                           NRF_TIMER_TASK_COUNT));
+    nrf_ppi_channel_endpoint_setup(PPI_CRCERROR_COUNTER_CLEAR,
+                                   (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCERROR),
+                                   (uint32_t)nrf_timer_task_address_get(
+                                           NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE,
+                                           NRF_TIMER_TASK_CLEAR));
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     nrf_ppi_channel_enable(PPI_EGU_RAMP_UP);
     nrf_ppi_channel_enable(PPI_EGU_TIMER_START);
     nrf_ppi_channel_enable(PPI_CRCERROR_CLEAR);
     nrf_ppi_channel_enable(PPI_CRCOK_DIS_PPI);
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_ppi_channel_enable(PPI_ADDRESS_COUNTER_COUNT);
+    nrf_ppi_channel_enable(PPI_CRCERROR_COUNTER_CLEAR);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_ppi_channel_enable(PPI_DISABLED_EGU);
 
     // Detect if PPIs were set before DISABLED event was notified. If not trigger DISABLE
@@ -1903,6 +1989,13 @@ static inline void irq_crcok_state_rx(void)
             // Clear TXREADY event to detect if PPI worked
             nrf_radio_event_clear(NRF_RADIO_EVENT_TXREADY);
 
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+            // Disable PPIs for PSDU detection
+            nrf_ppi_fork_endpoint_setup(PPI_EGU_TIMER_START, 0);
+            nrf_ppi_channel_disable(PPI_ADDRESS_COUNTER_COUNT);
+            nrf_ppi_channel_disable(PPI_CRCERROR_COUNTER_CLEAR);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+
             // Set PPIs
             nrf_ppi_channel_endpoint_setup(PPI_TIMER_TX_ACK,
                                            (uint32_t)nrf_timer_event_address_get(
@@ -1989,6 +2082,11 @@ static inline void irq_crcok_state_rx(void)
             // Restart TIMER.
             nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
             nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+            nrf_timer_task_trigger(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
+            nrf_timer_task_trigger(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
             // Enable PPI disabled by CRCOK
             nrf_ppi_channel_enable(PPI_EGU_RAMP_UP);
@@ -2243,6 +2341,11 @@ static void irq_phyend_state_tx_ack(void)
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
     nrf_timer_task_trigger(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
 
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_timer_task_trigger(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
+    nrf_timer_task_trigger(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+
     // Reset PPI for RX mode
 #if PPI_TIMER_TX_ACK != PPI_CRCERROR_CLEAR
 #error Invalid PPI configuration
@@ -2253,8 +2356,19 @@ static void irq_phyend_state_tx_ack(void)
                                            NRF_DRV_RADIO802154_TIMER_INSTANCE,
                                            NRF_TIMER_TASK_CLEAR));
 
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_ppi_fork_endpoint_setup(PPI_EGU_TIMER_START,
+                                (uint32_t)nrf_timer_task_address_get(
+                                        NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE,
+                                        NRF_TIMER_TASK_START));
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+
     // Enable PPI disabled by CRCOK
     nrf_ppi_channel_enable(PPI_EGU_RAMP_UP);
+#if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+    nrf_ppi_channel_enable(PPI_ADDRESS_COUNTER_COUNT);
+    nrf_ppi_channel_enable(PPI_CRCERROR_COUNTER_CLEAR);
+#endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     // Enable PPIs on DISABLED event and clear event to detect if PPI worked
     nrf_egu_event_clear(NRF_DRV_RADIO802154_EGU_INSTANCE, EGU_EVENT);

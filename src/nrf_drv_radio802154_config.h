@@ -219,6 +219,17 @@ extern "C" {
 #define NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED 1
 #endif
 
+/**
+ * @def NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE
+ *
+ * Timer instance used by FSM for detecting when PSDU is being received.
+ *
+ * @note This configuration is only used when NRF_RADIO_EVENT_BCMATCH event handling is disabled
+ *       (@sa NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING).
+ */
+#ifndef NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE
+#define NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE NRF_TIMER2
+#endif
 
 /*******************************************************************************
  * @section Clock Driver Configuration.
