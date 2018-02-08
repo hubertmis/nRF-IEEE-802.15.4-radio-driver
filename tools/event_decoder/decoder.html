@@ -87,22 +87,6 @@
                 }
             },
             {
-                id :  "MUTEX_LOCK",
-                val:  0x0003,
-                draw: function(from, to, text, param)
-                {
-                    return "Note over DRIVER: Mutex lock";
-                }
-            },
-            {
-                id:  "MUTEX_LOCK",
-                val:  0x0004,
-                draw: function(from, to, text, param)
-                {
-                    return "Note over DRIVER: Mutex unlock";
-                }
-            },
-            {
                 id :  "SET_STATE",
                 val:  0x0005,
                 draw: function(from, to, text, param)
@@ -112,37 +96,31 @@
                     switch (param)
                     {
                         case 0:
-                            ret += "RADIO_STATE_DISABLING";
-                        break;
-                        case 1:
                             ret += "RADIO_STATE_SLEEP";
                         break;
+                        case 1:
+                            ret += "RADIO_STATE_RX";
+                        break;
                         case 2:
-                            ret += "RADIO_STATE_WAITING_TIMESLOT";
+                            ret += "RADIO_STATE_TX_ACK";
                         break;
                         case 3:
-                            ret += "RADIO_STATE_WAITING_RX_FRAME";
+                            ret += "RADIO_STATE_CCA_TX";
                         break;
                         case 4:
-                            ret += "RADIO_STATE_RX_HEADER";
+                            ret += "RADIO_STATE_TX";
                         break;
                         case 5:
-                            ret += "RADIO_STATE_RX_FRAME";
+                            ret += "RADIO_STATE_RX_ACK";
                         break;
                         case 6:
-                            ret += "RADIO_STATE_TX_ACK";
+                            ret += "RADIO_STATE_ED";
                         break;
                         case 7:
                             ret += "RADIO_STATE_CCA";
                         break;
                         case 8:
-                            ret += "RADIO_STATE_TX_FRAME";
-                        break;
-                        case 9:
-                            ret += "RADIO_STATE_RX_ACK";
-                        break;
-                        case 10:
-                            ret += "RADIO_STATE_ED";
+                            ret += "RADIO_STATE_CONTINUOUS_CARRIER";
                         break;
                         default:
                             console.log("state = " + param);
@@ -153,7 +131,7 @@
                 }
             },
             {
-                id :  "SET_STATE",
+                id :  "RADIO_RESET",
                 val:  0x0006,
                 draw: function(from, to, text, param)
                 {

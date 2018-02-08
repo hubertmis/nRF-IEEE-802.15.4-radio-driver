@@ -46,8 +46,6 @@ extern "C" {
 
 #define EVENT_TRACE_ENTER                      0x0001UL
 #define EVENT_TRACE_EXIT                       0x0002UL
-#define EVENT_MUTEX_LOCK                       0x0003UL
-#define EVENT_MUTEX_UNLOCK                     0x0004UL
 #define EVENT_SET_STATE                        0x0005UL
 #define EVENT_RADIO_RESET                      0x0006UL
 
