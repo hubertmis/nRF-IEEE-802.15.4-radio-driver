@@ -50,9 +50,9 @@
 static uint8_t m_nb;  ///< The number of times the CSMA-CA algorithm was required to back off while attempting the current transmission.
 static uint8_t m_be;  ///< Backoff exponent, which is related to how many backoff periods a device shall wait before attempting to assess a channel.
 
-static nrf_drv_radio802154_term_t  m_term_lvl;  ///< Termination level of ongoing CSMA-CA procedure.
-static const uint8_t             * mp_psdu;     ///< Pointer to PSDU of the frame being transmitted.
-static nrf_drv_radio802154_timer_t m_timer;     ///< Timer used to back off during CSMA-CA procedure.
+static const uint8_t             * mp_psdu;       ///< Pointer to PSDU of the frame being transmitted.
+static nrf_drv_radio802154_timer_t m_timer;       ///< Timer used to back off during CSMA-CA procedure.
+static bool                        m_is_running;  ///< Indicates if CSMA-CA procedure is running.
 
 /**
  * @brief Perform appropriate actions for busy channel conditions.
@@ -81,7 +81,7 @@ static void frame_transmit(void * p_context)
 
     bool error_shall_be_notified = false;
 
-    if (!nrf_drv_radio802154_request_transmit(m_term_lvl, mp_psdu, true))
+    if (!nrf_drv_radio802154_request_transmit(NRF_DRV_RADIO802154_TERM_NONE, mp_psdu, true))
     {
         error_shall_be_notified = channel_busy();
     }
@@ -116,7 +116,7 @@ static void random_backoff_start(void)
  */
 static bool procedure_is_running(void)
 {
-    return mp_psdu != NULL;
+    return m_is_running;
 }
 
 /**
@@ -124,7 +124,7 @@ static bool procedure_is_running(void)
  */
 static void procedure_stop(void)
 {
-    mp_psdu = NULL;
+    m_is_running = false;
 }
 
 static bool channel_busy(void)
@@ -154,43 +154,27 @@ static bool channel_busy(void)
     return result;
 }
 
-void nrf_drv_radio802154_csma_ca_start(nrf_drv_radio802154_term_t term_lvl,
-                                       const uint8_t            * p_data)
+void nrf_drv_radio802154_csma_ca_start(const uint8_t * p_data)
 {
     assert(!procedure_is_running());
 
-    m_term_lvl = term_lvl;
-    mp_psdu    = p_data;
-    m_nb       = 0;
-    m_be       = NRF_DRV_RADIO802154_CSMA_CA_MIN_BE;
+    mp_psdu      = p_data;
+    m_nb         = 0;
+    m_be         = NRF_DRV_RADIO802154_CSMA_CA_MIN_BE;
+    m_is_running = true;
 
     random_backoff_start();
 }
 
 bool nrf_drv_radio802154_csma_ca_abort(nrf_drv_radio802154_term_t term_lvl)
 {
-    bool result;
+    bool result = true;
 
-    if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
+    if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154 ||
+        !procedure_is_running())
     {
         nrf_drv_radio802154_timer_sched_remove(&m_timer);
         procedure_stop();
-
-        result = true;
-    }
-    else
-    {
-        if (procedure_is_running())
-        {
-            result = false;
-        }
-        else
-        {
-            nrf_drv_radio802154_timer_sched_remove(&m_timer);
-            procedure_stop();
-
-            result = true;
-        }
     }
 
     return result;

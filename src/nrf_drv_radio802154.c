@@ -417,7 +417,7 @@ void nrf_drv_radio802154_transmit_csma_ca_raw(const uint8_t * p_data)
 {
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_CSMACA);
 
-    nrf_drv_radio802154_csma_ca_start(NRF_DRV_RADIO802154_TERM_NONE, p_data);
+    nrf_drv_radio802154_csma_ca_start(p_data);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_CSMACA);
 }
