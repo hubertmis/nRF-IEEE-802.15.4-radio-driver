@@ -1182,6 +1182,12 @@ static bool ppi_egu_worked(void)
 /** Prepare to enter Sleep state. */
 static void sleep_begin(void)
 {
+    if (!nrf_raal_timeslot_is_granted())
+    {
+        sleep_start();
+        return;
+    }
+
     nrf_radio_event_clear(NRF_RADIO_EVENT_DISABLED);
     nrf_radio_int_enable(NRF_RADIO_INT_DISABLED_MASK);
 
@@ -3484,6 +3490,9 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
 
     if (result)
     {
+        // Set state to RX in case sleep terminate succeeded, but transmit_begin fails.
+        state_set(RADIO_STATE_RX);
+
         mp_tx_data = p_data;
         result     = transmit_begin(p_data, cca, true);
     }
