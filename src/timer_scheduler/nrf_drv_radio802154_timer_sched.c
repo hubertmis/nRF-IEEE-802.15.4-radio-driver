@@ -131,10 +131,12 @@ static inline bool is_timer_prior(const nrf_drv_radio802154_timer_t * p_timer_1,
 static inline void handle_timer(void)
 {
     volatile nrf_drv_radio802154_timer_t * p_head;
+    uint8_t                                queue_cntr;
 
     do
     {
-        p_head = mp_head;
+        queue_cntr = m_queue_changed_cntr;
+        p_head     = mp_head;
 
         if (mutex_trylock())
         {
@@ -157,103 +159,18 @@ static inline void handle_timer(void)
 
             mutex_unlock();
         }
-    } while (p_head != mp_head);
+    } while (queue_cntr != m_queue_changed_cntr);
 }
 
-void nrf_drv_radio802154_timer_sched_init(void)
-{
-    mp_head              = NULL;
-    m_mutex              = 0;
-    m_queue_changed_cntr = 0;
-}
-
-void nrf_drv_radio802154_timer_sched_deinit(void)
-{
-    nrf_drv_radio802154_timer_stop();
-
-    mp_head = NULL;
-}
-
-uint32_t nrf_drv_radio802154_timer_sched_time_get(void)
-{
-    return nrf_drv_radio802154_timer_time_get();
-}
-
-bool nrf_drv_radio802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0, uint32_t dt)
-{
-    uint32_t target_time = t0 + dt;
-    int32_t  difference  = target_time - now;
-
-    return difference > 0;
-}
-
-void nrf_drv_radio802154_timer_sched_add(nrf_drv_radio802154_timer_t * p_timer, bool round_up)
-{
-    assert(p_timer != NULL);
-    assert(p_timer->callback != NULL);
-
-    if (round_up)
-    {
-        p_timer->dt += nrf_drv_radio802154_timer_granularity_get() - 1;
-    }
-
-    nrf_drv_radio802154_timer_sched_remove(p_timer);
-
-    nrf_drv_radio802154_timer_t ** pp_item;
-    nrf_drv_radio802154_timer_t *  p_next;
-    uint8_t                        queue_cntr;
-
-    while (true)
-    {
-        queue_cntr = m_queue_changed_cntr;
-        pp_item    = (nrf_drv_radio802154_timer_t **)&mp_head;
-        p_next     = NULL;
-
-        // Search the current queue to find appropriate position to insert timer.
-        while (true)
-        {
-            nrf_drv_radio802154_timer_t * p_cur = (nrf_drv_radio802154_timer_t *)__LDREXW((uint32_t *)pp_item);
-
-            if (p_cur == NULL)
-            {
-                // No HEAD or insert at the end.
-                p_next = NULL;
-                break;
-            }
-
-            if (is_timer_prior(p_timer, p_cur))
-            {
-                // Insert at the beginning with existing HEAD or somewhere in the middle.
-                p_next = p_cur;
-                break;
-            }
-
-            pp_item = &(p_cur->p_next);
-        }
-
-        if (queue_cntr != m_queue_changed_cntr)
-        {
-            // Higher priority modified the queue while iterating, try again.
-            continue;
-        }
-
-        p_timer->p_next = p_next;
-
-        if (!__STREXW((uint32_t)p_timer, (uint32_t *)pp_item))
-        {
-            // Exit, if exclusive access succeeds.
-            queue_cntr_bump();
-            break;
-        }
-    }
-
-    if (mp_head == p_timer)
-    {
-        handle_timer();
-    }
-}
-
-void nrf_drv_radio802154_timer_sched_remove(nrf_drv_radio802154_timer_t * p_timer)
+/**
+ * @brief Remove timer from the queue
+ *
+ * @param [inout]  p_timer  Pointer to timer to remove from the queue.
+ *
+ * @retval true   @sa handle_timer() shall be called by caller of this function.
+ * @retval false  @sa handle_timer() shall not be called by the caller.
+ */
+static bool timer_remove(nrf_drv_radio802154_timer_t * p_timer)
 {
     assert(p_timer != NULL);
 
@@ -336,7 +253,108 @@ void nrf_drv_radio802154_timer_sched_remove(nrf_drv_radio802154_timer_t * p_time
         } while (__STREXW((uint32_t)NULL, (uint32_t *)&p_cur->p_next));
     }
 
-    if (timer_start || timer_stop)
+    return (timer_start || timer_stop);
+}
+
+void nrf_drv_radio802154_timer_sched_init(void)
+{
+    mp_head              = NULL;
+    m_mutex              = 0;
+    m_queue_changed_cntr = 0;
+}
+
+void nrf_drv_radio802154_timer_sched_deinit(void)
+{
+    nrf_drv_radio802154_timer_stop();
+
+    mp_head = NULL;
+}
+
+uint32_t nrf_drv_radio802154_timer_sched_time_get(void)
+{
+    return nrf_drv_radio802154_timer_time_get();
+}
+
+bool nrf_drv_radio802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0, uint32_t dt)
+{
+    uint32_t target_time = t0 + dt;
+    int32_t  difference  = target_time - now;
+
+    return difference > 0;
+}
+
+void nrf_drv_radio802154_timer_sched_add(nrf_drv_radio802154_timer_t * p_timer, bool round_up)
+{
+    assert(p_timer != NULL);
+    assert(p_timer->callback != NULL);
+
+    if (round_up)
+    {
+        p_timer->dt += nrf_drv_radio802154_timer_granularity_get() - 1;
+    }
+
+    if (timer_remove(p_timer))
+    {
+        handle_timer();
+    }
+
+    nrf_drv_radio802154_timer_t ** pp_item;
+    nrf_drv_radio802154_timer_t *  p_next;
+    uint8_t                        queue_cntr;
+
+    while (true)
+    {
+        queue_cntr = m_queue_changed_cntr;
+        pp_item    = (nrf_drv_radio802154_timer_t **)&mp_head;
+        p_next     = NULL;
+
+        // Search the current queue to find appropriate position to insert timer.
+        while (true)
+        {
+            nrf_drv_radio802154_timer_t * p_cur = (nrf_drv_radio802154_timer_t *)__LDREXW((uint32_t *)pp_item);
+
+            if (p_cur == NULL)
+            {
+                // No HEAD or insert at the end.
+                p_next = NULL;
+                break;
+            }
+
+            if (is_timer_prior(p_timer, p_cur))
+            {
+                // Insert at the beginning with existing HEAD or somewhere in the middle.
+                p_next = p_cur;
+                break;
+            }
+
+            pp_item = &(p_cur->p_next);
+        }
+
+        if (queue_cntr != m_queue_changed_cntr)
+        {
+            // Higher priority modified the queue while iterating, try again.
+            continue;
+        }
+
+        p_timer->p_next = p_next;
+
+        if (!__STREXW((uint32_t)p_timer, (uint32_t *)pp_item))
+        {
+            // Exit, if exclusive access succeeds.
+            queue_cntr_bump();
+            break;
+        }
+    }
+
+    if (mp_head == p_timer)
+    {
+        handle_timer();
+    }
+}
+
+void nrf_drv_radio802154_timer_sched_remove(nrf_drv_radio802154_timer_t * p_timer)
+{
+    if (timer_remove(p_timer))
     {
         handle_timer();
     }
@@ -369,12 +387,19 @@ bool nrf_drv_radio802154_timer_sched_is_running(nrf_drv_radio802154_timer_t * p_
 
 void nrf_drv_radio802154_timer_fired(void)
 {
-    nrf_drv_radio802154_timer_t        * p_timer  = (nrf_drv_radio802154_timer_t *)mp_head;
-    nrf_drv_radio802154_timer_callback_t callback = p_timer->callback;
+    nrf_drv_radio802154_timer_t        * p_timer   = (nrf_drv_radio802154_timer_t *) mp_head;
+    nrf_drv_radio802154_timer_callback_t callback  = p_timer->callback;
+    void                               * p_context = p_timer->p_context;
 
     if ((p_timer != NULL) && (callback != NULL))
     {
-        nrf_drv_radio802154_timer_sched_remove(p_timer);
-        p_timer->callback(p_timer->p_context);
+        bool timer_shall_be_handled = timer_remove(p_timer);
+
+        callback(p_context);
+
+        if (timer_shall_be_handled)
+        {
+            handle_timer();
+        }
     }
 }
