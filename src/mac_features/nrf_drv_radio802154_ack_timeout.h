@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "nrf_drv_radio802154_const.h"
 #include "nrf_drv_radio802154_types.h"
 
 /**
@@ -55,13 +56,15 @@ void nrf_drv_radio802154_ack_timeout_time_set(uint32_t time);
 /**
  * @brief Abort started ACK timeout procedure.
  *
- * @param[in]  term_lvl  Termination level set by request aborting ongoing operation.
+ * @param[in]     term_lvl  Termination level set by request aborting ongoing operation.
+ * @param[in]     req_orig  Module that originates this request.
  *
  * If ACK timeout procedure is not running during call, this function does nothing.
  *
  * @retval  true   ACK timeout procedure han been stopped.
  */
-bool nrf_drv_radio802154_ack_timeout_abort(nrf_drv_radio802154_term_t term_lvl);
+bool nrf_drv_radio802154_ack_timeout_abort(nrf_drv_radio802154_term_t term_lvl,
+                                           req_originator_t           req_orig);
 
 /**
  * @brief Handler of transmitted event.

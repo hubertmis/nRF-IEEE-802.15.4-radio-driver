@@ -67,48 +67,6 @@ static bool                        m_is_running;  ///< Indicates if CSMA-CA proc
 static bool channel_busy(void);
 
 /**
- * @brief Perform CCA procedure followed by frame transmission.
- *
- * If transmission is requested, CSMA-CA module waits for notification from the FSM module.
- * If transmission request fails, CSMA-CA module performs procedure for busy channel condition
- * @sa channel_busy().
- *
- * @param[in] p_context  Unused variable passed from the Timer Scheduler module.
- */
-static void frame_transmit(void * p_context)
-{
-    (void)p_context;
-
-    bool error_shall_be_notified = false;
-
-    if (!nrf_drv_radio802154_request_transmit(NRF_DRV_RADIO802154_TERM_NONE, mp_psdu, true))
-    {
-        error_shall_be_notified = channel_busy();
-    }
-
-    if (error_shall_be_notified)
-    {
-        nrf_drv_radio802154_notify_transmit_failed(mp_psdu,
-                                                   NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
-    }
-}
-
-/**
- * @brief Delay CCA procedure for random (2^BE - 1) unit backoff periods.
- */
-static void random_backoff_start(void)
-{
-    uint8_t backoff_periods = rand() % (1 << m_be);
-
-    m_timer.callback  = frame_transmit;
-    m_timer.p_context = NULL;
-    m_timer.t0        = nrf_drv_radio802154_timer_sched_time_get();
-    m_timer.dt        = backoff_periods * UNIT_BACKOFF_PERIOD;
-
-    nrf_drv_radio802154_timer_sched_add(&m_timer, false);
-}
-
-/**
  * @brief Check if CSMA-CA is ongoing.
  *
  * @retval true   CSMA-CA is running.
@@ -125,6 +83,55 @@ static bool procedure_is_running(void)
 static void procedure_stop(void)
 {
     m_is_running = false;
+}
+
+/**
+ * @brief Perform CCA procedure followed by frame transmission.
+ *
+ * If transmission is requested, CSMA-CA module waits for notification from the FSM module.
+ * If transmission request fails, CSMA-CA module performs procedure for busy channel condition
+ * @sa channel_busy().
+ *
+ * @param[in] p_context  Unused variable passed from the Timer Scheduler module.
+ */
+static void frame_transmit(void * p_context)
+{
+    (void)p_context;
+
+    bool error_shall_be_notified;
+
+    if (!procedure_is_running())
+    {
+        return;
+    }
+
+    error_shall_be_notified = (m_nb >= (NRF_DRV_RADIO802154_CSMA_CA_MAX_CSMA_BACKOFFS - 1));
+
+    if (!nrf_drv_radio802154_request_transmit(NRF_DRV_RADIO802154_TERM_NONE,
+                                              REQ_ORIG_CSMA_CA,
+                                              mp_psdu,
+                                              true,
+                                              error_shall_be_notified ?
+                                                      NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL :
+                                                      NRF_DRV_RADIO802154_TX_ERROR_NONE))
+    {
+        (void)channel_busy();
+    }
+}
+
+/**
+ * @brief Delay CCA procedure for random (2^BE - 1) unit backoff periods.
+ */
+static void random_backoff_start(void)
+{
+    uint8_t backoff_periods = rand() % (1 << m_be);
+
+    m_timer.callback  = frame_transmit;
+    m_timer.p_context = NULL;
+    m_timer.t0        = nrf_drv_radio802154_timer_sched_time_get();
+    m_timer.dt        = backoff_periods * UNIT_BACKOFF_PERIOD;
+
+    nrf_drv_radio802154_timer_sched_add(&m_timer, false);
 }
 
 static bool channel_busy(void)
@@ -166,18 +173,35 @@ void nrf_drv_radio802154_csma_ca_start(const uint8_t * p_data)
     random_backoff_start();
 }
 
-bool nrf_drv_radio802154_csma_ca_abort(nrf_drv_radio802154_term_t term_lvl)
+bool nrf_drv_radio802154_csma_ca_abort(nrf_drv_radio802154_term_t term_lvl,
+                                       req_originator_t           req_orig)
 {
-    bool result = true;
+    // Don't stop CSMA-CA if request by itself or RAAL.
+    if (req_orig == REQ_ORIG_CSMA_CA ||
+        req_orig == REQ_ORIG_RAAL)
+    {
+        return true;
+    }
 
-    if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154 ||
-        !procedure_is_running())
+    // Stop CSMA-CA if termination level is high enough.
+    if (term_lvl >= NRF_DRV_RADIO802154_TERM_802154)
     {
         nrf_drv_radio802154_timer_sched_remove(&m_timer);
         procedure_stop();
+
+        return true;
     }
 
-    return result;
+    // Just remove timer to make sure procedure is stopped.
+    if (!procedure_is_running())
+    {
+#if 0
+        nrf_drv_radio802154_timer_sched_remove(&m_timer);
+#endif
+        return true;
+    }
+
+    return false;
 }
 
 bool nrf_drv_radio802154_csma_ca_tx_failed_hook(const uint8_t                * p_frame,

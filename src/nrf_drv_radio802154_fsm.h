@@ -115,12 +115,15 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl);
  *       by the RADIO event handler or RAAL notification.
  *
  * @param[in]  term_lvl      Termination level of this request. Selects procedures to abort.
- * @param[in]  notify_abort  If termination of ongoing operation should be notified.
+ * @param[in]  req_orig      Module that originates this request.
+ * @param[in]  error         Error code notified by this procedure.
  *
  * @retval  true   Entering RECEIVE state succeeded.
  * @retval  false  Entering RECEIVE state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl, bool notify_abort);
+bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t     term_lvl,
+                                     req_originator_t               req_orig,
+                                     nrf_drv_radio802154_rx_error_t error);
 
 /**
  * @brief Request transition to TRANSMIT state.
@@ -129,15 +132,19 @@ bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl, bool n
  *       by the RADIO event handler or RAAL notification.
  *
  * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]  req_orig  Module that originates this request.
  * @param[in]  p_data    Pointer to a frame to transmit.
  * @param[in]  cca       If the driver should perform CCA procedure before transmission.
+ * @param[in]  error     Error code notified in case this procedure fails.
  *
  * @retval  true   Entering TRANSMIT state succeeded.
  * @retval  false  Entering TRANSMIT state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
-                                      const uint8_t            * p_data,
-                                      bool                       cca);
+bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t     term_lvl,
+                                      req_originator_t               req_orig,
+                                      const uint8_t                * p_data,
+                                      bool                           cca,
+                                      nrf_drv_radio802154_tx_error_t error);
 
 /**
  * @brief Request transition to ENERGY_DETECTION state.

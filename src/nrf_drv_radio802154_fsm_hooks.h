@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "nrf_drv_radio802154_const.h"
 #include "nrf_drv_radio802154_types.h"
 
 /**
@@ -49,12 +50,14 @@
 /**
  * @brief Process hooks for the terminate request.
  *
- * @param[in]  term_lvl  Termination level of request that terminates current operation.
+ * @param[in]     term_lvl  Termination level of request that terminates current operation.
+ * @param[in]     req_orig  Module that originates this request.
  *
  * @retval true   All procedures are aborted.
  * @retval false  There is ongoing procedure that cannot be aborted due to too low @p priority.
  */
-bool nrf_drv_radio802154_fsm_hooks_terminate(nrf_drv_radio802154_term_t term_lvl);
+bool nrf_drv_radio802154_fsm_hooks_terminate(nrf_drv_radio802154_term_t term_lvl,
+                                             req_originator_t           req_orig);
 
 /**
  * @brief Process hooks for the transmitted event.

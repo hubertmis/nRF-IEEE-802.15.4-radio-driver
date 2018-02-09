@@ -35,6 +35,7 @@
 #include <stdint.h>
 
 #include "nrf_drv_radio802154.h"
+#include "nrf_drv_radio802154_const.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -139,25 +140,31 @@ void nrf_drv_radio802154_swi_sleep(nrf_drv_radio802154_term_t term_lvl,
  * @brief Request entering receive state from SWI priority.
  *
  * @param[in]   term_lvl      Termination level of this request. Selects procedures to abort.
- * @param[in]   notify_abort  If termination of ongoing operation shall be notified.
+ * @param[in]   req_orig      Module that originates this request.
+ * @param[in]   error         Error code notified by this procedure.
  * @param[out]  p_result      Result of entering receive state.
  */
-void nrf_drv_radio802154_swi_receive(nrf_drv_radio802154_term_t term_lvl,
-                                     bool                       notify_abort,
-                                     bool                     * p_result);
+void nrf_drv_radio802154_swi_receive(nrf_drv_radio802154_term_t     term_lvl,
+                                     req_originator_t               req_orig,
+                                     nrf_drv_radio802154_rx_error_t error,
+                                     bool                         * p_result);
 
 /**
  * @biref Request entering transmit state from SWI priority.
  *
  * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]   req_orig  Module that originates this request.
  * @param[in]   p_data    Pointer to PSDU of the frame to transmit.
  * @param[in]   cca       If the driver should perform CCA procedure before transmission.
+ * @param[in]   error     Error code notified in case this procedure fails.
  * @param[out]  p_result  Result of entering transmit state.
  */
-void nrf_drv_radio802154_swi_transmit(nrf_drv_radio802154_term_t term_lvl,
-                                      const uint8_t            * p_data,
-                                      bool                       cca,
-                                      bool                     * p_result);
+void nrf_drv_radio802154_swi_transmit(nrf_drv_radio802154_term_t     term_lvl,
+                                      req_originator_t               req_orig,
+                                      const uint8_t                * p_data,
+                                      bool                           cca,
+                                      nrf_drv_radio802154_tx_error_t error,
+                                      bool                         * p_result);
 
 /**
  * @brief Request entering energy detection state from SWI priority.

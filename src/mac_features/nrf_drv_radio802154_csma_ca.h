@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "nrf_drv_radio802154_const.h"
 #include "nrf_drv_radio802154_types.h"
 
 /**
@@ -64,16 +65,16 @@ void nrf_drv_radio802154_csma_ca_start(const uint8_t * p_data);
  * @note This function shall not be called during @sa nrf_drv_radio802154_csma_ca_start execution
  *       (i.e. from ISR with higher priority). It would result with unrecoverable runtime error.
  *
- * If @p term_lvl is less than @sa NRF_DRV_RADIO802154_TERM_802154, this function does not abort
- * CSMA-CA procedure.
  * If CSMA-CA is not running during call, this function does nothing and returns true.
  *
- * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
- *
- * @retval true  CSMA-CA procedure is not running anymore or is running in the background depending
- *               on @p term_lvl.
+ * @param[in]     term_lvl  Termination level of this request. Selects procedures to abort.
+ * @param[in]     req_orig  Module that originates this request.
+
+ * @retval true   CSMA-CA procedure is not running anymore.
+ * @retval false  CSMA-CA cannot be stopped due to too low termination level.
  */
-bool nrf_drv_radio802154_csma_ca_abort(nrf_drv_radio802154_term_t term_lvl);
+bool nrf_drv_radio802154_csma_ca_abort(nrf_drv_radio802154_term_t term_lvl,
+                                       req_originator_t           req_orig);
 
 /**
  * @brief Handler of TX failed event.

@@ -56,17 +56,9 @@ static void timeout_timer_fired(void * p_context)
 
     if (m_timer_should_fire)
     {
-        if (nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154, false))
-        {
-            // Verify 2nd time to prevent double notification in case higher priority notified
-            // between last check and call to the ...receive() function.
-            if (m_timer_should_fire)
-            {
-                nrf_drv_radio802154_notify_transmit_failed(mp_frame,
-                                                           NRF_DRV_RADIO802154_TX_ERROR_NO_ACK);
-            }
-        }
-        else
+        if (!nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154,
+                                                 REQ_ORIG_ACK_TIMEOUT,
+                                                 NRF_DRV_RADIO802154_TX_ERROR_NO_ACK))
         {
             timeout_timer_retry();
         }
@@ -115,11 +107,15 @@ bool nrf_drv_radio802154_ack_timeout_tx_started_hook(const uint8_t * p_frame)
     return true;
 }
 
-bool nrf_drv_radio802154_ack_timeout_abort(nrf_drv_radio802154_term_t term_lvl)
+bool nrf_drv_radio802154_ack_timeout_abort(nrf_drv_radio802154_term_t term_lvl,
+                                           req_originator_t           req_orig)
 {
     (void)term_lvl;
 
-    timeout_timer_stop();
+    if (req_orig != REQ_ORIG_ACK_TIMEOUT)
+    {
+        timeout_timer_stop();
+    }
 
     return true;
 }

@@ -85,6 +85,18 @@
 #define REQUEST_FUNCTION_3_ARGS(func_fsm, func_swi, arg1, arg2, arg3)                              \
         REQUEST_FUNCTION(func_fsm, (arg1, arg2, arg3), func_swi, (arg1, arg2, arg3, &result))
 
+#define REQUEST_FUNCTION_4_ARGS(func_fsm, func_swi, arg1, arg2, arg3, arg4)                        \
+        REQUEST_FUNCTION(func_fsm,                                                                 \
+                         (arg1, arg2, arg3, arg4),                                                 \
+                         func_swi,                                                                 \
+                         (arg1, arg2, arg3, arg4, &result))
+
+#define REQUEST_FUNCTION_5_ARGS(func_fsm, func_swi, arg1, arg2, arg3, arg4, arg5)                  \
+        REQUEST_FUNCTION(func_fsm,                                                                 \
+                         (arg1, arg2, arg3, arg4, arg5),                                           \
+                         func_swi,                                                                 \
+                         (arg1, arg2, arg3, arg4, arg5, &result))
+
 /** Check if active vector priority is high enough to call requests directly.
  *
  *  @retval  true   Active vector priority is greater or equal to SWI priority.
@@ -109,23 +121,30 @@ bool nrf_drv_radio802154_request_sleep(nrf_drv_radio802154_term_t term_lvl)
                            term_lvl)
 }
 
-bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t term_lvl, bool notify_abort)
+bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t     term_lvl,
+                                         req_originator_t               req_orig,
+                                         nrf_drv_radio802154_rx_error_t error)
 {
-    REQUEST_FUNCTION_2_ARGS(nrf_drv_radio802154_fsm_receive,
+    REQUEST_FUNCTION_3_ARGS(nrf_drv_radio802154_fsm_receive,
                             nrf_drv_radio802154_swi_receive,
                             term_lvl,
-                            notify_abort)
+                            req_orig,
+                            error)
 }
 
-bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t term_lvl,
-                                          const uint8_t            * p_data,
-                                          bool                       cca)
+bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t     term_lvl,
+                                          req_originator_t               req_orig,
+                                          const uint8_t                * p_data,
+                                          bool                           cca,
+                                          nrf_drv_radio802154_tx_error_t error)
 {
-    REQUEST_FUNCTION_3_ARGS(nrf_drv_radio802154_fsm_transmit,
+    REQUEST_FUNCTION_5_ARGS(nrf_drv_radio802154_fsm_transmit,
                             nrf_drv_radio802154_swi_transmit,
                             term_lvl,
+                            req_orig,
                             p_data,
-                            cca)
+                            cca,
+                            error)
 }
 
 bool nrf_drv_radio802154_request_energy_detection(nrf_drv_radio802154_term_t term_lvl,

@@ -37,6 +37,7 @@
 #define NRF_DRV_RADIO802154_CONST_H_
 
 #include <stdint.h>
+#include "nrf_drv_radio802154_config.h"
 
 #define ACK_HEADER_WITH_PENDING      0x12      ///< First byte of ACK frame containing pending bit
 #define ACK_HEADER_WITHOUT_PENDING   0x02      ///< First byte of ACK frame without pending bit
@@ -105,5 +106,18 @@
 #define PHY_SHR_DURATION      10  ///< Number of symbols in Synchronization Header (SHR)
 
 #define BROADCAST_ADDRESS    ((uint8_t [SHORT_ADDRESS_SIZE]) {0xff, 0xff}) ///< Broadcast Short Address
+
+typedef enum
+{
+    REQ_ORIG_HIGHER_LAYER,
+    REQ_ORIG_FSM,
+    REQ_ORIG_RAAL,
+#if NRF_DRV_RADIO802154_CSMA_CA_ENABLED
+    REQ_ORIG_CSMA_CA,
+#endif // NRF_DRV_RADIO802154_CSMA_CA_ENABLED
+#if NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+    REQ_ORIG_ACK_TIMEOUT,
+#endif // NRF_DRV_RADIO802154_ACK_TIMEOUT_ENABLED
+} req_originator_t;
 
 #endif // NRD_DRV_RADIO802154_CONST_H_

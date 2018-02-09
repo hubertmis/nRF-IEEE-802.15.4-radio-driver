@@ -241,7 +241,9 @@ bool nrf_drv_radio802154_receive(void)
     bool result;
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RECEIVE);
 
-    result = nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154, true);
+    result = nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154,
+                                                 REQ_ORIG_HIGHER_LAYER,
+                                                 NRF_DRV_RADIO802154_RX_ERROR_NONE);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RECEIVE);
     return result;
@@ -252,7 +254,11 @@ bool nrf_drv_radio802154_transmit_raw(const uint8_t * p_data, bool cca)
     bool result;
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_TRANSMIT);
 
-    result = nrf_drv_radio802154_request_transmit(NRF_DRV_RADIO802154_TERM_NONE, p_data, cca);
+    result = nrf_drv_radio802154_request_transmit(NRF_DRV_RADIO802154_TERM_NONE,
+                                                  REQ_ORIG_HIGHER_LAYER,
+                                                  p_data,
+                                                  cca,
+                                                  NRF_DRV_RADIO802154_TX_ERROR_NONE);
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_TRANSMIT);
     return result;

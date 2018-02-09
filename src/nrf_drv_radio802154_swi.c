@@ -173,17 +173,20 @@ typedef struct
 
         struct
         {
-            nrf_drv_radio802154_term_t term_lvl;      ///< Request priority.
-            bool                     * p_result;      ///< Receive request result.
-            bool                       notify_abort;  ///< If termination of ongoing operation shall be notified.
+            nrf_drv_radio802154_term_t     term_lvl;  ///< Request priority.
+            req_originator_t               req_orig;  ///< Request originator.
+            nrf_drv_radio802154_rx_error_t error;     ///< Error notified in case of success.
+            bool                         * p_result;  ///< Receive request result.
         } receive;                                    ///< Receive request details.
 
         struct
         {
-            nrf_drv_radio802154_term_t term_lvl;      ///< Request priority.
-            bool                     * p_result;      ///< Transmit request result.
-            const uint8_t            * p_data;        ///< Pointer to PSDU to transmit.
-            bool                       cca;           ///< If CCA was requested prior to transmission.
+            nrf_drv_radio802154_term_t     term_lvl;  ///< Request priority.
+            req_originator_t               req_orig;  ///< Request originator.
+            const uint8_t                * p_data;    ///< Pointer to PSDU to transmit.
+            bool                           cca;       ///< If CCA was requested prior to transmission.
+            nrf_drv_radio802154_tx_error_t error;     ///< Error notified in case of failure.
+            bool                         * p_result;  ///< Transmit request result.
         } transmit;                                   ///< Transmit request details.
 
         struct
@@ -540,31 +543,37 @@ void nrf_drv_radio802154_swi_sleep(nrf_drv_radio802154_term_t term_lvl,
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_receive(nrf_drv_radio802154_term_t term_lvl,
-                                     bool                       notify_abort,
-                                     bool                     * p_result)
+void nrf_drv_radio802154_swi_receive(nrf_drv_radio802154_term_t     term_lvl,
+                                     req_originator_t               req_orig,
+                                     nrf_drv_radio802154_rx_error_t error,
+                                     bool                         * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
-    p_slot->type                      = REQ_TYPE_RECEIVE;
-    p_slot->data.receive.term_lvl     = term_lvl;
-    p_slot->data.receive.notify_abort = notify_abort;
-    p_slot->data.receive.p_result     = p_result;
+    p_slot->type                  = REQ_TYPE_RECEIVE;
+    p_slot->data.receive.term_lvl = term_lvl;
+    p_slot->data.receive.req_orig = req_orig;
+    p_slot->data.receive.error    = error;
+    p_slot->data.receive.p_result = p_result;
 
     req_exit();
 }
 
-void nrf_drv_radio802154_swi_transmit(nrf_drv_radio802154_term_t term_lvl,
-                                      const uint8_t            * p_data,
-                                      bool                       cca,
-                                      bool                     * p_result)
+void nrf_drv_radio802154_swi_transmit(nrf_drv_radio802154_term_t     term_lvl,
+                                      req_originator_t               req_orig,
+                                      const uint8_t                * p_data,
+                                      bool                           cca,
+                                      nrf_drv_radio802154_tx_error_t error,
+                                      bool                         * p_result)
 {
     nrf_drv_radio802154_req_data_t * p_slot = req_enter();
 
     p_slot->type                   = REQ_TYPE_TRANSMIT;
     p_slot->data.transmit.term_lvl = term_lvl;
+    p_slot->data.transmit.req_orig = req_orig;
     p_slot->data.transmit.p_data   = p_data;
     p_slot->data.transmit.cca      = cca;
+    p_slot->data.transmit.error    = error;
     p_slot->data.transmit.p_result = p_result;
 
     req_exit();
@@ -727,7 +736,8 @@ void SWI_IRQHandler(void)
                 case REQ_TYPE_RECEIVE:
                     *(p_slot->data.receive.p_result) = in_crit_sect ?
                             nrf_drv_radio802154_fsm_receive(p_slot->data.receive.term_lvl,
-                                                            p_slot->data.receive.notify_abort) :
+                                                            p_slot->data.receive.req_orig,
+                                                            p_slot->data.receive.error) :
                             false;
                     break;
 
@@ -735,8 +745,10 @@ void SWI_IRQHandler(void)
                     *(p_slot->data.transmit.p_result) = in_crit_sect ?
                             nrf_drv_radio802154_fsm_transmit(
                                     p_slot->data.transmit.term_lvl,
+                                    p_slot->data.transmit.req_orig,
                                     p_slot->data.transmit.p_data,
-                                    p_slot->data.transmit.cca) :
+                                    p_slot->data.transmit.cca,
+                                    p_slot->data.transmit.error) :
                             false;
                     break;
 

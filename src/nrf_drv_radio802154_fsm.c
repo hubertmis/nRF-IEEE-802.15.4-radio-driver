@@ -320,13 +320,14 @@ static inline void transmitted_frame_notify(uint8_t * p_ack, int8_t power, int8_
 }
 
 /// Notify MAC layer that transmission procedure failed.
-static void transmit_failed_notify(nrf_drv_radio802154_tx_error_t error)
+static void transmit_failed_notify(const uint8_t                * p_data,
+                                   nrf_drv_radio802154_tx_error_t error)
 {
     nrf_drv_radio802154_critical_section_nesting_allow();
 
-    if (nrf_drv_radio802154_fsm_hooks_tx_failed(mp_tx_data, error))
+    if (nrf_drv_radio802154_fsm_hooks_tx_failed(p_data, error))
     {
-        nrf_drv_radio802154_notify_transmit_failed(mp_tx_data, error);
+        nrf_drv_radio802154_notify_transmit_failed(p_data, error);
     }
 
     nrf_drv_radio802154_critical_section_nesting_deny();
@@ -604,7 +605,7 @@ static inline void frame_rx_start_after_ack_rx(nrf_drv_radio802154_rx_error_t er
 
     if (error)
     {
-        transmit_failed_notify(error);
+        transmit_failed_notify(mp_tx_data, error);
     }
 
     ack_matching_disable();
@@ -1008,14 +1009,17 @@ static inline void tx_procedure_abort(radio_state_t state)
  * mode.
  *
  * @param[in]  term_lvl      Termination level of this request. Selects procedures to abort.
+ * @param[in]  req_orig      Module that originates termination request.
  * @param[in]  notify_abort  If Termination of current operation shall be notified.
  *
  * @retval true   Terminated ongoing operation.
  * @retval false  Ongoing operation was not terminated.
  */
-static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl, bool notify_abort)
+static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl,
+                                        req_originator_t           req_orig,
+                                        bool                       notify_abort)
 {
-    bool result = nrf_drv_radio802154_fsm_hooks_terminate(term_lvl);
+    bool result = nrf_drv_radio802154_fsm_hooks_terminate(term_lvl, req_orig);
 
     if (result)
     {
@@ -1033,7 +1037,11 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl, boo
                     {
                         rx_terminate();
 
-                        nrf_drv_radio802154_notify_receive_failed(NRF_DRV_RADIO802154_RX_ERROR_ABORTED);
+                        if (notify_abort)
+                        {
+                            nrf_drv_radio802154_notify_receive_failed(
+                                    NRF_DRV_RADIO802154_RX_ERROR_ABORTED);
+                        }
                     }
                     else
                     {
@@ -1724,7 +1732,7 @@ void nrf_raal_timeslot_ended(void)
     nrf_fem_control_ppi_disable();
     nrf_fem_control_pin_clear();
 
-    result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_802154, false);
+    result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_802154, REQ_ORIG_RAAL, false);
     assert(result);
 
     switch (m_state)
@@ -1747,7 +1755,7 @@ void nrf_raal_timeslot_ended(void)
         case RADIO_STATE_TX:
         case RADIO_STATE_RX_ACK:
             state_set(RADIO_STATE_RX);
-            transmit_failed_notify(NRF_DRV_RADIO802154_TX_ERROR_TIMESLOT_ENDED);
+            transmit_failed_notify(mp_tx_data, NRF_DRV_RADIO802154_TX_ERROR_TIMESLOT_ENDED);
             break;
 
         case RADIO_STATE_ED:
@@ -2622,7 +2630,7 @@ static void irq_end_state_rx_ack(void)
     }
     else
     {
-        transmit_failed_notify(NRF_DRV_RADIO802154_TX_ERROR_INVALID_ACK);
+        transmit_failed_notify(mp_tx_data, NRF_DRV_RADIO802154_TX_ERROR_INVALID_ACK);
     }
 }
 
@@ -2931,7 +2939,7 @@ static inline void irq_ccabusy_state_tx_frame(void)
     state_set(RADIO_STATE_RX);
     receive_begin(true);
 
-    transmit_failed_notify(NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
+    transmit_failed_notify(mp_tx_data, NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
 }
 
 static inline void irq_ccabusy_state_cca(void)
@@ -3428,7 +3436,7 @@ void nrf_drv_radio802154_fsm_init(void)
 
 void nrf_drv_radio802154_fsm_deinit(void)
 {
-    current_operation_terminate(NRF_DRV_RADIO802154_TERM_802154, true);
+    current_operation_terminate(NRF_DRV_RADIO802154_TERM_802154, REQ_ORIG_HIGHER_LAYER, true);
 
     if (nrf_raal_timeslot_is_granted())
     {
@@ -3452,7 +3460,7 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
 
     if (m_state != RADIO_STATE_SLEEP)
     {
-        result = current_operation_terminate(term_lvl, true);
+        result = current_operation_terminate(term_lvl, REQ_ORIG_FSM, true);
 
         if (result)
         {
@@ -3464,29 +3472,47 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t term_lvl, bool notify_abort)
+bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t     term_lvl,
+                                     req_originator_t               req_orig,
+                                     nrf_drv_radio802154_rx_error_t error)
 {
     bool result = true;
 
     if ((m_state != RADIO_STATE_RX) && (m_state != RADIO_STATE_TX_ACK))
     {
-        result = current_operation_terminate(term_lvl, notify_abort);
+        result = current_operation_terminate(term_lvl, req_orig, (error & 0x0f) == 0x00);
 
         if (result)
         {
             state_set(RADIO_STATE_RX);
             receive_begin(true);
+
+            if (error & 0x0f)
+            {
+                switch (error & 0xf0)
+                {
+                    case 0x00:
+                        transmit_failed_notify(mp_tx_data, error);
+                        break;
+
+                        // TODO: Other error spaces if necessary.
+                    default:
+                        assert(false);
+                }
+            }
         }
     }
 
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
-                                      const uint8_t            * p_data,
-                                      bool                       cca)
+bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t     term_lvl,
+                                      req_originator_t               req_orig,
+                                      const uint8_t                * p_data,
+                                      bool                           cca,
+                                      nrf_drv_radio802154_tx_error_t error)
 {
-    bool result = current_operation_terminate(term_lvl, true);
+    bool result = current_operation_terminate(term_lvl, req_orig, true);
 
     if (result)
     {
@@ -3500,6 +3526,13 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
     if (result)
     {
         state_set(cca ? RADIO_STATE_CCA_TX : RADIO_STATE_TX);
+    }
+    else
+    {
+        if (error & 0x0f)
+        {
+            transmit_failed_notify(p_data, error);
+        }
     }
 
     return result;
@@ -3548,7 +3581,7 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t term_lvl,
 bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lvl,
                                               uint32_t                   time_us)
 {
-    bool result = current_operation_terminate(term_lvl, true);
+    bool result = current_operation_terminate(term_lvl, REQ_ORIG_FSM, true);
 
     if (result)
     {
@@ -3618,7 +3651,7 @@ bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lv
 
 bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
 {
-    bool result = current_operation_terminate(term_lvl, true);
+    bool result = current_operation_terminate(term_lvl, REQ_ORIG_FSM, true);
 
     if (result)
     {
@@ -3680,7 +3713,7 @@ bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
 
 bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
 {
-    bool result = current_operation_terminate(term_lvl, true);
+    bool result = current_operation_terminate(term_lvl, REQ_ORIG_FSM, true);
 
     if (result)
     {
@@ -3778,7 +3811,7 @@ bool nrf_drv_radio802154_fsm_channel_update(void)
                 channel_set(nrf_drv_radio802154_pib_channel_get());
             }
 
-            result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_NONE, true);
+            result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_NONE, REQ_ORIG_FSM, true);
 
             if (result)
             {
