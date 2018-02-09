@@ -409,10 +409,5 @@ bool nrf_drv_radio802154_ack_pending_bit_should_be_set(const uint8_t * p_psdu)
             return true;
     }
 
-    if (nrf_radio_state_get() != NRF_RADIO_STATE_TX_RU)
-    {
-        return false;
-    }
-    
     return addr_index_find(p_src_addr, &location, extended);
 }
