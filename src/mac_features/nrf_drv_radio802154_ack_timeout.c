@@ -47,7 +47,7 @@ static void timeout_timer_retry(void);
 
 static uint32_t                    m_timeout = NRF_DRV_RADIO802154_ACK_TIMEOUT_DEFAULT_TIMEOUT; ///< ACK timeout in us.
 static nrf_drv_radio802154_timer_t m_timer;                                                     ///< Timer used to notify when we are waiting too long for ACK.
-static bool                        m_timer_should_fire;
+static volatile bool               m_timer_should_fire;
 static const uint8_t             * mp_frame;
 
 static void timeout_timer_fired(void * p_context)
@@ -58,7 +58,13 @@ static void timeout_timer_fired(void * p_context)
     {
         if (nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154, false))
         {
-            nrf_drv_radio802154_notify_transmit_failed(mp_frame, NRF_DRV_RADIO802154_TX_ERROR_NO_ACK);
+            // Verify 2nd time to prevent double notification in case higher priority notified
+            // between last check and call to the ...receive() function.
+            if (m_timer_should_fire)
+            {
+                nrf_drv_radio802154_notify_transmit_failed(mp_frame,
+                                                           NRF_DRV_RADIO802154_TX_ERROR_NO_ACK);
+            }
         }
         else
         {
