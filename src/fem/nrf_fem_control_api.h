@@ -39,6 +39,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "hal/nrf_ppi.h"
+#include "hal/nrf_timer.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -99,6 +102,15 @@ typedef struct
     uint8_t                      ppi_ch_id_clr;     /**< PPI channel used for radio pin clearing */
 } nrf_fem_control_cfg_t;
 
+/**
+ * @brief Hardware pins controlled by the Front End Module.
+ */
+typedef enum
+{
+    NRF_FEM_CONTROL_PA_PIN,
+    NRF_FEM_CONTROL_LNA_PIN,
+} nrf_fem_control_pin_t;
+
 /**@brief Set PA & LNA GPIO toggle configuration.
  *
  * @note This function shall not be called when radio is in use.
@@ -127,74 +139,82 @@ void nrf_fem_control_activate(void);
  */
 void nrf_fem_control_deactivate(void);
 
-/**@brief Configure PPI to activate the Power Amplifier (TX) pin of the Front End Module on an
- *        appropriate timer event.
- *
- * */
-void nrf_fem_control_pa_ppi_enable(void);
-
-/**@brief Configure PPI to activate the Low Noise Amplifier (RX) pin of the Front End Module on an
- *        appropriate timer event.
- *
- * */
-void nrf_fem_control_lna_ppi_enable(void);
-
-/**@brief Clear PPI configuration that sets the Power Amplifier (TX) pin of the Front End Module.
- *
- * This function disables a PPI that sets the pin.
- *
- * */
-void nrf_fem_control_pa_ppi_disable(void);
-
-/**@brief Clear PPI configuration that sets the Low Noise Amplifier (RX) pin of the Front End Module.
- *
- * This function disables a PPI that sets the pin.
- *
- * */
-void nrf_fem_control_lna_ppi_disable(void);
-
-/**@brief Calculate target time for a timer, which activates the Power Amplifier pin.
+/**@brief Configure PPI to activate one of the Front End Module pins on an appropriate timer event.
  * 
- * @return Length of the Power Amplifier pin activation delay in microseconds.
+ * @param[in] pin              The Front End Module controlled pin to be connected to the PPI.
+ * @param[in] timer_cc_channel Timer CC channel that triggers the @p pin activation through the PPI.
  *
  * */
-uint32_t nrf_fem_control_pa_delay_get(void);
+void nrf_fem_control_ppi_enable(nrf_fem_control_pin_t pin, nrf_timer_cc_channel_t timer_cc_channel);
 
-/**@brief Calculate target time for a timer, which activates the Low Noise Amplifier pin.
- * 
- * @return Length of the Low Noise Amplifier pin activation delay in microseconds.
+/**@brief Clear PPI configuration used to activate one of Front End Module pins.
  *
  * */
-uint32_t nrf_fem_control_lna_delay_get(void);
+void nrf_fem_control_ppi_disable(void);
+
+/**@brief Calculate target time for a timer, which activates one of the Front End Module pins.
+ * 
+ * @param[in] pin The Front End Module controlled pin to be activated.
+ * 
+ * @return    @p pin activation delay in microseconds.
+ *
+ * */
+uint32_t nrf_fem_control_delay_get(nrf_fem_control_pin_t pin);
 
 /**@brief Clear the Power Amplifier and the Low Noise Amplifier pins immediately.
  *
  * */
-void nrf_fem_control_pa_lna_clear(void);
+void nrf_fem_control_pin_clear(void);
 
-/**@brief Configure and set a timer for the Power Amplifier pin activation.
- *
- * */
-void nrf_fem_control_pa_timer_set(void);
-
-/**@brief Clean timer configuration after Power Amplifier pin deactivation.
- *
- * */
-void nrf_fem_control_pa_timer_reset(void);
-
-/**@brief Setup a fork PPI to start a timer for the Power Amplifier pin activation.
+/**@brief Configure and set a timer for one of the Front End Module pins activation.
  * 
- * @param[in] ppi_channel PPI channel to connect the fork task to.
+ * @param[in] pin              The Front End Module controlled pin to be activated.
+ * @param[in] timer_cc_channel Timer CC channel to set.
+ * @param[in] short_mask       Mask of timer shortcuts to be enabled.
  *
  * */
-void nrf_fem_control_pa_timer_ppi_fork_enable(uint32_t ppi_channel);
+void nrf_fem_control_timer_set(nrf_fem_control_pin_t  pin,
+                               nrf_timer_cc_channel_t timer_cc_channel,
+                               nrf_timer_short_mask_t short_mask);
 
-/**@brief Clean a fork PPI configuration after Power Amplifier pin deactivation.
+/**@brief Clear timer configuration after one of the Front End Module pins deactivation.
  * 
- * @param[in] ppi_channel PPI channel to disconnect the fork task from.
+ * @param[in] pin              The Front End Module controlled pin that was deactivated.
+ * @param[in] short_mask       Mask of timer shortcuts to be disabled.
  *
  * */
-void nrf_fem_control_pa_timer_ppi_fork_disable(uint32_t ppi_channel);
+void nrf_fem_control_timer_reset(nrf_fem_control_pin_t pin, nrf_timer_short_mask_t short_mask);
+
+/**@brief Setup a PPI fork task necessary for one of the Front End Module pins.
+ * 
+ * @param[in] pin              The Front End Module controlled pin that was deactivated.
+ * @param[in] ppi_channel      PPI channel to connect the fork task to.
+ *
+ * */
+void nrf_fem_control_ppi_fork_setup(nrf_fem_control_pin_t pin,
+                                    nrf_ppi_channel_t     ppi_channel,
+                                    uint32_t              task_addr);
+
+/**@brief Setup a PPI task necessary for one of the Front End Module pins.
+ * 
+ * @param[in] pin              The Front End Module controlled pin that was deactivated.
+ * @param[in] ppi_channel      PPI channel to connect the task to.
+ * @param[in] event_addr       Address of the event to be connected to the PPI.
+ * @param[in] task_addr        Address of the task to be connected to the PPI.
+ *
+ * */
+void nrf_fem_control_ppi_task_setup(nrf_fem_control_pin_t pin,
+                                    nrf_ppi_channel_t     ppi_channel,
+                                    uint32_t              event_addr,
+                                    uint32_t              task_addr);
+
+/**@brief Clear a PPI fork task configuration for one of the Front End Module pins.
+ * 
+ * @param[in] pin              The Front End Module controlled pin that was deactivated.
+ * @param[in] ppi_channel      PPI channel to disconnect the fork task from.
+ *
+ * */
+void nrf_fem_control_ppi_fork_clear(nrf_fem_control_pin_t pin, nrf_ppi_channel_t ppi_channel);
 
 #else  // ENABLE_FEM
 
@@ -202,17 +222,16 @@ void nrf_fem_control_pa_timer_ppi_fork_disable(uint32_t ppi_channel);
 #define nrf_fem_control_cfg_get(...)
 #define nrf_fem_control_activate(...)
 #define nrf_fem_control_deactivate(...)
-#define nrf_fem_control_pa_ppi_enable(...)
-#define nrf_fem_control_lna_ppi_enable(...)
-#define nrf_fem_control_pa_ppi_disable(...)
-#define nrf_fem_control_lna_ppi_disable(...)
-#define nrf_fem_control_pa_delay_get(...)              0
-#define nrf_fem_control_lna_delay_get(...)             1
-#define nrf_fem_control_pa_lna_clear(...)
-#define nrf_fem_control_pa_timer_set(...)
-#define nrf_fem_control_pa_timer_reset(...)
-#define nrf_fem_control_pa_timer_ppi_fork_enable(...)
-#define nrf_fem_control_pa_timer_ppi_fork_disable(...)
+#define nrf_fem_control_ppi_enable(...)
+#define nrf_fem_control_ppi_disable(...)
+#define nrf_fem_control_delay_get(...)   1
+#define nrf_fem_control_pin_clear(...)
+#define nrf_fem_control_timer_set(...)
+#define nrf_fem_control_timer_reset(...)
+#define nrf_fem_control_ppi_fork_setup(...)
+#define nrf_fem_control_ppi_task_setup(...)
+#define nrf_fem_control_ppi_task_and_fork_setup(...)
+#define nrf_fem_control_ppi_fork_clear(...)
 
 #endif // ENABLE_FEM
 
