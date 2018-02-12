@@ -216,6 +216,21 @@ void nrf_fem_control_ppi_task_setup(nrf_fem_control_pin_t pin,
  * */
 void nrf_fem_control_ppi_fork_clear(nrf_fem_control_pin_t pin, nrf_ppi_channel_t ppi_channel);
 
+/**@brief Setup PPI task and fork that set or clear Front End Module pins on a given event.
+ * 
+ * @param[in] ppi_channel      PPI channel to connect the task and fork to.
+ * @param[in] event_addr       Address of the event to be connected to the PPI.
+ * @param[in] lna_pin_set      If true, the Low Noise Amplifier pin will be set on the event @p event_addr.
+ *                             Otherwise, it will be cleared.
+ * @param[in] pa_pin_set       If true, the Power Amplifier pin will be set on the event @p event_addr.
+ *                             Otherwise, it will be cleared.
+ *
+ * */
+void nrf_fem_control_ppi_pin_task_setup(nrf_ppi_channel_t ppi_channel,
+                                        uint32_t          event_addr,
+                                        bool              lna_pin_set,
+                                        bool              pa_pin_set);
+
 #else  // ENABLE_FEM
 
 #define nrf_fem_control_cfg_set(...)
@@ -232,6 +247,7 @@ void nrf_fem_control_ppi_fork_clear(nrf_fem_control_pin_t pin, nrf_ppi_channel_t
 #define nrf_fem_control_ppi_task_setup(...)
 #define nrf_fem_control_ppi_task_and_fork_setup(...)
 #define nrf_fem_control_ppi_fork_clear(...)
+#define nrf_fem_control_ppi_pin_task_setup(...)
 
 #endif // ENABLE_FEM
 

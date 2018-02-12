@@ -297,3 +297,44 @@ void nrf_fem_control_ppi_fork_clear(nrf_fem_control_pin_t pin, nrf_ppi_channel_t
     
     nrf_ppi_fork_endpoint_setup(ppi_channel, 0);
 }
+
+void nrf_fem_control_ppi_pin_task_setup(nrf_ppi_channel_t ppi_channel,
+                                        uint32_t          event_addr,
+                                        bool              lna_pin_set,
+                                        bool              pa_pin_set)
+{
+    uint32_t lna_task_addr = 0;
+    uint32_t pa_task_addr  = 0;
+
+    if (m_nrf_fem_control_cfg.lna_cfg.enable)
+    {
+        if ((lna_pin_set && m_nrf_fem_control_cfg.lna_cfg.active_high) ||
+            (!lna_pin_set && !m_nrf_fem_control_cfg.lna_cfg.active_high))
+        {
+            lna_task_addr = (uint32_t)(&NRF_GPIOTE->TASKS_SET[m_nrf_fem_control_cfg.lna_gpiote_ch_id]);
+        }
+        else
+        {
+            lna_task_addr = (uint32_t)(&NRF_GPIOTE->TASKS_CLR[m_nrf_fem_control_cfg.lna_gpiote_ch_id]);
+        }
+    }
+
+    if (m_nrf_fem_control_cfg.pa_cfg.enable)
+    {
+        if ((pa_pin_set && m_nrf_fem_control_cfg.pa_cfg.active_high) ||
+            (!pa_pin_set && !m_nrf_fem_control_cfg.pa_cfg.active_high))
+        {
+            pa_task_addr = (uint32_t)(&NRF_GPIOTE->TASKS_SET[m_nrf_fem_control_cfg.pa_gpiote_ch_id]);
+        }
+        else
+        {
+            pa_task_addr = (uint32_t)(&NRF_GPIOTE->TASKS_CLR[m_nrf_fem_control_cfg.pa_gpiote_ch_id]);
+        }
+    }
+
+    if (lna_task_addr != 0 || pa_task_addr != 0)
+    {
+        nrf_ppi_channel_and_fork_endpoint_setup(ppi_channel, event_addr, lna_task_addr, pa_task_addr);
+        nrf_ppi_channel_enable(ppi_channel);
+    }
+}
