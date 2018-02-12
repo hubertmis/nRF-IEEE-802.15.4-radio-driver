@@ -1950,6 +1950,13 @@ static inline void irq_bcmatch_state_rx(void)
     num_psdu_bytes      = nrf_radio_bcc_get() / 8;
     prev_num_psdu_bytes = num_psdu_bytes;
 
+    // If CRCERROR event is set, it means that events are handled out of order due to software
+    // latency. Just skip this handler in this case - frame will be dropped.
+    if (nrf_radio_event_get(NRF_RADIO_EVENT_CRCERROR))
+    {
+        return;
+    }
+
     if (!m_flags.rx_timeslot_requested)
     {
         assert(num_psdu_bytes >= PHR_SIZE + FCF_SIZE);
@@ -2235,6 +2242,16 @@ static inline void irq_crcok_state_rx(void)
                 }
             }
         }
+    }
+    else
+    {
+        // CRC is OK, but filtering operation did not end - it is invalid frame with valid CRC
+        // or problem due to software latency (i.e. handled BCMATCH, CRCERROR, CRCOK from two
+        // consecutively received frames).
+        rx_terminate();
+        receive_begin(true);
+
+        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
     }
 }
 
@@ -3137,30 +3154,63 @@ static inline void irq_handler(void)
 
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     // Check MAC frame header.
-    if (nrf_radio_int_get(NRF_RADIO_INT_BCMATCH_MASK) && nrf_radio_event_get(NRF_RADIO_EVENT_BCMATCH))
+    if (nrf_radio_int_get(NRF_RADIO_INT_BCMATCH_MASK) &&
+        nrf_radio_event_get(NRF_RADIO_EVENT_BCMATCH))
     {
+        nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_EVENT_BCMATCH);
         nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
 
-        // TODO: switch states, add logs
-        irq_bcmatch_state_rx();
+        switch (m_state)
+        {
+            case RADIO_STATE_RX:
+                irq_bcmatch_state_rx();
+                break;
+
+            default:
+                assert(false);
+        }
+
+        nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_BCMATCH);
     }
 
-    if (nrf_radio_int_get(NRF_RADIO_INT_CRCERROR_MASK) && nrf_radio_event_get(NRF_RADIO_EVENT_CRCERROR))
+    if (nrf_radio_int_get(NRF_RADIO_INT_CRCERROR_MASK) &&
+        nrf_radio_event_get(NRF_RADIO_EVENT_CRCERROR))
     {
+        nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_EVENT_CRCERROR);
         nrf_radio_event_clear(NRF_RADIO_EVENT_CRCERROR);
 
-        // TODO: switch states, add logs
-        irq_crcerror_state_rx();
+        switch (m_state)
+        {
+            case RADIO_STATE_RX:
+                irq_crcerror_state_rx();
+                break;
+
+            default:
+                assert(false);
+        }
+
+        nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_CRCERROR);
     }
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
 
-    if (nrf_radio_int_get(NRF_RADIO_INT_CRCOK_MASK) && nrf_radio_event_get(NRF_RADIO_EVENT_CRCOK))
+    if (nrf_radio_int_get(NRF_RADIO_INT_CRCOK_MASK) &&
+        nrf_radio_event_get(NRF_RADIO_EVENT_CRCOK))
     {
+        nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_EVENT_CRCOK);
         nrf_radio_event_clear(NRF_RADIO_EVENT_CRCOK);
 
-        // TODO: switch states, add logs
-        irq_crcok_state_rx();
+        switch (m_state)
+        {
+            case RADIO_STATE_RX:
+                irq_crcok_state_rx();
+                break;
+
+            default:
+                assert(false);
+        }
+
+        nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_CRCOK);
     }
 
     if (nrf_drv_radio802154_revision_has_phyend_event() &&

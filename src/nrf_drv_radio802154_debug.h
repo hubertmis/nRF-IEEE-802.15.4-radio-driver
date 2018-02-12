@@ -68,6 +68,8 @@ extern "C" {
 #define FUNCTION_EVENT_CCABUSY                 0x0107UL
 #define FUNCTION_EVENT_EDEND                   0x0108UL
 #define FUNCTION_EVENT_PHYEND                  0x0109UL
+#define FUNCTION_EVENT_CRCOK                   0x010AUL
+#define FUNCTION_EVENT_CRCERROR                0x010BUL
 
 #define FUNCTION_AUTO_ACK_ABORT                0x0201UL
 #define FUNCTION_TIMESLOT_STARTED              0x0202UL
