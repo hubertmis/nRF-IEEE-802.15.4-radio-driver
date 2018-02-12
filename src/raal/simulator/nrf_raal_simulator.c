@@ -220,20 +220,9 @@ uint32_t nrf_raal_timeslot_us_left_get(void)
 
 void nrf_drv_radio802154_clock_hfclk_ready(void)
 {
-    uint32_t timer;
-
-    NRF_TIMER0->TASKS_CAPTURE[3] = 1;
-    timer = NRF_TIMER0->CC[3];
-
-    if (timer > m_ble_duty * 1000UL &&
-        timer < (m_time_interval * 1000UL) - m_pre_preemption_notification)
-    {
-        nrf_raal_critical_section_enter(); // To make sure granting is not interrupted by revoking.
-
-        continuous_grant();
-
-        nrf_raal_critical_section_exit();
-    }
+    // Just wait for next timeslot to report that timeslot is ready.
+    // It is hard to report start of timeslot from this context due to races (i.e. different
+    // priorities of TIMER0, CLOCK, RADIO).
 }
 
 void TIMER0_IRQHandler(void)
