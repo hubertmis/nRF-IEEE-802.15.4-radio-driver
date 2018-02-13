@@ -806,8 +806,11 @@ static void rx_terminate(void)
 
     if (nrf_raal_timeslot_is_granted())
     {
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
+        ints_to_disable |= NRF_RADIO_INT_CRCERROR_MASK;
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-        ints_to_disable |= (NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
+        ints_to_disable |= NRF_RADIO_INT_BCMATCH_MASK;
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
         ints_to_disable |= NRF_RADIO_INT_CRCOK_MASK;
         nrf_radio_int_disable(ints_to_disable);
@@ -1264,10 +1267,13 @@ static void receive_begin(bool disabled_was_triggered)
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
     // Enable IRQs
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
+    nrf_radio_event_clear(NRF_RADIO_EVENT_CRCERROR);
+    ints_to_enable |= NRF_RADIO_INT_CRCERROR_MASK;
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING ||NRF_DRV_RADIO802154_NOTIFY_CRCERROR
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-    nrf_radio_event_clear(NRF_RADIO_EVENT_CRCERROR);
-    ints_to_enable |= NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK;
+    ints_to_enable |= NRF_RADIO_INT_BCMATCH_MASK;
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_event_clear(NRF_RADIO_EVENT_CRCOK);
     ints_to_enable |= NRF_RADIO_INT_CRCOK_MASK;
@@ -2040,13 +2046,20 @@ static inline void irq_bcmatch_state_rx(void)
         }
     }
 }
+#endif //!NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
 static inline void irq_crcerror_state_rx(void)
 {
     rx_flags_clear();
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_bcc_set(BCC_INIT);
-}
 #endif //!NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+#if NRF_DRV_RADIO802154_NOTIFY_CRCERROR
+    receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FCS);
+#endif //NRF_DRV_RADIO802154_NOTIFY_CRCERROR
+}
+#endif //!NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
 
 static inline void irq_crcok_state_rx(void)
 {
@@ -2165,8 +2178,11 @@ static inline void irq_crcok_state_rx(void)
                 state_set(RADIO_STATE_TX_ACK);
 
                 // Set event handlers
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
+                ints_to_disable |= NRF_RADIO_INT_CRCERROR_MASK;
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-                ints_to_disable |= (NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK);
+                ints_to_disable |= NRF_RADIO_INT_BCMATCH_MASK;
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
                 ints_to_disable |= NRF_RADIO_INT_CRCOK_MASK;
                 nrf_radio_int_disable(ints_to_disable);
@@ -2470,10 +2486,13 @@ static void irq_phyend_state_tx_ack(void)
 
     nrf_radio_int_disable(ints_to_disable);
 
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
+    nrf_radio_event_clear(NRF_RADIO_EVENT_CRCERROR);
+    ints_to_enable |= NRF_RADIO_INT_CRCERROR_MASK;
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING ||NRF_DRV_RADIO802154_NOTIFY_CRCERROR
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_event_clear(NRF_RADIO_EVENT_BCMATCH);
-    nrf_radio_event_clear(NRF_RADIO_EVENT_CRCERROR);
-    ints_to_enable |= NRF_RADIO_INT_BCMATCH_MASK | NRF_RADIO_INT_CRCERROR_MASK;
+    ints_to_enable |= NRF_RADIO_INT_BCMATCH_MASK;
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_radio_event_clear(NRF_RADIO_EVENT_CRCOK);
     ints_to_enable |= NRF_RADIO_INT_CRCOK_MASK;
@@ -3198,6 +3217,9 @@ static inline void irq_handler(void)
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_BCMATCH);
     }
 
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+
+#if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
     if (nrf_radio_int_get(NRF_RADIO_INT_CRCERROR_MASK) &&
         nrf_radio_event_get(NRF_RADIO_EVENT_CRCERROR))
     {
@@ -3216,7 +3238,7 @@ static inline void irq_handler(void)
 
         nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_CRCERROR);
     }
-#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
+#endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
 
 
     if (nrf_radio_int_get(NRF_RADIO_INT_CRCOK_MASK) &&

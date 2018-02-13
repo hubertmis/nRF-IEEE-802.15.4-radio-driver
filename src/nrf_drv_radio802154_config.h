@@ -207,6 +207,16 @@ extern "C" {
 #endif
 
 /**
+ * @def NRF_DRV_RADIO802154_NOTIFY_CRCERROR
+ *
+ * With this flag set to 1 CRC errors would be notified to upper layers. This requires interrupt handler to be used.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_NOTIFY_CRCERROR
+#define NRF_DRV_RADIO802154_NOTIFY_CRCERROR  1
+#endif
+
+/**
  * @def NRF_DRV_RADIO802154_FRAME_TIMESTAMP_ENABLED
  *
  * If timestamps should be added to received frames.
