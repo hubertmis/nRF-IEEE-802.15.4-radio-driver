@@ -201,6 +201,7 @@ nrf_drv_radio802154_state_t nrf_drv_radio802154_state_get(void)
     switch (nrf_drv_radio802154_fsm_state_get())
     {
     case RADIO_STATE_SLEEP:
+    case RADIO_STATE_FALLING_ASLEEP:
         return NRF_DRV_RADIO802154_STATE_SLEEP;
 
     case RADIO_STATE_RX:

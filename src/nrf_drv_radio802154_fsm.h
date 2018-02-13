@@ -53,25 +53,26 @@ extern "C" {
 typedef enum
 {
     // Sleep
-    RADIO_STATE_SLEEP,              // Low power (DISABLED) mode
+    RADIO_STATE_SLEEP,              ///< Low power (DISABLED) mode - the only state in which HF clock is released and RAAL disabled.
+    RADIO_STATE_FALLING_ASLEEP,     ///< Prior entering SLEEP state RAAL and HF clock are active.
 
     // Receive
-    RADIO_STATE_RX,                 // Receiver is enabled and it is receiving frames
-    RADIO_STATE_TX_ACK,             // Received frame and transmitting ACK
+    RADIO_STATE_RX,                 ///< Receiver is enabled and it is receiving frames.
+    RADIO_STATE_TX_ACK,             ///< Received frame and transmitting ACK.
 
     // Transmit
-    RADIO_STATE_CCA_TX,             // Performing CCA followed by frame transmission
-    RADIO_STATE_TX,                 // Transmitting data frame (or beacon)
-    RADIO_STATE_RX_ACK,             // Receiving ACK after transmitted frame
+    RADIO_STATE_CCA_TX,             ///< Performing CCA followed by frame transmission.
+    RADIO_STATE_TX,                 ///< Transmitting data frame (or beacon).
+    RADIO_STATE_RX_ACK,             ///< Receiving ACK after transmitted frame.
 
     // Energy Detection
-    RADIO_STATE_ED,                 // Performing Energy Detection procedure
+    RADIO_STATE_ED,                 ///< Performing Energy Detection procedure.
 
     // CCA
-    RADIO_STATE_CCA,                // Performing CCA procedure
+    RADIO_STATE_CCA,                ///< Performing CCA procedure.
 
     // Continuous carrier
-    RADIO_STATE_CONTINUOUS_CARRIER, // Emitting continuous carrier wave.
+    RADIO_STATE_CONTINUOUS_CARRIER, ///< Emitting continuous carrier wave.
 } radio_state_t;
 
 /**

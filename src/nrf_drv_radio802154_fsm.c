@@ -245,12 +245,6 @@ static void rx_flags_clear(void)
 #endif // !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 }
 
-/// Common procedure when the driver enters SLEEP state.
-static inline void sleep_start(void)
-{
-    nrf_drv_radio802154_priority_drop_timeslot_exit();
-}
-
 /// Start receiver to wait for frames.
 static inline void rx_start(void)
 {
@@ -768,8 +762,8 @@ static inline bool ed_iter_setup(uint32_t time_us)
  * @section FSM transition request sub-procedures
  **************************************************************************************************/
 
-/** Terminate Sleep procedure. */
-static void sleep_terminate(void)
+/** Terminate Falling Asleep procedure. */
+static void falling_asleep_terminate(void)
 {
     if (nrf_raal_timeslot_is_granted())
     {
@@ -1036,8 +1030,11 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl,
         switch (m_state)
         {
             case RADIO_STATE_SLEEP:
-                sleep_terminate();
                 nrf_raal_continuous_mode_enter();
+                break;
+
+            case RADIO_STATE_FALLING_ASLEEP:
+                falling_asleep_terminate();
                 break;
 
             case RADIO_STATE_RX:
@@ -1197,12 +1194,19 @@ static bool ppi_egu_worked(void)
     }
 }
 
-/** Prepare to enter Sleep state. */
+/** Enter Sleep state. */
 static void sleep_begin(void)
+{
+    nrf_drv_radio802154_priority_drop_timeslot_exit();
+}
+
+/** Begin Falling Asleep operation. */
+static void falling_asleep_begin(void)
 {
     if (!nrf_raal_timeslot_is_granted())
     {
-        sleep_start();
+        state_set(RADIO_STATE_SLEEP);
+        sleep_begin();
         return;
     }
 
@@ -1212,7 +1216,9 @@ static void sleep_begin(void)
     if (nrf_radio_state_get() == NRF_RADIO_STATE_DISABLED)
     {
         // Radio is already disabled. Enter sleep state directly.
-        sleep_start();
+        falling_asleep_terminate();
+        state_set(RADIO_STATE_SLEEP);
+        sleep_begin();
     }
 }
 
@@ -1778,6 +1784,11 @@ void nrf_raal_timeslot_ended(void)
         case RADIO_STATE_SLEEP:
             // Detect if timeslot is incorrectly entered again by current_operation_terminate()
             assert(false);
+            break;
+
+        case RADIO_STATE_FALLING_ASLEEP:
+            state_set(RADIO_STATE_SLEEP);
+            sleep_begin();
             break;
 
         case RADIO_STATE_RX:
@@ -2733,9 +2744,11 @@ static inline void irq_end_state_rx_ack(void)
 }
 #endif
 
-static void irq_disabled_state_sleep(void)
+static void irq_disabled_state_falling_asleep(void)
 {
-    sleep_start();
+    falling_asleep_terminate();
+    state_set(RADIO_STATE_SLEEP);
+    sleep_begin();
 }
 
 /// This event is generated when radio peripheral disables in order to enter sleep state.
@@ -2743,7 +2756,7 @@ static inline void irq_disabled_state_disabling(void)
 {
     assert(nrf_radio_shorts_get() == SHORTS_IDLE);
     assert(nrf_radio_state_get() == NRF_RADIO_STATE_DISABLED);
-    sleep_start();
+    sleep_begin();
 }
 
 /** This event is generated when the driver enters receive state.
@@ -3327,8 +3340,8 @@ static inline void irq_handler(void)
 
         switch (m_state)
         {
-            case RADIO_STATE_SLEEP:
-                irq_disabled_state_sleep();
+            case RADIO_STATE_FALLING_ASLEEP:
+                irq_disabled_state_falling_asleep();
                 break;
 #if 0
             case RADIO_STATE_RX:
@@ -3565,14 +3578,14 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
 {
     bool result = true;
 
-    if (m_state != RADIO_STATE_SLEEP)
+    if ((m_state != RADIO_STATE_SLEEP) && (m_state != RADIO_STATE_FALLING_ASLEEP))
     {
         result = current_operation_terminate(term_lvl, REQ_ORIG_FSM, true);
 
         if (result)
         {
-            state_set(RADIO_STATE_SLEEP);
-            sleep_begin();
+            state_set(RADIO_STATE_FALLING_ASLEEP);
+            falling_asleep_begin();
         }
     }
 
@@ -3960,6 +3973,7 @@ bool nrf_drv_radio802154_fsm_channel_update(void)
             break;
 
         case RADIO_STATE_SLEEP:
+        case RADIO_STATE_FALLING_ASLEEP:
         case RADIO_STATE_ED:
             // Don't perform any action in these states (channel will be updated on state change).
             break;

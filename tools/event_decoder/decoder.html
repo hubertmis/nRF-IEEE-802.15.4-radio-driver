@@ -99,27 +99,30 @@
                             ret += "RADIO_STATE_SLEEP";
                         break;
                         case 1:
-                            ret += "RADIO_STATE_RX";
+                            ret += "RADIO_STATE_FALLING_ASLEEP";
                         break;
                         case 2:
-                            ret += "RADIO_STATE_TX_ACK";
+                            ret += "RADIO_STATE_RX";
                         break;
                         case 3:
-                            ret += "RADIO_STATE_CCA_TX";
+                            ret += "RADIO_STATE_TX_ACK";
                         break;
                         case 4:
-                            ret += "RADIO_STATE_TX";
+                            ret += "RADIO_STATE_CCA_TX";
                         break;
                         case 5:
-                            ret += "RADIO_STATE_RX_ACK";
+                            ret += "RADIO_STATE_TX";
                         break;
                         case 6:
-                            ret += "RADIO_STATE_ED";
+                            ret += "RADIO_STATE_RX_ACK";
                         break;
                         case 7:
-                            ret += "RADIO_STATE_CCA";
+                            ret += "RADIO_STATE_ED";
                         break;
                         case 8:
+                            ret += "RADIO_STATE_CCA";
+                        break;
+                        case 9:
                             ret += "RADIO_STATE_CONTINUOUS_CARRIER";
                         break;
                         default:
