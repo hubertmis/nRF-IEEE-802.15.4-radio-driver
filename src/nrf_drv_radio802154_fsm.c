@@ -2035,6 +2035,7 @@ static inline void irq_crcok_state_rx(void)
     uint8_t * p_received_psdu = mp_current_rx_buffer->psdu;
     uint32_t  ints_to_disable = 0;
     uint32_t  ints_to_enable  = 0;
+    bool      invalid_frame   = false;
 #if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     uint8_t num_psdu_bytes      = PHR_SIZE + FCF_SIZE;
     uint8_t prev_num_psdu_bytes = 0;
@@ -2055,18 +2056,7 @@ static inline void irq_crcok_state_rx(void)
         }
         else
         {
-            // If checking of any of the parts fails, break the loop.
-            if (!nrf_drv_radio802154_pib_promiscuous_get())
-            {
-                rx_terminate();
-                receive_begin(true);
-
-                if ((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK)
-                {
-                    receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME);
-                }
-            }
-
+            invalid_frame = true;
             break;
         }
     }
@@ -2262,7 +2252,11 @@ static inline void irq_crcok_state_rx(void)
         rx_terminate();
         receive_begin(true);
 
-        receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
+        if ((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK)
+        {
+            receive_failed_notify(invalid_frame ? NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME :
+                                  NRF_DRV_RADIO802154_RX_ERROR_RUNTIME);
+        }
     }
 }
 
