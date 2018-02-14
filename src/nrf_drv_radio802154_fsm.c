@@ -73,22 +73,20 @@
 #define PPI_CH4             NRF_PPI_CHANNEL10
 #define PPI_CH5             NRF_PPI_CHANNEL11
 #define PPI_CH6             NRF_PPI_CHANNEL12
-#define PPI_CH7             NRF_PPI_CHANNEL13
-#define PPI_CHGRP0          NRF_PPI_CHANNEL_GROUP0
+#define PPI_CHGRP0          NRF_PPI_CHANNEL_GROUP0  ///< PPI group used to disable self-disabling PPIs
 #define PPI_CHGRP0_DIS_TASK NRF_PPI_TASK_CHG0_DIS
-#define PPI_CHGRP0_EN_TASK  NRF_PPI_TASK_CHG0_EN
 
-#define PPI_DISABLED_EGU            PPI_CH0
-#define PPI_EGU_RAMP_UP             PPI_CH1
-#define PPI_EGU_TIMER_START         PPI_CH2
-#define PPI_CRCERROR_CLEAR          PPI_CH3
-#define PPI_CCAIDLE_FEM             PPI_CH3
-#define PPI_TIMER_TX_ACK            PPI_CH3
-#define PPI_CRCOK_DIS_PPI           PPI_CH4
+#define PPI_DISABLED_EGU            PPI_CH0  ///< PPI that connects RADIO DISABLED event with EGU task
+#define PPI_EGU_RAMP_UP             PPI_CH1  ///< PPI that connects EGU event with RADIO TXEN or RXEN task
+#define PPI_EGU_TIMER_START         PPI_CH2  ///< PPI that connects EGU event with TIMER START task
+#define PPI_CRCERROR_CLEAR          PPI_CH3  ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
+#define PPI_CCAIDLE_FEM             PPI_CH3  ///< PPI that connects RADIO CCAIDLE event with GPIOTE tasks used by FEM
+#define PPI_TIMER_TX_ACK            PPI_CH3  ///< PPI that connects TIMER COMPARE event with RADIO TXEN task
+#define PPI_CRCOK_DIS_PPI           PPI_CH4  ///< PPI that connects RADIO CRCOK event with task that disables PPI group
 
 #if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
-#define PPI_ADDRESS_COUNTER_COUNT   PPI_CH5
-#define PPI_CRCERROR_COUNTER_CLEAR  PPI_CH6
+#define PPI_ADDRESS_COUNTER_COUNT   PPI_CH5  ///< PPI that connects RADIO ADDRESS event with TIMER COUNT task
+#define PPI_CRCERROR_COUNTER_CLEAR  PPI_CH6  ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
 #endif // NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
 /// Workaround for missing PHYEND event in older chip revision.
@@ -152,6 +150,10 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 #define MHMU_MASK               0xff000700  ///< Mask of known bytes in ACK packet
 #define MHMU_PATTERN            0x00000200  ///< Values of known bytes in ACK packet
 #define MHMU_PATTERN_DSN_OFFSET 24          ///< Offset of DSN in MHMU_PATTER [bits]
+
+#define ACK_IFS    TURNAROUND_TIME  ///< Ack Inter Frame Spacing [us] - delay between last symbol of received frame and first symbol of transmitted Ack
+#define TXRU_TIME  40               ///< Transmitter ramp up time [us]
+#define EVENT_LAT  23               ///< END event latency [us]
 
 /** Get LQI of given received packet. If CRC is calculated by hardware LQI is included instead of CRC
  *  in the frame. Length is stored in byte with index 0; CRC is 2 last bytes.
@@ -1186,10 +1188,16 @@ static void rx_init(bool disabled_was_triggered)
     pa_target_time  = nrf_fem_control_delay_get(NRF_FEM_CONTROL_PA_PIN);
 
     // Set TIMER to transmit ACK
-    nrf_timer_shorts_enable(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK | NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
+    nrf_timer_shorts_enable(NRF_DRV_RADIO802154_TIMER_INSTANCE,
+                            NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
+                            NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
     nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, lna_target_time);
-    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL1, lna_target_time + 192 - 40 -23); // 40 is ramp up, 23 is event latency
-    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL2, lna_target_time + 192 - 40 -23 + pa_target_time);
+    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE,
+                       NRF_TIMER_CC_CHANNEL1,
+                       lna_target_time + ACK_IFS - TXRU_TIME - EVENT_LAT);
+    nrf_timer_cc_write(NRF_DRV_RADIO802154_TIMER_INSTANCE,
+                       NRF_TIMER_CC_CHANNEL2,
+                       lna_target_time + ACK_IFS - TXRU_TIME - EVENT_LAT + pa_target_time);
 
 #if NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
     nrf_timer_shorts_enable(NRF_DRV_RADIO802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
