@@ -383,14 +383,14 @@ static void channel_set(uint8_t channel)
  **************************************************************************************************/
 
 /// Set valid sequence number in ACK frame.
-static inline void ack_prepare(void)
+static void ack_prepare(void)
 {
     // Copy sequence number from received frame to ACK frame.
     m_ack_psdu[DSN_OFFSET] = mp_current_rx_buffer->psdu[DSN_OFFSET];
 }
 
 /// Set pending bit in ACK frame.
-static inline void ack_pending_bit_set(void)
+static void ack_pending_bit_set(void)
 {
     m_ack_psdu[FRAME_PENDING_OFFSET] = ACK_HEADER_WITH_PENDING;
 
@@ -407,7 +407,7 @@ static inline void ack_pending_bit_set(void)
  * @retval  true   ACK is requested in given frame.
  * @retval  false  ACK is not requested in given frame.
  */
-static inline bool ack_is_requested(const uint8_t * p_frame)
+static bool ack_is_requested(const uint8_t * p_frame)
 {
     return (p_frame[ACK_REQUEST_OFFSET] & ACK_REQUEST_BIT) ? true : false;
 }
@@ -417,7 +417,7 @@ static inline bool ack_is_requested(const uint8_t * p_frame)
  **************************************************************************************************/
 
 /** Enable hardware ACK matching accelerator. */
-static inline void ack_matching_enable(void)
+static void ack_matching_enable(void)
 {
     nrf_radio_event_clear(NRF_RADIO_EVENT_MHRMATCH);
     nrf_radio_mhmu_search_pattern_set(MHMU_PATTERN |
@@ -426,7 +426,7 @@ static inline void ack_matching_enable(void)
 }
 
 /** Disable hardware ACK matching accelerator. */
-static inline void ack_matching_disable(void)
+static void ack_matching_disable(void)
 {
     nrf_radio_mhmu_search_pattern_set(0);
     nrf_radio_event_clear(NRF_RADIO_EVENT_MHRMATCH);
@@ -437,7 +437,7 @@ static inline void ack_matching_disable(void)
  * @retval  true   ACK matching accelerator matched ACK pattern.
  * @retval  false  ACK matching accelerator did not match ACK pattern.
  */
-static inline bool ack_is_matched(void)
+static bool ack_is_matched(void)
 {
     return (nrf_radio_event_get(NRF_RADIO_EVENT_MHRMATCH)) &&
             (nrf_radio_crc_status_get() == NRF_RADIO_CRC_STATUS_OK);
@@ -535,7 +535,7 @@ static void nrf_timer_init(void)
  *  @retval  false  Next iteration of energy detection procedure will not be performed now due to
  *                  ending timeslot.
  */
-static inline bool ed_iter_setup(uint32_t time_us)
+static bool ed_iter_setup(uint32_t time_us)
 {
     uint32_t us_left_in_timeslot = nrf_raal_timeslot_us_left_get();
     uint32_t next_ed_iters       = us_left_in_timeslot / ED_ITER_DURATION;
@@ -1586,7 +1586,7 @@ static void irq_address_state_tx_ack(void)
 
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 /// This event is generated during frame reception to request RAAL timeslot and to filter frame
-static inline void irq_bcmatch_state_rx(void)
+static void irq_bcmatch_state_rx(void)
 {
     uint8_t prev_num_psdu_bytes;
     uint8_t num_psdu_bytes;
@@ -1658,7 +1658,7 @@ static inline void irq_bcmatch_state_rx(void)
 #endif //!NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
 
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
-static inline void irq_crcerror_state_rx(void)
+static void irq_crcerror_state_rx(void)
 {
     rx_flags_clear();
 #if !NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING
@@ -1670,7 +1670,7 @@ static inline void irq_crcerror_state_rx(void)
 }
 #endif //!NRF_DRV_RADIO802154_DISABLE_BCC_MATCHING || NRF_DRV_RADIO802154_NOTIFY_CRCERROR
 
-static inline void irq_crcok_state_rx(void)
+static void irq_crcok_state_rx(void)
 {
     uint8_t * p_received_psdu = mp_current_rx_buffer->psdu;
     uint32_t  ints_to_disable = 0;
@@ -2137,7 +2137,7 @@ static void irq_disabled_state_falling_asleep(void)
 }
 
 /// This event is generated when CCA reports idle channel during stand-alone procedure.
-static inline void irq_ccaidle_state_cca(void)
+static void irq_ccaidle_state_cca(void)
 {
     cca_terminate();
     state_set(RADIO_STATE_RX);
@@ -2146,7 +2146,7 @@ static inline void irq_ccaidle_state_cca(void)
     cca_notify(true);
 }
 
-static inline void irq_ccabusy_state_tx_frame(void)
+static void irq_ccabusy_state_tx_frame(void)
 {
     tx_terminate();
     state_set(RADIO_STATE_RX);
@@ -2155,7 +2155,7 @@ static inline void irq_ccabusy_state_tx_frame(void)
     transmit_failed_notify(mp_tx_data, NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
 }
 
-static inline void irq_ccabusy_state_cca(void)
+static void irq_ccabusy_state_cca(void)
 {
     cca_terminate();
     state_set(RADIO_STATE_RX);
@@ -2165,7 +2165,7 @@ static inline void irq_ccabusy_state_cca(void)
 }
 
 /// This event is generated when energy detection procedure ends.
-static inline void irq_edend_state_ed(void)
+static void irq_edend_state_ed(void)
 {
     uint32_t result = nrf_radio_ed_sample_get();
     m_ed_result     = result > m_ed_result ? result : m_ed_result;
@@ -2195,7 +2195,7 @@ static inline void irq_edend_state_ed(void)
 }
 
 /// Handler of radio interrupts.
-static inline void irq_handler(void)
+static void irq_handler(void)
 {
     nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_IRQ_HANDLER);
 
