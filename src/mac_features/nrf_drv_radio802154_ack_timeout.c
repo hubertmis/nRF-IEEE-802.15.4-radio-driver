@@ -36,6 +36,7 @@
 
 #include "nrf_drv_radio802154_ack_timeout.h"
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -122,7 +123,7 @@ bool nrf_drv_radio802154_ack_timeout_abort(nrf_drv_radio802154_term_t term_lvl,
 
 void nrf_drv_radio802154_ack_timeout_transmitted_hook(const uint8_t * p_frame)
 {
-    (void)p_frame; // It is not possible to get this hook for other frame than tx_started_hook.
+    assert(p_frame == mp_frame); // It is not possible to get this hook for other frame than tx_started_hook.
 
     timeout_timer_stop();
 }
@@ -130,7 +131,7 @@ void nrf_drv_radio802154_ack_timeout_transmitted_hook(const uint8_t * p_frame)
 bool nrf_drv_radio802154_ack_timeout_tx_failed_hook(const uint8_t                * p_frame,
                                                     nrf_drv_radio802154_tx_error_t error)
 {
-    (void)p_frame; // It is not possible to get this hook for other frame than tx_started_hook.
+    assert(p_frame == mp_frame); // It is not possible to get this hook for other frame than tx_started_hook.
 
     timeout_timer_stop();
 
