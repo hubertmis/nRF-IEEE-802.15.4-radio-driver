@@ -581,7 +581,13 @@ static inline bool ed_iter_setup(uint32_t time_us)
  * @section FSM transition request sub-procedures
  **************************************************************************************************/
 
-/** Wait necessary time to make sure PPIs and EGU marked event if it was triggered. */
+/** Wait time needed to propagate event through PPI to EGU.
+ *
+ * During detection if trigger of DISABLED event caused start of hardware procedure, detecting
+ * function needs to wait until event is propagated from RADIO through PPI to EGU. This delay is
+ * required to make sure EGU event is set if hardware was prepared before DISABLED event was
+ * triggered.
+ */
 static inline void ppi_and_egu_delay_wait(void)
 {
     __ASM("nop");
