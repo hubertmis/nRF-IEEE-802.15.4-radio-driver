@@ -179,42 +179,36 @@ void nrf_fem_control_timer_set(nrf_fem_control_pin_t  pin,
 
 /**@brief Clear timer configuration after one of the Front End Module pins deactivation.
  * 
- * @param[in] pin              The Front End Module controlled pin that was deactivated.
  * @param[in] short_mask       Mask of timer shortcuts to be disabled.
  *
  * */
-void nrf_fem_control_timer_reset(nrf_fem_control_pin_t pin, nrf_timer_short_mask_t short_mask);
+void nrf_fem_control_timer_reset(nrf_timer_short_mask_t short_mask);
 
 /**@brief Setup a PPI fork task necessary for one of the Front End Module pins.
  * 
- * @param[in] pin              The Front End Module controlled pin that was deactivated.
  * @param[in] ppi_channel      PPI channel to connect the fork task to.
  *
  * */
-void nrf_fem_control_ppi_fork_setup(nrf_fem_control_pin_t pin,
-                                    nrf_ppi_channel_t     ppi_channel,
+void nrf_fem_control_ppi_fork_setup(nrf_ppi_channel_t     ppi_channel,
                                     uint32_t              task_addr);
 
 /**@brief Setup a PPI task necessary for one of the Front End Module pins.
  * 
- * @param[in] pin              The Front End Module controlled pin that was deactivated.
  * @param[in] ppi_channel      PPI channel to connect the task to.
  * @param[in] event_addr       Address of the event to be connected to the PPI.
  * @param[in] task_addr        Address of the task to be connected to the PPI.
  *
  * */
-void nrf_fem_control_ppi_task_setup(nrf_fem_control_pin_t pin,
-                                    nrf_ppi_channel_t     ppi_channel,
+void nrf_fem_control_ppi_task_setup(nrf_ppi_channel_t     ppi_channel,
                                     uint32_t              event_addr,
                                     uint32_t              task_addr);
 
 /**@brief Clear a PPI fork task configuration for one of the Front End Module pins.
  * 
- * @param[in] pin              The Front End Module controlled pin that was deactivated.
  * @param[in] ppi_channel      PPI channel to disconnect the fork task from.
  *
  * */
-void nrf_fem_control_ppi_fork_clear(nrf_fem_control_pin_t pin, nrf_ppi_channel_t ppi_channel);
+void nrf_fem_control_ppi_fork_clear(nrf_ppi_channel_t ppi_channel);
 
 /**@brief Setup PPI task and fork that set or clear Front End Module pins on a given event.
  * 
