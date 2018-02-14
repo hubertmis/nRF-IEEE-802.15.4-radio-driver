@@ -1595,7 +1595,11 @@ void nrf_raal_timeslot_ended(void)
             break;
 
         case RADIO_STATE_RX:
-            // TODO: Indicate error if PSDU is being received.
+            if (psdu_is_being_received())
+            {
+                receive_failed_notify(NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED);
+            }
+
             break;
 
         case RADIO_STATE_TX_ACK:
