@@ -192,12 +192,9 @@ bool nrf_drv_radio802154_csma_ca_abort(nrf_drv_radio802154_term_t term_lvl,
         return true;
     }
 
-    // Just remove timer to make sure procedure is stopped.
+    // Just notify that procedure is stopped.
     if (!procedure_is_running())
     {
-#if 0
-        nrf_drv_radio802154_timer_sched_remove(&m_timer);
-#endif
         return true;
     }
 
