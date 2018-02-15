@@ -984,7 +984,13 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl,
         switch (m_state)
         {
             case RADIO_STATE_SLEEP:
-                nrf_raal_continuous_mode_enter();
+                if (req_orig != REQ_ORIG_RAAL)
+                {
+                    // Enter continuous mode unless terminating current operation is requested by
+                    // RAAL during timeslot end procedure.
+                    nrf_raal_continuous_mode_enter();
+                }
+
                 break;
 
             case RADIO_STATE_FALLING_ASLEEP:
