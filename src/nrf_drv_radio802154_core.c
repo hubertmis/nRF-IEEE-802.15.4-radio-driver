@@ -1532,8 +1532,7 @@ void nrf_raal_timeslot_ended(void)
     switch (m_state)
     {
         case RADIO_STATE_SLEEP:
-            // Detect if timeslot is incorrectly entered again by current_operation_terminate()
-            assert(false);
+            // Intentionally empty.
             break;
 
         case RADIO_STATE_FALLING_ASLEEP:
