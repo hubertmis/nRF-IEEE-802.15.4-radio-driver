@@ -35,6 +35,7 @@
 #include <stdint.h>
 
 #include "nrf_drv_radio802154_const.h"
+#include "nrf_drv_radio802154_notification.h"
 #include "nrf_drv_radio802154_types.h"
 
 #ifdef __cplusplus
@@ -66,34 +67,36 @@ bool nrf_drv_radio802154_request_sleep(nrf_drv_radio802154_term_t term_lvl);
 /**
  * @brief Request entering receive state.
  *
- * @param[in]  term_lvl      Termination level of this request. Selects procedures to abort.
- * @param[in]  req_orig      Module that originates this request.
- * @param[in]  error         Error code notified by this procedure.
+ * @param[in]  term_lvl         Termination level of this request. Selects procedures to abort.
+ * @param[in]  req_orig         Module that originates this request.
+ * @param[in]  notify_function  Function called to notify status of this procedure instead of
+ *                              default notification. If NULL default notification is used.
  *
  * @retval  true   The driver will enter receive state.
  * @retval  false  The driver cannot enter receive state due to ongoing operation.
  */
-bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t     term_lvl,
-                                         req_originator_t               req_orig,
-                                         nrf_drv_radio802154_rx_error_t error);
+bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t              term_lvl,
+                                         req_originator_t                        req_orig,
+                                         nrf_drv_radio802154_notification_func_t notify_function);
 
 /**
  * @brief Request entering transmit state.
  *
- * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
- * @param[in]  req_orig  Module that originates this request.
- * @param[in]  p_data    Pointer to the frame to transmit.
- * @param[in]  cca       If the driver should perform CCA procedure before transmission.
- * @param[in]  error     Error code notified in case this procedure fails.
+ * @param[in]  term_lvl         Termination level of this request. Selects procedures to abort.
+ * @param[in]  req_orig         Module that originates this request.
+ * @param[in]  p_data           Pointer to the frame to transmit.
+ * @param[in]  cca              If the driver should perform CCA procedure before transmission.
+ * @param[in]  notify_function  Function called to notify status of this procedure instead of
+ *                              default notification. If NULL default notification is used.
  *
  * @retval  true   The driver will enter transmit state.
  * @retval  false  The driver cannot enter transmit state due to ongoing operation.
  */
-bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t     term_lvl,
-                                          req_originator_t               req_orig,
-                                          const uint8_t                * p_data,
-                                          bool                           cca,
-                                          nrf_drv_radio802154_tx_error_t error);
+bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t              term_lvl,
+                                          req_originator_t                        req_orig,
+                                          const uint8_t                         * p_data,
+                                          bool                                    cca,
+                                          nrf_drv_radio802154_notification_func_t notify_function);
 
 /**
  * @brief Request entering energy detection state.

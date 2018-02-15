@@ -40,6 +40,7 @@
 #include <stdint.h>
 
 #include "nrf_drv_radio802154_config.h"
+#include "nrf_drv_radio802154_notification.h"
 #include "nrf_drv_radio802154_rx_buffer.h"
 #include "nrf_drv_radio802154_types.h"
 
@@ -115,16 +116,17 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl);
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
- * @param[in]  term_lvl      Termination level of this request. Selects procedures to abort.
- * @param[in]  req_orig      Module that originates this request.
- * @param[in]  error         Error code notified by this procedure.
+ * @param[in]  term_lvl         Termination level of this request. Selects procedures to abort.
+ * @param[in]  req_orig         Module that originates this request.
+ * @param[in]  notify_function  Function called to notify status of this procedure instead of
+ *                              default notification. If NULL default notification is used.
  *
  * @retval  true   Entering RECEIVE state succeeded.
  * @retval  false  Entering RECEIVE state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t     term_lvl,
-                                     req_originator_t               req_orig,
-                                     nrf_drv_radio802154_rx_error_t error);
+bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t              term_lvl,
+                                     req_originator_t                        req_orig,
+                                     nrf_drv_radio802154_notification_func_t notify_function);
 
 /**
  * @brief Request transition to TRANSMIT state.
@@ -132,20 +134,21 @@ bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t     term_lvl,
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
- * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
- * @param[in]  req_orig  Module that originates this request.
- * @param[in]  p_data    Pointer to a frame to transmit.
- * @param[in]  cca       If the driver should perform CCA procedure before transmission.
- * @param[in]  error     Error code notified in case this procedure fails.
+ * @param[in]  term_lvl         Termination level of this request. Selects procedures to abort.
+ * @param[in]  req_orig         Module that originates this request.
+ * @param[in]  p_data           Pointer to a frame to transmit.
+ * @param[in]  cca              If the driver should perform CCA procedure before transmission.
+ * @param[in]  notify_function  Function called to notify status of this procedure instead of
+ *                              default notification. If NULL default notification is used.
  *
  * @retval  true   Entering TRANSMIT state succeeded.
  * @retval  false  Entering TRANSMIT state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t     term_lvl,
-                                      req_originator_t               req_orig,
-                                      const uint8_t                * p_data,
-                                      bool                           cca,
-                                      nrf_drv_radio802154_tx_error_t error);
+bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t              term_lvl,
+                                      req_originator_t                        req_orig,
+                                      const uint8_t                         * p_data,
+                                      bool                                    cca,
+                                      nrf_drv_radio802154_notification_func_t notify_function);
 
 /**
  * @brief Request transition to ENERGY_DETECTION state.

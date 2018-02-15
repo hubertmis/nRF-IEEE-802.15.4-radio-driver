@@ -73,27 +73,27 @@ typedef uint8_t nrf_drv_radio802154_tx_error_t;
  */
 typedef uint8_t nrf_drv_radio802154_rx_error_t;
 
-#define NRF_DRV_RADIO802154_RX_ERROR_NONE              0x10 /**< There is no receive error */
-#define NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME     0x11 /**< Received a malformed frame */
-#define NRF_DRV_RADIO802154_RX_ERROR_INVALID_FCS       0x12 /**< Received a frame with invalid checksum. */
-#define NRF_DRV_RADIO802154_RX_ERROR_INVALID_DEST_ADDR 0x13 /**< Received a frame with mismatched destination address. */
-#define NRF_DRV_RADIO802154_RX_ERROR_RUNTIME           0x14 /**< A runtime error occured (e.g. CPU was hold for too long.) */
-#define NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED    0x15 /**< Radio timeslot ended during frame reception. */
-#define NRF_DRV_RADIO802154_RX_ERROR_ABORTED           0x16 /**< Procedure was aborted by other driver operation with FORCE priority. */
+#define NRF_DRV_RADIO802154_RX_ERROR_NONE              0x00 /**< There is no receive error */
+#define NRF_DRV_RADIO802154_RX_ERROR_INVALID_FRAME     0x01 /**< Received a malformed frame */
+#define NRF_DRV_RADIO802154_RX_ERROR_INVALID_FCS       0x02 /**< Received a frame with invalid checksum. */
+#define NRF_DRV_RADIO802154_RX_ERROR_INVALID_DEST_ADDR 0x03 /**< Received a frame with mismatched destination address. */
+#define NRF_DRV_RADIO802154_RX_ERROR_RUNTIME           0x04 /**< A runtime error occured (e.g. CPU was hold for too long.) */
+#define NRF_DRV_RADIO802154_RX_ERROR_TIMESLOT_ENDED    0x05 /**< Radio timeslot ended during frame reception. */
+#define NRF_DRV_RADIO802154_RX_ERROR_ABORTED           0x06 /**< Procedure was aborted by other driver operation with FORCE priority. */
 
 /**
  * @brief Possible errors during energy detection.
  */
 typedef uint8_t nrf_drv_radio802154_ed_error_t;
 
-#define NRF_DRV_RADIO802154_ED_ERROR_ABORTED           0x21 /**< Procedure was aborted by other driver operation with FORCE priority. */
+#define NRF_DRV_RADIO802154_ED_ERROR_ABORTED           0x01 /**< Procedure was aborted by other driver operation with FORCE priority. */
 
 /**
  * @brief Possible errors during CCA procedure.
  */
 typedef uint8_t nrf_drv_radio802154_cca_error_t;
 
-#define NRF_DRV_RADIO802154_CCA_ERROR_ABORTED          0x31 /**< Procedure was aborted by other driver operation with FORCE priority. */
+#define NRF_DRV_RADIO802154_CCA_ERROR_ABORTED          0x01 /**< Procedure was aborted by other driver operation with FORCE priority. */
 
 /**
  * @brief Termination level selected for particular request.

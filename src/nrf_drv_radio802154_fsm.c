@@ -2487,47 +2487,38 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t     term_lvl,
-                                     req_originator_t               req_orig,
-                                     nrf_drv_radio802154_rx_error_t error)
+bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t              term_lvl,
+                                     req_originator_t                        req_orig,
+                                     nrf_drv_radio802154_notification_func_t notify_function)
 {
     bool result = true;
 
     if ((m_state != RADIO_STATE_RX) && (m_state != RADIO_STATE_TX_ACK))
     {
-        result = current_operation_terminate(term_lvl, req_orig, (error & 0x0f) == 0x00);
+        result = current_operation_terminate(term_lvl, req_orig, notify_function == NULL);
 
         if (result)
         {
             state_set(RADIO_STATE_RX);
             rx_init(true);
+        }
 
-            if (error & 0x0f)
-            {
-                switch (error & 0xf0)
-                {
-                    case 0x00:
-                        transmit_failed_notify(mp_tx_data, error);
-                        break;
-
-                        // TODO: Other error spaces if necessary.
-                    default:
-                        assert(false);
-                }
-            }
+        if (notify_function != NULL)
+        {
+            notify_function(result);
         }
     }
 
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t     term_lvl,
-                                      req_originator_t               req_orig,
-                                      const uint8_t                * p_data,
-                                      bool                           cca,
-                                      nrf_drv_radio802154_tx_error_t error)
+bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t              term_lvl,
+                                      req_originator_t                        req_orig,
+                                      const uint8_t                         * p_data,
+                                      bool                                    cca,
+                                      nrf_drv_radio802154_notification_func_t notify_function)
 {
-    bool result = current_operation_terminate(term_lvl, req_orig, true);
+    bool result = current_operation_terminate(term_lvl, req_orig, notify_function == NULL);
 
     if (result)
     {
@@ -2542,12 +2533,10 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t     term_lvl,
     {
         state_set(cca ? RADIO_STATE_CCA_TX : RADIO_STATE_TX);
     }
-    else
+
+    if (notify_function != NULL)
     {
-        if (error & 0x0f)
-        {
-            transmit_failed_notify(p_data, error);
-        }
+        notify_function(result);
     }
 
     return result;

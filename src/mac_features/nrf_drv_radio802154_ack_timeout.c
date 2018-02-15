@@ -51,6 +51,14 @@ static nrf_drv_radio802154_timer_t m_timer;                                     
 static volatile bool               m_procedure_is_active;
 static const uint8_t             * mp_frame;
 
+static void notify_tx_error(bool result)
+{
+    if (result)
+    {
+        nrf_drv_radio802154_notify_transmit_failed(mp_frame, NRF_DRV_RADIO802154_TX_ERROR_NO_ACK);
+    }
+}
+
 static void timeout_timer_fired(void * p_context)
 {
     (void)p_context;
@@ -59,7 +67,7 @@ static void timeout_timer_fired(void * p_context)
     {
         if (!nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154,
                                                  REQ_ORIG_ACK_TIMEOUT,
-                                                 NRF_DRV_RADIO802154_TX_ERROR_NO_ACK))
+                                                 notify_tx_error))
         {
             timeout_timer_retry();
         }

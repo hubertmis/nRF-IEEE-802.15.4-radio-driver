@@ -86,6 +86,20 @@ static void procedure_stop(void)
 }
 
 /**
+ * Notify MAC layer that channel is busy if tx request failed and there are no retries left.
+ *
+ * @param[in]  result  Result of TX request.
+ */
+static void notify_busy_channel(bool result)
+{
+    if (!result && (m_nb >= (NRF_DRV_RADIO802154_CSMA_CA_MAX_CSMA_BACKOFFS - 1)))
+    {
+        nrf_drv_radio802154_notify_transmit_failed(mp_psdu,
+                                                   NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL);
+    }
+}
+
+/**
  * @brief Perform CCA procedure followed by frame transmission.
  *
  * If transmission is requested, CSMA-CA module waits for notification from the FSM module.
@@ -98,22 +112,16 @@ static void frame_transmit(void * p_context)
 {
     (void)p_context;
 
-    bool error_shall_be_notified;
-
     if (!procedure_is_running())
     {
         return;
     }
 
-    error_shall_be_notified = (m_nb >= (NRF_DRV_RADIO802154_CSMA_CA_MAX_CSMA_BACKOFFS - 1));
-
     if (!nrf_drv_radio802154_request_transmit(NRF_DRV_RADIO802154_TERM_NONE,
                                               REQ_ORIG_CSMA_CA,
                                               mp_psdu,
                                               true,
-                                              error_shall_be_notified ?
-                                                      NRF_DRV_RADIO802154_TX_ERROR_BUSY_CHANNEL :
-                                                      NRF_DRV_RADIO802154_TX_ERROR_NONE))
+                                              notify_busy_channel))
     {
         (void)channel_busy();
     }

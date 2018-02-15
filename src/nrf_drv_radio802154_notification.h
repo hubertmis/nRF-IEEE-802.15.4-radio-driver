@@ -48,6 +48,16 @@ extern "C" {
  */
 
 /**
+ * @brief Function type used for external notification
+ *
+ * This function is called instead of default notification. Function is passed to request to notify
+ * atomically during request processing.
+ *
+ * @param[in]  result  If called request succeeded.
+ */
+typedef void (*nrf_drv_radio802154_notification_func_t)(bool result);
+
+/**
  * @brief Initialize notification module.
  */
 void nrf_drv_radio802154_notification_init(void);

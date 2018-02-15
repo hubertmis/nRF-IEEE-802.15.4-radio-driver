@@ -121,22 +121,22 @@ bool nrf_drv_radio802154_request_sleep(nrf_drv_radio802154_term_t term_lvl)
                            term_lvl)
 }
 
-bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t     term_lvl,
-                                         req_originator_t               req_orig,
-                                         nrf_drv_radio802154_rx_error_t error)
+bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t              term_lvl,
+                                         req_originator_t                        req_orig,
+                                         nrf_drv_radio802154_notification_func_t notify_function)
 {
     REQUEST_FUNCTION_3_ARGS(nrf_drv_radio802154_fsm_receive,
                             nrf_drv_radio802154_swi_receive,
                             term_lvl,
                             req_orig,
-                            error)
+                            notify_function)
 }
 
-bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t     term_lvl,
-                                          req_originator_t               req_orig,
-                                          const uint8_t                * p_data,
-                                          bool                           cca,
-                                          nrf_drv_radio802154_tx_error_t error)
+bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t              term_lvl,
+                                          req_originator_t                        req_orig,
+                                          const uint8_t                         * p_data,
+                                          bool                                    cca,
+                                          nrf_drv_radio802154_notification_func_t notify_function)
 {
     REQUEST_FUNCTION_5_ARGS(nrf_drv_radio802154_fsm_transmit,
                             nrf_drv_radio802154_swi_transmit,
@@ -144,7 +144,7 @@ bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t     term_lv
                             req_orig,
                             p_data,
                             cca,
-                            error)
+                            notify_function)
 }
 
 bool nrf_drv_radio802154_request_energy_detection(nrf_drv_radio802154_term_t term_lvl,
