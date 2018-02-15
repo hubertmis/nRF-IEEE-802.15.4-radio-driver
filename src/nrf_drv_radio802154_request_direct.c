@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,18 +39,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "nrf_drv_radio802154_core.h"
 #include "nrf_drv_radio802154_critical_section.h"
-#include "nrf_drv_radio802154_fsm.h"
 #include "hal/nrf_radio.h"
 
-#include <cmsis/core_cmFunc.h>
-
-#define REQUEST_FUNCTION(func_fsm, params_fsm)                                                     \
+#define REQUEST_FUNCTION(func_core, params_core)                                                   \
     bool result;                                                                                   \
                                                                                                    \
     if (nrf_drv_radio802154_critical_section_enter())                                              \
     {                                                                                              \
-        result = func_fsm params_fsm;                                                              \
+        result = func_core params_core;                                                            \
         nrf_drv_radio802154_critical_section_exit();                                               \
     }                                                                                              \
     else                                                                                           \
@@ -61,23 +59,23 @@
     return result;
 
 
-#define REQUEST_FUNCTION_NO_ARGS(func_fsm)                                                         \
-        REQUEST_FUNCTION(func_fsm, ())
+#define REQUEST_FUNCTION_NO_ARGS(func_core)                                                        \
+        REQUEST_FUNCTION(func_core, ())
 
-#define REQUEST_FUNCTION_1_ARG(func_fsm, arg)                                                      \
-        REQUEST_FUNCTION(func_fsm, (arg))
+#define REQUEST_FUNCTION_1_ARG(func_core, arg)                                                     \
+        REQUEST_FUNCTION(func_core, (arg))
 
-#define REQUEST_FUNCTION_2_ARGS(func_fsm, arg1, arg2)                                              \
-        REQUEST_FUNCTION(func_fsm, (arg1, arg2))
+#define REQUEST_FUNCTION_2_ARGS(func_core, arg1, arg2)                                             \
+        REQUEST_FUNCTION(func_core, (arg1, arg2))
 
-#define REQUEST_FUNCTION_3_ARGS(func_fsm, arg1, arg2, arg3)                                        \
-        REQUEST_FUNCTION(func_fsm, (arg1, arg2, arg3))
+#define REQUEST_FUNCTION_3_ARGS(func_core, arg1, arg2, arg3)                                       \
+        REQUEST_FUNCTION(func_core, (arg1, arg2, arg3))
 
-#define REQUEST_FUNCTION_4_ARGS(func_fsm, arg1, arg2, arg3, arg4)                                  \
-        REQUEST_FUNCTION(func_fsm, (arg1, arg2, arg3, arg4))
+#define REQUEST_FUNCTION_4_ARGS(func_core, arg1, arg2, arg3, arg4)                                 \
+        REQUEST_FUNCTION(func_core, (arg1, arg2, arg3, arg4))
 
-#define REQUEST_FUNCTION_5_ARGS(func_fsm, arg1, arg2, arg3, arg4, arg5)                            \
-        REQUEST_FUNCTION(func_fsm, (arg1, arg2, arg3, arg4, arg5))
+#define REQUEST_FUNCTION_5_ARGS(func_core, arg1, arg2, arg3, arg4, arg5)                           \
+        REQUEST_FUNCTION(func_core, (arg1, arg2, arg3, arg4, arg5))
 
 void nrf_drv_radio802154_request_init(void)
 {
@@ -86,14 +84,14 @@ void nrf_drv_radio802154_request_init(void)
 
 bool nrf_drv_radio802154_request_sleep(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_sleep, term_lvl)
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_core_sleep, term_lvl)
 }
 
 bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t              term_lvl,
                                          req_originator_t                        req_orig,
                                          nrf_drv_radio802154_notification_func_t notify_function)
 {
-    REQUEST_FUNCTION_3_ARGS(nrf_drv_radio802154_fsm_receive, term_lvl, req_orig, notify_function)
+    REQUEST_FUNCTION_3_ARGS(nrf_drv_radio802154_core_receive, term_lvl, req_orig, notify_function)
 }
 
 bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t              term_lvl,
@@ -102,7 +100,7 @@ bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t            
                                           bool                                    cca,
                                           nrf_drv_radio802154_notification_func_t notify_function)
 {
-    REQUEST_FUNCTION_5_ARGS(nrf_drv_radio802154_fsm_transmit,
+    REQUEST_FUNCTION_5_ARGS(nrf_drv_radio802154_core_transmit,
                             term_lvl,
                             req_orig,
                             p_data,
@@ -113,30 +111,30 @@ bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t            
 bool nrf_drv_radio802154_request_energy_detection(nrf_drv_radio802154_term_t term_lvl,
                                                   uint32_t                   time_us)
 {
-    REQUEST_FUNCTION_2_ARGS(nrf_drv_radio802154_fsm_energy_detection, term_lvl, time_us)
+    REQUEST_FUNCTION_2_ARGS(nrf_drv_radio802154_core_energy_detection, term_lvl, time_us)
 }
 
 bool nrf_drv_radio802154_request_cca(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_cca, term_lvl)
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_core_cca, term_lvl)
 }
 
 bool nrf_drv_radio802154_request_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_continuous_carrier, term_lvl)
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_core_continuous_carrier, term_lvl)
 }
 
 bool nrf_drv_radio802154_request_buffer_free(uint8_t * p_data)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_notify_buffer_free, p_data)
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_core_notify_buffer_free, p_data)
 }
 
 bool nrf_drv_radio802154_request_channel_update(void)
 {
-    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_channel_update)
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_core_channel_update)
 }
 
 bool nrf_drv_radio802154_request_cca_cfg_update(void)
 {
-    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_cca_cfg_update)
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_core_cca_cfg_update)
 }

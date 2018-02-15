@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,14 +30,14 @@
 
 /**
  * @file
- *   This file implements hooks for the 802.15.4 driver FSM.
+ *   This file implements hooks for the 802.15.4 driver Core module.
  *
  * Hooks are used by optional driver features to modify way in which notifications are propagated
  * through the driver.
  *
  */
 
-#include "nrf_drv_radio802154_fsm_hooks.h"
+#include "nrf_drv_radio802154_core_hooks.h"
 
 #include <stdbool.h>
 
@@ -114,7 +114,7 @@ static const tx_started_hook m_tx_started_hooks[] =
 #endif
 };
 
-bool nrf_drv_radio802154_fsm_hooks_terminate(nrf_drv_radio802154_term_t term_lvl,
+bool nrf_drv_radio802154_core_hooks_terminate(nrf_drv_radio802154_term_t term_lvl,
                                              req_originator_t           req_orig)
 {
     bool result = true;
@@ -137,7 +137,7 @@ bool nrf_drv_radio802154_fsm_hooks_terminate(nrf_drv_radio802154_term_t term_lvl
     return result;
 }
 
-void nrf_drv_radio802154_fsm_hooks_transmitted(const uint8_t * p_frame)
+void nrf_drv_radio802154_core_hooks_transmitted(const uint8_t * p_frame)
 {
     for (uint32_t i = 0; i < sizeof(m_transmitted_hooks) / sizeof(m_transmitted_hooks[0]); i++)
     {
@@ -150,7 +150,7 @@ void nrf_drv_radio802154_fsm_hooks_transmitted(const uint8_t * p_frame)
     }
 }
 
-bool nrf_drv_radio802154_fsm_hooks_tx_failed(const uint8_t                * p_frame,
+bool nrf_drv_radio802154_core_hooks_tx_failed(const uint8_t                * p_frame,
                                              nrf_drv_radio802154_tx_error_t error)
 {
     bool result = true;
@@ -173,7 +173,7 @@ bool nrf_drv_radio802154_fsm_hooks_tx_failed(const uint8_t                * p_fr
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_hooks_tx_started(const uint8_t * p_frame)
+bool nrf_drv_radio802154_core_hooks_tx_started(const uint8_t * p_frame)
 {
     bool result = true;
 

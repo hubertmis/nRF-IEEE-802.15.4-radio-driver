@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,12 @@
  */
 
 /**
- * @brief This module contains Finite State Machine of nRF 802.15.4 radio driver.
+ * @brief This module contains core of the nRF IEEE 802.15.4 radio driver.
  *
  */
 
-#ifndef NRF_DRV_RADIO802154_FSM_H_
-#define NRF_DRV_RADIO802154_FSM_H_
+#ifndef NRF_DRV_RADIO802154_CORE_H_
+#define NRF_DRV_RADIO802154_CORE_H_
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -77,21 +77,21 @@ typedef enum
 } radio_state_t;
 
 /**
- * @brief Initialize 802.15.4 driver FSM.
+ * @brief Initialize 802.15.4 driver core.
  */
-void nrf_drv_radio802154_fsm_init(void);
+void nrf_drv_radio802154_core_init(void);
 
 /**
- * @brief Deinitialize 802.15.4 driver FSM.
+ * @brief Deinitialize 802.15.4 driver core.
  */
-void nrf_drv_radio802154_fsm_deinit(void);
+void nrf_drv_radio802154_core_deinit(void);
 
 /**
  * @brief Get current state of nRF 802.15.4 driver.
  *
  * @return  Current state of the 802.15.4 driver.
  */
-radio_state_t nrf_drv_radio802154_fsm_state_get(void);
+radio_state_t nrf_drv_radio802154_core_state_get(void);
 
 /***************************************************************************************************
  * @section State machine transition requests
@@ -108,7 +108,7 @@ radio_state_t nrf_drv_radio802154_fsm_state_get(void);
  * @retval  true   Entering SLEEP state succeeded.
  * @retval  false  Entering SLEEP state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl);
+bool nrf_drv_radio802154_core_sleep(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Request transition to RECEIVE state.
@@ -124,9 +124,9 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl);
  * @retval  true   Entering RECEIVE state succeeded.
  * @retval  false  Entering RECEIVE state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t              term_lvl,
-                                     req_originator_t                        req_orig,
-                                     nrf_drv_radio802154_notification_func_t notify_function);
+bool nrf_drv_radio802154_core_receive(nrf_drv_radio802154_term_t              term_lvl,
+                                      req_originator_t                        req_orig,
+                                      nrf_drv_radio802154_notification_func_t notify_function);
 
 /**
  * @brief Request transition to TRANSMIT state.
@@ -144,11 +144,11 @@ bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t              ter
  * @retval  true   Entering TRANSMIT state succeeded.
  * @retval  false  Entering TRANSMIT state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t              term_lvl,
-                                      req_originator_t                        req_orig,
-                                      const uint8_t                         * p_data,
-                                      bool                                    cca,
-                                      nrf_drv_radio802154_notification_func_t notify_function);
+bool nrf_drv_radio802154_core_transmit(nrf_drv_radio802154_term_t              term_lvl,
+                                       req_originator_t                        req_orig,
+                                       const uint8_t                         * p_data,
+                                       bool                                    cca,
+                                       nrf_drv_radio802154_notification_func_t notify_function);
 
 /**
  * @brief Request transition to ENERGY_DETECTION state.
@@ -165,8 +165,8 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t              te
  * @retval  true   Entering ENERGY_DETECTION state succeeded.
  * @retval  false  Entering ENERGY_DETECTION state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lvl,
-                                              uint32_t                   time_us);
+bool nrf_drv_radio802154_core_energy_detection(nrf_drv_radio802154_term_t term_lvl,
+                                               uint32_t                   time_us);
 
 /**
  * @brief Request transition to CCA state.
@@ -179,7 +179,7 @@ bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lv
  * @retval  true   Entering CCA state succeeded.
  * @retval  false  Entering CCA state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl);
+bool nrf_drv_radio802154_core_cca(nrf_drv_radio802154_term_t term_lvl);
 
 /**
  * @brief Request transition to CONTINUOUS_CARRIER state.
@@ -192,48 +192,48 @@ bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl);
  * @retval  true   Entering CONTINUOUS_CARRIER state succeeded.
  * @retval  false  Entering CONTINUOUS_CARRIER state failed (driver is performing other procedure).
  */
-bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_lvl);
+bool nrf_drv_radio802154_core_continuous_carrier(nrf_drv_radio802154_term_t term_lvl);
 
 /***************************************************************************************************
  * @section State machine notifications
  **************************************************************************************************/
 
 /**
- * @brief Notify the FSM that higher layer freed a frame buffer.
+ * @brief Notify the Core module that higher layer freed a frame buffer.
  *
- * When there were no free buffers available the FSM does not start receiver. If FSM receives this
- * notification in changes internal state to make sure receiver is started if requested.
+ * When there were no free buffers available the core does not start receiver. If core receives this
+ * notification it changes internal state to make sure receiver is started if requested.
  *
  * @note This function shall be called from a critical section context. It shall not be interrupted
  *       by the RADIO event handler or RAAL notification.
  *
  * @param[in]  p_data  Pointer to buffer that has been freed.
  */
-bool nrf_drv_radio802154_fsm_notify_buffer_free(uint8_t * p_data);
+bool nrf_drv_radio802154_core_notify_buffer_free(uint8_t * p_data);
 
 /**
- * @brief Notify the FSM that next higher layer requested change of the channel.
+ * @brief Notify the Core module that next higher layer requested change of the channel.
  *
- * FSM should update frequency register of the peripheral and in case it is in RECEIVE state the
+ * Core should update frequency register of the peripheral and in case it is in RECEIVE state the
  * receiver should be disabled and enabled again to use new channel.
  */
-bool nrf_drv_radio802154_fsm_channel_update(void);
+bool nrf_drv_radio802154_core_channel_update(void);
 
 /**
- * @brief Notify the FSM that next higher layer requested change of the CCA configuration.
+ * @brief Notify the Core module that next higher layer requested change of the CCA configuration.
  */
-bool nrf_drv_radio802154_fsm_cca_cfg_update(void);
+bool nrf_drv_radio802154_core_cca_cfg_update(void);
 
 #if !NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING
 /**
- * @brief Notify the FSM that there is a pending IRQ that should be handled.
+ * @brief Notify the Core module that there is a pending IRQ that should be handled.
  */
-void nrf_drv_radio802154_fsm_irq_handler(void);
+void nrf_drv_radio802154_core_irq_handler(void);
 #endif // !NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NRF_DRV_RADIO802154_FSM_H_ */
+#endif /* NRF_DRV_RADIO802154_CORE_H_ */
 

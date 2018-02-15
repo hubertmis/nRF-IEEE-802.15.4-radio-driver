@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,13 +42,12 @@
 
 #include "nrf_drv_radio802154.h"
 #include "nrf_drv_radio802154_config.h"
+#include "nrf_drv_radio802154_core.h"
 #include "nrf_drv_radio802154_critical_section.h"
-#include "nrf_drv_radio802154_fsm.h"
 #include "nrf_drv_radio802154_rx_buffer.h"
 #include "hal/nrf_egu.h"
 #include "raal/nrf_raal_api.h"
 
-#include <cmsis/core_cmFunc.h>
 
 /** Size of notification queue.
  *
@@ -729,13 +728,13 @@ void SWI_IRQHandler(void)
             {
                 case REQ_TYPE_SLEEP:
                     *(p_slot->data.sleep.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_sleep(p_slot->data.sleep.term_lvl) :
+                            nrf_drv_radio802154_core_sleep(p_slot->data.sleep.term_lvl) :
                             false;
                     break;
 
                 case REQ_TYPE_RECEIVE:
                     *(p_slot->data.receive.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_receive(p_slot->data.receive.term_lvl,
+                            nrf_drv_radio802154_core_receive(p_slot->data.receive.term_lvl,
                                                             p_slot->data.receive.req_orig,
                                                             p_slot->data.receive.notif_func) :
                             false;
@@ -743,7 +742,7 @@ void SWI_IRQHandler(void)
 
                 case REQ_TYPE_TRANSMIT:
                     *(p_slot->data.transmit.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_transmit(
+                            nrf_drv_radio802154_core_transmit(
                                     p_slot->data.transmit.term_lvl,
                                     p_slot->data.transmit.req_orig,
                                     p_slot->data.transmit.p_data,
@@ -754,7 +753,7 @@ void SWI_IRQHandler(void)
 
                 case REQ_TYPE_ENERGY_DETECTION:
                     *(p_slot->data.energy_detection.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_energy_detection(
+                            nrf_drv_radio802154_core_energy_detection(
                                     p_slot->data.energy_detection.term_lvl,
                                     p_slot->data.energy_detection.time_us) :
                             false;
@@ -762,33 +761,33 @@ void SWI_IRQHandler(void)
 
                 case REQ_TYPE_CCA:
                     *(p_slot->data.cca.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_cca(p_slot->data.cca.term_lvl) :
+                            nrf_drv_radio802154_core_cca(p_slot->data.cca.term_lvl) :
                             false;
                     break;
 
                 case REQ_TYPE_CONTINUOUS_CARRIER:
                     *(p_slot->data.continuous_carrier.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_continuous_carrier(
+                            nrf_drv_radio802154_core_continuous_carrier(
                                     p_slot->data.continuous_carrier.term_lvl) :
                             false;
                     break;
 
                 case REQ_TYPE_BUFFER_FREE:
                     *(p_slot->data.buffer_free.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_notify_buffer_free(
+                            nrf_drv_radio802154_core_notify_buffer_free(
                                     p_slot->data.buffer_free.p_data):
                             false;
                     break;
 
                 case REQ_TYPE_CHANNEL_UPDATE:
                     *(p_slot->data.channel_update.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_channel_update() :
+                            nrf_drv_radio802154_core_channel_update() :
                             false;
                     break;
 
                 case REQ_TYPE_CCA_CFG_UPDATE:
                     *(p_slot->data.cca_cfg_update.p_result) = in_crit_sect ?
-                            nrf_drv_radio802154_fsm_cca_cfg_update() :
+                            nrf_drv_radio802154_core_cca_cfg_update() :
                             false;
                     break;
 

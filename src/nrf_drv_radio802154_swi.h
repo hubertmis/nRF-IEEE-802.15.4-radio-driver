@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -199,19 +199,19 @@ void nrf_drv_radio802154_swi_continuous_carrier(nrf_drv_radio802154_term_t term_
                                                 bool                     * p_result);
 
 /**
- * @brief Notify FSM that given buffer is not used anymore and can be freed.
+ * @brief Notify Core module that given buffer is not used anymore and can be freed.
  *
  * @param[in]  p_data  Pointer to the buffer to free.
  */
 void nrf_drv_radio802154_swi_buffer_free(uint8_t * p_data, bool * p_result);
 
 /**
- * @brief Notify FSM that the next higher layer requested channel change.
+ * @brief Notify Core module that the next higher layer requested channel change.
  */
 void nrf_drv_radio802154_swi_channel_update(bool * p_result);
 
 /**
- * @brief Notify FSM that the next higher layer requested CCA configuration change.
+ * @brief Notify Core module that the next higher layer requested CCA configuration change.
  */
 void nrf_drv_radio802154_swi_cca_cfg_update(bool * p_result);
 

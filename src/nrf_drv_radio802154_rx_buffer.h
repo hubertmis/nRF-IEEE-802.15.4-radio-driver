@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,7 +57,7 @@ typedef struct
 /**
  * @brief Array containing all buffers used to receive frame.
  *
- * This array is in global scope to allow optimizations in FSM module in case there is only
+ * This array is in global scope to allow optimizations in Core module in case there is only
  * one buffer provided by this module.
  *
  */

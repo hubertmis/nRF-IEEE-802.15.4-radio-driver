@@ -1,4 +1,4 @@
-/* Copyright (c) 2018, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
  *
  */
 
-#include "nrf_drv_radio802154_fsm.h"
+#include "nrf_drv_radio802154_core.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -47,7 +47,6 @@
 #include "nrf_drv_radio802154_const.h"
 #include "nrf_drv_radio802154_critical_section.h"
 #include "nrf_drv_radio802154_debug.h"
-#include "nrf_drv_radio802154_fsm_hooks.h"
 #include "nrf_drv_radio802154_notification.h"
 #include "nrf_drv_radio802154_pib.h"
 #include "nrf_drv_radio802154_priority_drop.h"
@@ -61,6 +60,8 @@
 #include "hal/nrf_radio.h"
 #include "hal/nrf_timer.h"
 #include "mac_features/nrf_drv_radio802154_filter.h"
+
+#include "nrf_drv_radio802154_core_hooks.h"
 #include "raal/nrf_raal_api.h"
 
 
@@ -187,7 +188,7 @@ static nrf_radio802154_flags_t m_flags;  ///< Flags used to store current driver
 
 
 /***************************************************************************************************
- * @section FSM common operations
+ * @section Common core operations
  **************************************************************************************************/
 
 /** Set driver state.
@@ -245,7 +246,7 @@ static void receive_failed_notify(nrf_drv_radio802154_rx_error_t error)
 /** Notify MAC layer that transmission of requested frame has started. */
 static void transmit_started_notify(void)
 {
-    if (nrf_drv_radio802154_fsm_hooks_tx_started(mp_tx_data))
+    if (nrf_drv_radio802154_core_hooks_tx_started(mp_tx_data))
     {
         nrf_drv_radio802154_tx_started(mp_tx_data);
     }
@@ -257,7 +258,7 @@ static void transmitted_frame_notify(uint8_t * p_ack, int8_t power, int8_t lqi)
 {
     nrf_drv_radio802154_critical_section_nesting_allow();
 
-    nrf_drv_radio802154_fsm_hooks_transmitted(mp_tx_data);
+    nrf_drv_radio802154_core_hooks_transmitted(mp_tx_data);
     nrf_drv_radio802154_notify_transmitted(mp_tx_data, p_ack, power, lqi);
 
     nrf_drv_radio802154_critical_section_nesting_deny();
@@ -269,7 +270,7 @@ static void transmit_failed_notify(const uint8_t                * p_data,
 {
     nrf_drv_radio802154_critical_section_nesting_allow();
 
-    if (nrf_drv_radio802154_fsm_hooks_tx_failed(p_data, error))
+    if (nrf_drv_radio802154_core_hooks_tx_failed(p_data, error))
     {
         nrf_drv_radio802154_notify_transmit_failed(p_data, error);
     }
@@ -976,7 +977,7 @@ static bool current_operation_terminate(nrf_drv_radio802154_term_t term_lvl,
                                         req_originator_t           req_orig,
                                         bool                       notify_abort)
 {
-    bool result = nrf_drv_radio802154_fsm_hooks_terminate(term_lvl, req_orig);
+    bool result = nrf_drv_radio802154_core_hooks_terminate(term_lvl, req_orig);
 
     if (result)
     {
@@ -2441,7 +2442,7 @@ static void irq_handler(void)
  * @section API functions
  **************************************************************************************************/
 
-void nrf_drv_radio802154_fsm_init(void)
+void nrf_drv_radio802154_core_init(void)
 {
     const uint8_t ack_psdu[] = {0x05, ACK_HEADER_WITH_PENDING, 0x00, 0x00, 0x00, 0x00};
     memcpy(m_ack_psdu, ack_psdu, sizeof(ack_psdu));
@@ -2449,7 +2450,7 @@ void nrf_drv_radio802154_fsm_init(void)
     nrf_timer_init();
 }
 
-void nrf_drv_radio802154_fsm_deinit(void)
+void nrf_drv_radio802154_core_deinit(void)
 {
     current_operation_terminate(NRF_DRV_RADIO802154_TERM_802154, REQ_ORIG_HIGHER_LAYER, true);
 
@@ -2464,18 +2465,18 @@ void nrf_drv_radio802154_fsm_deinit(void)
     irq_deinit();
 }
 
-radio_state_t nrf_drv_radio802154_fsm_state_get(void)
+radio_state_t nrf_drv_radio802154_core_state_get(void)
 {
     return m_state;
 }
 
-bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
+bool nrf_drv_radio802154_core_sleep(nrf_drv_radio802154_term_t term_lvl)
 {
     bool result = true;
 
     if ((m_state != RADIO_STATE_SLEEP) && (m_state != RADIO_STATE_FALLING_ASLEEP))
     {
-        result = current_operation_terminate(term_lvl, REQ_ORIG_FSM, true);
+        result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
 
         if (result)
         {
@@ -2487,7 +2488,7 @@ bool nrf_drv_radio802154_fsm_sleep(nrf_drv_radio802154_term_t term_lvl)
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t              term_lvl,
+bool nrf_drv_radio802154_core_receive(nrf_drv_radio802154_term_t              term_lvl,
                                      req_originator_t                        req_orig,
                                      nrf_drv_radio802154_notification_func_t notify_function)
 {
@@ -2512,7 +2513,7 @@ bool nrf_drv_radio802154_fsm_receive(nrf_drv_radio802154_term_t              ter
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t              term_lvl,
+bool nrf_drv_radio802154_core_transmit(nrf_drv_radio802154_term_t              term_lvl,
                                       req_originator_t                        req_orig,
                                       const uint8_t                         * p_data,
                                       bool                                    cca,
@@ -2542,10 +2543,10 @@ bool nrf_drv_radio802154_fsm_transmit(nrf_drv_radio802154_term_t              te
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lvl,
+bool nrf_drv_radio802154_core_energy_detection(nrf_drv_radio802154_term_t term_lvl,
                                               uint32_t                   time_us)
 {
-    bool result = current_operation_terminate(term_lvl, REQ_ORIG_FSM, true);
+    bool result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
 
     if (result)
     {
@@ -2558,9 +2559,9 @@ bool nrf_drv_radio802154_fsm_energy_detection(nrf_drv_radio802154_term_t term_lv
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
+bool nrf_drv_radio802154_core_cca(nrf_drv_radio802154_term_t term_lvl)
 {
-    bool result = current_operation_terminate(term_lvl, REQ_ORIG_FSM, true);
+    bool result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
 
     if (result)
     {
@@ -2571,9 +2572,9 @@ bool nrf_drv_radio802154_fsm_cca(nrf_drv_radio802154_term_t term_lvl)
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
+bool nrf_drv_radio802154_core_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
 {
-    bool result = current_operation_terminate(term_lvl, REQ_ORIG_FSM, true);
+    bool result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
 
     if (result)
     {
@@ -2584,7 +2585,7 @@ bool nrf_drv_radio802154_fsm_continuous_carrier(nrf_drv_radio802154_term_t term_
     return result;
 }
 
-bool nrf_drv_radio802154_fsm_notify_buffer_free(uint8_t * p_data)
+bool nrf_drv_radio802154_core_notify_buffer_free(uint8_t * p_data)
 {
     rx_buffer_t * p_buffer = (rx_buffer_t *)p_data;
 
@@ -2635,7 +2636,7 @@ bool nrf_drv_radio802154_fsm_notify_buffer_free(uint8_t * p_data)
     return true;
 }
 
-bool nrf_drv_radio802154_fsm_channel_update(void)
+bool nrf_drv_radio802154_core_channel_update(void)
 {
     switch (m_state)
     {
@@ -2648,7 +2649,7 @@ bool nrf_drv_radio802154_fsm_channel_update(void)
                 channel_set(nrf_drv_radio802154_pib_channel_get());
             }
 
-            result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_NONE, REQ_ORIG_FSM, true);
+            result = current_operation_terminate(NRF_DRV_RADIO802154_TERM_NONE, REQ_ORIG_CORE, true);
 
             if (result)
             {
@@ -2689,7 +2690,7 @@ bool nrf_drv_radio802154_fsm_channel_update(void)
     return true;
 }
 
-bool nrf_drv_radio802154_fsm_cca_cfg_update(void)
+bool nrf_drv_radio802154_core_cca_cfg_update(void)
 {
     if (nrf_raal_timeslot_is_granted())
     {
@@ -2702,7 +2703,7 @@ bool nrf_drv_radio802154_fsm_cca_cfg_update(void)
 #if NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING
 void RADIO_IRQHandler(void)
 #else // NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING
-void nrf_drv_radio802154_fsm_irq_handler(void)
+void nrf_drv_radio802154_core_irq_handler(void)
 #endif // NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING
 {
     irq_handler();

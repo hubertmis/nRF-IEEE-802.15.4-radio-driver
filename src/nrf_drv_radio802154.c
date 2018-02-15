@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,9 +45,9 @@
 #include "nrf_drv_radio802154_ack_pending_bit.h"
 #include "nrf_drv_radio802154_config.h"
 #include "nrf_drv_radio802154_const.h"
+#include "nrf_drv_radio802154_core.h"
 #include "nrf_drv_radio802154_critical_section.h"
 #include "nrf_drv_radio802154_debug.h"
-#include "nrf_drv_radio802154_fsm.h"
 #include "nrf_drv_radio802154_notification.h"
 #include "nrf_drv_radio802154_pib.h"
 #include "nrf_drv_radio802154_priority_drop.h"
@@ -60,7 +60,6 @@
 #include "raal/nrf_raal_api.h"
 #include "timer_scheduler/nrf_drv_radio802154_timer_sched.h"
 
-#include <cmsis/core_cmFunc.h>
 #include "mac_features/nrf_drv_radio802154_csma_ca.h"
 #include "mac_features/nrf_drv_radio802154_ack_timeout.h"
 
@@ -154,10 +153,10 @@ uint32_t nrf_drv_radio802154_first_symbol_timestamp_get(uint32_t end_timestamp, 
 void nrf_drv_radio802154_init(void)
 {
     nrf_drv_radio802154_ack_pending_bit_init();
+    nrf_drv_radio802154_core_init();
     nrf_drv_radio802154_clock_init();
     nrf_drv_radio802154_critical_section_init();
     nrf_drv_radio802154_debug_init();
-    nrf_drv_radio802154_fsm_init();
     nrf_drv_radio802154_notification_init();
     nrf_drv_radio802154_pib_init();
     nrf_drv_radio802154_priority_drop_init();
@@ -173,14 +172,14 @@ void nrf_drv_radio802154_deinit(void)
 {
     nrf_drv_radio802154_timer_sched_deinit();
     nrf_drv_radio802154_timer_deinit();
-    nrf_drv_radio802154_fsm_deinit();
     nrf_drv_radio802154_clock_deinit();
+    nrf_drv_radio802154_core_deinit();
 }
 
 #if !NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING
 void nrf_drv_radio802154_irq_handler(void)
 {
-    nrf_drv_radio802154_fsm_irq_handler();
+    nrf_drv_radio802154_core_irq_handler();
 }
 #endif // !NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING
 
@@ -198,7 +197,7 @@ void nrf_drv_radio802154_fem_control_cfg_get(nrf_drv_radio802154_fem_control_cfg
 
 nrf_drv_radio802154_state_t nrf_drv_radio802154_state_get(void)
 {
-    switch (nrf_drv_radio802154_fsm_state_get())
+    switch (nrf_drv_radio802154_core_state_get())
     {
     case RADIO_STATE_SLEEP:
     case RADIO_STATE_FALLING_ASLEEP:

@@ -1,5 +1,4 @@
-
-/* Copyright (c) 2017, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,23 +41,23 @@
 #include <stdint.h>
 
 #include "nrf_drv_radio802154_config.h"
+#include "nrf_drv_radio802154_core.h"
 #include "nrf_drv_radio802154_critical_section.h"
 #include "nrf_drv_radio802154_debug.h"
-#include "nrf_drv_radio802154_fsm.h"
 #include "nrf_drv_radio802154_rx_buffer.h"
 #include "nrf_drv_radio802154_swi.h"
 #include "hal/nrf_radio.h"
 
 #include <nrf.h>
 
-#define REQUEST_FUNCTION(func_fsm, params_fsm, func_swi, params_swi)                               \
+#define REQUEST_FUNCTION(func_core, params_core, func_swi, params_swi)                             \
     bool result = false;                                                                           \
                                                                                                    \
     if (active_vector_priority_is_high())                                                          \
     {                                                                                              \
         if (nrf_drv_radio802154_critical_section_enter())                                          \
         {                                                                                          \
-            result = func_fsm params_fsm;                                                          \
+            result = func_core params_core;                                                        \
             nrf_drv_radio802154_critical_section_exit();                                           \
         }                                                                                          \
         else                                                                                       \
@@ -73,26 +72,26 @@
                                                                                                    \
     return result;
 
-#define REQUEST_FUNCTION_NO_ARGS(func_fsm, func_swi)                                               \
-        REQUEST_FUNCTION(func_fsm, (), func_swi, (&result))
+#define REQUEST_FUNCTION_NO_ARGS(func_core, func_swi)                                              \
+        REQUEST_FUNCTION(func_core, (), func_swi, (&result))
 
-#define REQUEST_FUNCTION_1_ARG(func_fsm, func_swi, arg)                                            \
-        REQUEST_FUNCTION(func_fsm, (arg), func_swi, (arg, &result))
+#define REQUEST_FUNCTION_1_ARG(func_core, func_swi, arg)                                           \
+        REQUEST_FUNCTION(func_core, (arg), func_swi, (arg, &result))
 
-#define REQUEST_FUNCTION_2_ARGS(func_fsm, func_swi, arg1, arg2)                                    \
-        REQUEST_FUNCTION(func_fsm, (arg1, arg2), func_swi, (arg1, arg2, &result))
+#define REQUEST_FUNCTION_2_ARGS(func_core, func_swi, arg1, arg2)                                   \
+        REQUEST_FUNCTION(func_core, (arg1, arg2), func_swi, (arg1, arg2, &result))
 
-#define REQUEST_FUNCTION_3_ARGS(func_fsm, func_swi, arg1, arg2, arg3)                              \
-        REQUEST_FUNCTION(func_fsm, (arg1, arg2, arg3), func_swi, (arg1, arg2, arg3, &result))
+#define REQUEST_FUNCTION_3_ARGS(func_core, func_swi, arg1, arg2, arg3)                             \
+        REQUEST_FUNCTION(func_core, (arg1, arg2, arg3), func_swi, (arg1, arg2, arg3, &result))
 
-#define REQUEST_FUNCTION_4_ARGS(func_fsm, func_swi, arg1, arg2, arg3, arg4)                        \
-        REQUEST_FUNCTION(func_fsm,                                                                 \
+#define REQUEST_FUNCTION_4_ARGS(func_core, func_swi, arg1, arg2, arg3, arg4)                       \
+        REQUEST_FUNCTION(func_core,                                                                \
                          (arg1, arg2, arg3, arg4),                                                 \
                          func_swi,                                                                 \
                          (arg1, arg2, arg3, arg4, &result))
 
-#define REQUEST_FUNCTION_5_ARGS(func_fsm, func_swi, arg1, arg2, arg3, arg4, arg5)                  \
-        REQUEST_FUNCTION(func_fsm,                                                                 \
+#define REQUEST_FUNCTION_5_ARGS(func_core, func_swi, arg1, arg2, arg3, arg4, arg5)                 \
+        REQUEST_FUNCTION(func_core,                                                                \
                          (arg1, arg2, arg3, arg4, arg5),                                           \
                          func_swi,                                                                 \
                          (arg1, arg2, arg3, arg4, arg5, &result))
@@ -116,7 +115,7 @@ void nrf_drv_radio802154_request_init(void)
 
 bool nrf_drv_radio802154_request_sleep(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_sleep,
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_core_sleep,
                            nrf_drv_radio802154_swi_sleep,
                            term_lvl)
 }
@@ -125,7 +124,7 @@ bool nrf_drv_radio802154_request_receive(nrf_drv_radio802154_term_t             
                                          req_originator_t                        req_orig,
                                          nrf_drv_radio802154_notification_func_t notify_function)
 {
-    REQUEST_FUNCTION_3_ARGS(nrf_drv_radio802154_fsm_receive,
+    REQUEST_FUNCTION_3_ARGS(nrf_drv_radio802154_core_receive,
                             nrf_drv_radio802154_swi_receive,
                             term_lvl,
                             req_orig,
@@ -138,7 +137,7 @@ bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t            
                                           bool                                    cca,
                                           nrf_drv_radio802154_notification_func_t notify_function)
 {
-    REQUEST_FUNCTION_5_ARGS(nrf_drv_radio802154_fsm_transmit,
+    REQUEST_FUNCTION_5_ARGS(nrf_drv_radio802154_core_transmit,
                             nrf_drv_radio802154_swi_transmit,
                             term_lvl,
                             req_orig,
@@ -150,7 +149,7 @@ bool nrf_drv_radio802154_request_transmit(nrf_drv_radio802154_term_t            
 bool nrf_drv_radio802154_request_energy_detection(nrf_drv_radio802154_term_t term_lvl,
                                                   uint32_t                   time_us)
 {
-    REQUEST_FUNCTION_2_ARGS(nrf_drv_radio802154_fsm_energy_detection,
+    REQUEST_FUNCTION_2_ARGS(nrf_drv_radio802154_core_energy_detection,
                             nrf_drv_radio802154_swi_energy_detection,
                             term_lvl,
                             time_us)
@@ -158,34 +157,34 @@ bool nrf_drv_radio802154_request_energy_detection(nrf_drv_radio802154_term_t ter
 
 bool nrf_drv_radio802154_request_cca(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_cca,
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_core_cca,
                            nrf_drv_radio802154_swi_cca,
                            term_lvl)
 }
 
 bool nrf_drv_radio802154_request_continuous_carrier(nrf_drv_radio802154_term_t term_lvl)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_continuous_carrier,
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_core_continuous_carrier,
                            nrf_drv_radio802154_swi_continuous_carrier,
                            term_lvl)
 }
 
 bool nrf_drv_radio802154_request_buffer_free(uint8_t * p_data)
 {
-    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_fsm_notify_buffer_free,
+    REQUEST_FUNCTION_1_ARG(nrf_drv_radio802154_core_notify_buffer_free,
                            nrf_drv_radio802154_swi_buffer_free,
                            p_data)
 }
 
 bool nrf_drv_radio802154_request_channel_update(void)
 {
-    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_channel_update,
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_core_channel_update,
                              nrf_drv_radio802154_swi_channel_update)
 }
 
 bool nrf_drv_radio802154_request_cca_cfg_update(void)
 {
-    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_fsm_cca_cfg_update,
+    REQUEST_FUNCTION_NO_ARGS(nrf_drv_radio802154_core_cca_cfg_update,
                              nrf_drv_radio802154_swi_cca_cfg_update)
 }
 
