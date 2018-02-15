@@ -48,14 +48,14 @@ static void timeout_timer_retry(void);
 
 static uint32_t                    m_timeout = NRF_DRV_RADIO802154_ACK_TIMEOUT_DEFAULT_TIMEOUT; ///< ACK timeout in us.
 static nrf_drv_radio802154_timer_t m_timer;                                                     ///< Timer used to notify when we are waiting too long for ACK.
-static volatile bool               m_timer_should_fire;
+static volatile bool               m_procedure_is_active;
 static const uint8_t             * mp_frame;
 
 static void timeout_timer_fired(void * p_context)
 {
     (void)p_context;
 
-    if (m_timer_should_fire)
+    if (m_procedure_is_active)
     {
         if (!nrf_drv_radio802154_request_receive(NRF_DRV_RADIO802154_TERM_802154,
                                                  REQ_ORIG_ACK_TIMEOUT,
@@ -85,14 +85,14 @@ static void timeout_timer_start(void)
     m_timer.t0          = nrf_drv_radio802154_timer_sched_time_get();
     m_timer.dt          = m_timeout;
 
-    m_timer_should_fire = true;
+    m_procedure_is_active = true;
 
     nrf_drv_radio802154_timer_sched_add(&m_timer, true);
 }
 
 static void timeout_timer_stop(void)
 {
-    m_timer_should_fire = false;
+    m_procedure_is_active = false;
 }
 
 void nrf_drv_radio802154_ack_timeout_time_set(uint32_t time)
@@ -123,7 +123,7 @@ bool nrf_drv_radio802154_ack_timeout_abort(nrf_drv_radio802154_term_t term_lvl,
 
 void nrf_drv_radio802154_ack_timeout_transmitted_hook(const uint8_t * p_frame)
 {
-    assert(p_frame == mp_frame); // It is not possible to get this hook for other frame than tx_started_hook.
+    assert((p_frame == mp_frame) || (!m_procedure_is_active));
 
     timeout_timer_stop();
 }
@@ -131,7 +131,7 @@ void nrf_drv_radio802154_ack_timeout_transmitted_hook(const uint8_t * p_frame)
 bool nrf_drv_radio802154_ack_timeout_tx_failed_hook(const uint8_t                * p_frame,
                                                     nrf_drv_radio802154_tx_error_t error)
 {
-    assert(p_frame == mp_frame); // It is not possible to get this hook for other frame than tx_started_hook.
+    assert((p_frame == mp_frame) || (!m_procedure_is_active));
 
     timeout_timer_stop();
 
