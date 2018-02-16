@@ -46,7 +46,7 @@ extern "C" {
 /**
  * @defgroup nrf_raal Radio Arbiter Abstraction Layer
  * @{
- * @ingroup nrf_driver_radio802154
+ * @ingroup nrf_802154
  * @brief Radio Arbiter Abstraction Layer interface.
  */
 

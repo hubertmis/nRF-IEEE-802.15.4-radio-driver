@@ -43,8 +43,8 @@
 #include <stdint.h>
 
 #include "nrf.h"
-#include "nrf_drv_radio802154_debug.h"
-#include "platform/clock/nrf_drv_radio802154_clock.h"
+#include "nrf_802154_debug.h"
+#include "platform/clock/nrf_802154_clock.h"
 
 static bool m_continuous_requested;
 static bool m_continuous_granted;
@@ -62,7 +62,7 @@ static void continuous_grant(void)
 {
     if (m_continuous_requested && !m_continuous_granted)
     {
-        nrf_drv_radio802154_pin_set(PIN_DBG_TIMESLOT_ACTIVE);
+        nrf_802154_pin_set(PIN_DBG_TIMESLOT_ACTIVE);
         m_continuous_granted = true;
         nrf_raal_timeslot_started();
     }
@@ -72,7 +72,7 @@ static void continuous_revoke(void)
 {
     if (m_continuous_requested && m_continuous_granted)
     {
-        nrf_drv_radio802154_pin_clr(PIN_DBG_TIMESLOT_ACTIVE);
+        nrf_802154_pin_clr(PIN_DBG_TIMESLOT_ACTIVE);
         m_continuous_granted = false;
         nrf_raal_timeslot_ended();
     }
@@ -114,42 +114,42 @@ void nrf_raal_uninit(void)
 
 void nrf_raal_continuous_mode_enter(void)
 {
-    nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_CONTINUOUS_ENTER);
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_CONTINUOUS_ENTER);
 
     assert(!m_continuous_requested);
 
     m_continuous_requested = true;
     m_pending_event = PENDING_EVENT_NONE;
 
-    nrf_drv_radio802154_clock_hfclk_start();
+    nrf_802154_clock_hfclk_start();
 
-    nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_ENTER);
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_ENTER);
 }
 
 void nrf_raal_continuous_mode_exit(void)
 {
-    nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_CONTINUOUS_EXIT);
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_CONTINUOUS_EXIT);
 
     assert(m_continuous_requested);
 
     m_continuous_requested = false;
     m_continuous_granted   = false;
 
-    nrf_drv_radio802154_clock_hfclk_stop();
+    nrf_802154_clock_hfclk_stop();
 
-    nrf_drv_radio802154_pin_clr(PIN_DBG_TIMESLOT_ACTIVE);
+    nrf_802154_pin_clr(PIN_DBG_TIMESLOT_ACTIVE);
 
-    nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_EXIT);
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_EXIT);
 }
 
 void nrf_raal_critical_section_enter(void)
 {
-    nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_CRIT_SECT_ENTER);
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_CRIT_SECT_ENTER);
 
     m_critical_section = true;
-    nrf_drv_radio802154_pin_set(PIN_DBG_RAAL_CRITICAL_SECTION);
+    nrf_802154_pin_set(PIN_DBG_RAAL_CRITICAL_SECTION);
 
-    nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CRIT_SECT_ENTER);
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CRIT_SECT_ENTER);
 }
 
 void nrf_raal_critical_section_exit(void)
@@ -158,7 +158,7 @@ void nrf_raal_critical_section_exit(void)
     __DSB();
     __ISB();
 
-    nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_CRIT_SECT_EXIT);
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_CRIT_SECT_EXIT);
 
     m_critical_section = false;
 
@@ -178,8 +178,8 @@ void nrf_raal_critical_section_exit(void)
 
     m_pending_event = PENDING_EVENT_NONE;
 
-    nrf_drv_radio802154_pin_clr(PIN_DBG_RAAL_CRITICAL_SECTION);
-    nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CRIT_SECT_EXIT);
+    nrf_802154_pin_clr(PIN_DBG_RAAL_CRITICAL_SECTION);
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CRIT_SECT_EXIT);
 
     NVIC_EnableIRQ(TIMER0_IRQn);
 }
@@ -218,7 +218,7 @@ uint32_t nrf_raal_timeslot_us_left_get(void)
     return timer >= timeslot_start && timer < timeslot_end ? timeslot_end - timer : 0;
 }
 
-void nrf_drv_radio802154_clock_hfclk_ready(void)
+void nrf_802154_clock_hfclk_ready(void)
 {
     // Just wait for next timeslot to report that timeslot is ready.
     // It is hard to report start of timeslot from this context due to races (i.e. different
@@ -227,13 +227,13 @@ void nrf_drv_radio802154_clock_hfclk_ready(void)
 
 void TIMER0_IRQHandler(void)
 {
-    nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_HANDLER);
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_HANDLER);
 
     if (NRF_TIMER0->EVENTS_COMPARE[1])
     {
         NRF_TIMER0->EVENTS_COMPARE[1] = 0;
 
-        nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_EVENT_START);
+        nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_EVENT_START);
 
         NRF_MWU->REGIONENCLR = MWU_REGIONENCLR_PRGN0WA_Msk | MWU_REGIONENCLR_PRGN0RA_Msk;
 
@@ -253,14 +253,14 @@ void TIMER0_IRQHandler(void)
             continuous_grant();
         }
 
-        nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_START);
+        nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_START);
     }
 
     if (NRF_TIMER0->EVENTS_COMPARE[2])
     {
         NRF_TIMER0->EVENTS_COMPARE[2] = 0;
 
-        nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_EVENT_MARGIN);
+        nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_EVENT_MARGIN);
 
         if (m_critical_section)
         {
@@ -278,14 +278,14 @@ void TIMER0_IRQHandler(void)
             continuous_revoke();
         }
 
-        nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_MARGIN);
+        nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_MARGIN);
     }
 
     if (NRF_TIMER0->EVENTS_COMPARE[0])
     {
         NRF_TIMER0->EVENTS_COMPARE[0] = 0;
 
-        nrf_drv_radio802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_EVENT_ENDED);
+        nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_EVENT_ENDED);
 
         NRF_MWU->REGIONENSET = MWU_REGIONENSET_PRGN0WA_Msk | MWU_REGIONENSET_PRGN0RA_Msk;
 
@@ -293,10 +293,10 @@ void TIMER0_IRQHandler(void)
         NRF_TIMER0->TASKS_CLEAR = 1;
         NRF_TIMER0->TASKS_START = 1;
 
-        nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_ENDED);
+        nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_ENDED);
     }
 
-    nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_HANDLER);
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_HANDLER);
 }
 
 void MWU_IRQHandler(void)

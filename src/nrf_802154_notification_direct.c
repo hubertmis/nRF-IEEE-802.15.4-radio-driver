@@ -28,43 +28,64 @@
  *
  */
 
-#ifndef NRF_RAAL_CONFIG_H__
-#define NRF_RAAL_CONFIG_H__
-
-#ifdef NRF_802154_PROJECT_CONFIG
-#include NRF_802154_PROJECT_CONFIG
-#endif
-
-#include <nrf.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
- * @defgroup nrf_raal_config RAAL configuration
- * @{
- * @ingroup nrf_802154
- * @brief Configuration of Radio Arbiter Abstraction Layer.
- */
-
-/**
- * @def NRF_RAAL_MAX_CLEAN_UP_TIME_US
- *
- * Maximum time within radio driver needs to do any clean-up actions on RADIO peripheral
- * and stop using it completely.
+ * @file
+ *   This file implements notifications triggered directly by the nrf 802.15.4 radio driver.
  *
  */
-#ifndef NRF_RAAL_MAX_CLEAN_UP_TIME_US
-#define NRF_RAAL_MAX_CLEAN_UP_TIME_US  91
-#endif
 
-/**
- *@}
- **/
+#include "nrf_802154_notification.h"
 
-#ifdef __cplusplus
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "nrf_802154.h"
+#include "nrf_802154_critical_section.h"
+
+void nrf_802154_notification_init(void)
+{
+    // Intentionally empty
 }
-#endif
 
-#endif // NRF_RAAL_CONFIG_H__
+void nrf_802154_notify_received(uint8_t * p_data, int8_t power, int8_t lqi)
+{
+    nrf_802154_received_raw(p_data, power, lqi);
+}
+
+void nrf_802154_notify_receive_failed(nrf_802154_rx_error_t error)
+{
+    nrf_802154_receive_failed(error);
+}
+
+void nrf_802154_notify_transmitted(const uint8_t * p_frame,
+                                   uint8_t       * p_ack,
+                                   int8_t          power,
+                                   int8_t          lqi)
+{
+    nrf_802154_transmitted_raw(p_frame, p_ack, power, lqi);
+}
+
+void nrf_802154_notify_transmit_failed(const uint8_t * p_frame, nrf_802154_tx_error_t error)
+{
+    nrf_802154_transmit_failed(p_frame, error);
+}
+
+void nrf_802154_notify_energy_detected(uint8_t result)
+{
+    nrf_802154_energy_detected(result);
+}
+
+void nrf_802154_notify_energy_detection_failed(nrf_802154_ed_error_t error)
+{
+    nrf_802154_energy_detection_failed(error);
+}
+
+void nrf_802154_notify_cca(bool is_free)
+{
+    nrf_802154_cca_done(is_free);
+}
+
+void nrf_802154_notify_cca_failed(nrf_802154_cca_error_t error)
+{
+    nrf_802154_cca_failed(error);
+}

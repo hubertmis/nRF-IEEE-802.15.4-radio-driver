@@ -12,7 +12,7 @@
 
         <div class="container">
 
-            <h3 class="text-center">Sequence diagram generator <span class="label label-info">for nrf_drv_radio802154</span></h3>
+            <h3 class="text-center">Sequence diagram generator <span class="label label-info">for nrf_802154</span></h3>
 
             <form id="draw-form">
             <div class="form-group">
@@ -144,14 +144,14 @@
         ];
 
         var functions = [
-            {id: "SLEEP", val: 0x0001, from: "APP", to: "DRIVER", text: "nrf_drv_radio802154_sleep()"},
-            {id: "RECEIVE", val: 0x0002, from: "APP", to: "DRIVER", text: "nrf_drv_radio802154_receive()"},
-            {id: "TRANSMIT", val: 0x0003, from: "APP", to: "DRIVER", text: "nrf_drv_radio802154_transmit()"},
-            {id: "ENERGY_DETECTION", val: 0x0004, from: "APP", to: "DRIVER", text: "nrf_drv_radio802154_energy_detection()"},
-            {id: "BUFFER_FREE", val: 0x0005, from: "APP", to: "DRIVER", text: "nrf_drv_radio802154_buffer_free()"},
-            {id: "CCA", val: 0x0006, from: "APP", to: "DRIVER", text: "nrf_drv_radio802154_cca()"},
-            {id: "CONTINUOUS_CARRIER", val: 0x0007, from: "APP", to: "DRIVER", text: "nrf_drv_radio802154_continuous_carrier()"},
-            {id: "CSMA_CA", val: 0x0008, from: "APP", to: "DRIVER", text: "nrf_drv_radio802154_transmit_csma_ca()"},
+            {id: "SLEEP", val: 0x0001, from: "APP", to: "DRIVER", text: "nrf_802154_sleep()"},
+            {id: "RECEIVE", val: 0x0002, from: "APP", to: "DRIVER", text: "nrf_802154_receive()"},
+            {id: "TRANSMIT", val: 0x0003, from: "APP", to: "DRIVER", text: "nrf_802154_transmit()"},
+            {id: "ENERGY_DETECTION", val: 0x0004, from: "APP", to: "DRIVER", text: "nrf_802154_energy_detection()"},
+            {id: "BUFFER_FREE", val: 0x0005, from: "APP", to: "DRIVER", text: "nrf_802154_buffer_free()"},
+            {id: "CCA", val: 0x0006, from: "APP", to: "DRIVER", text: "nrf_802154_cca()"},
+            {id: "CONTINUOUS_CARRIER", val: 0x0007, from: "APP", to: "DRIVER", text: "nrf_802154_continuous_carrier()"},
+            {id: "CSMA_CA", val: 0x0008, from: "APP", to: "DRIVER", text: "nrf_802154_transmit_csma_ca()"},
 
             {id: "RADIO_IRQ", val: 0x0100, from: "RAAL", to: "DRIVER", text: "RADIO_IRQHandler()"},
             {id: "EVENT_FRAMESTART", val: 0x0101, from: "DRIVER", to: "DRIVER", text: "EVENT_FRAMESTART"},

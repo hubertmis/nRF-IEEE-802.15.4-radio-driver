@@ -42,7 +42,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "platform/clock/nrf_drv_radio802154_clock.h"
+#include "platform/clock/nrf_802154_clock.h"
 
 static bool m_continuous;
 
@@ -60,7 +60,7 @@ void nrf_raal_continuous_mode_enter(void)
 {
     assert(!m_continuous);
 
-    nrf_drv_radio802154_clock_hfclk_start();
+    nrf_802154_clock_hfclk_start();
     m_continuous = true;
 }
 
@@ -69,7 +69,7 @@ void nrf_raal_continuous_mode_exit(void)
     assert(m_continuous);
 
     m_continuous = false;
-    nrf_drv_radio802154_clock_hfclk_stop();
+    nrf_802154_clock_hfclk_stop();
 }
 
 bool nrf_raal_timeslot_request(uint32_t length_us)
@@ -101,7 +101,7 @@ void nrf_raal_critical_section_exit(void)
     // Intentionally empty.
 }
 
-void nrf_drv_radio802154_clock_hfclk_ready(void)
+void nrf_802154_clock_hfclk_ready(void)
 {
     nrf_raal_timeslot_started();
 }
