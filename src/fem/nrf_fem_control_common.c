@@ -36,6 +36,8 @@
 
 #include "nrf_fem_control_api.h"
 
+#include <assert.h>
+
 #include "compiler_abstraction.h"
 #include "nrf_fem_control_config.h"
 #include "nrf_802154_config.h"
@@ -47,6 +49,8 @@
 #include "hal/nrf_timer.h"
 
 #define NRF_FEM_TIMER_INSTANCE NRF_802154_TIMER_INSTANCE
+
+#if ENABLE_FEM
 
 static nrf_fem_control_cfg_t m_nrf_fem_control_cfg;     /**< FEM controller configuration. */
 
@@ -328,3 +332,5 @@ void nrf_fem_control_ppi_pin_task_setup(nrf_ppi_channel_t ppi_channel,
         nrf_ppi_channel_enable(ppi_channel);
     }
 }
+
+#endif // ENABLE_FEM

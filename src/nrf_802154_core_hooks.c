@@ -67,9 +67,7 @@ static const abort_hook m_abort_hooks[] =
     nrf_802154_ack_timeout_abort,
 #endif
 
-#ifndef __GNUC__
     NULL,
-#endif
 };
 
 static const transmitted_hook m_transmitted_hooks[] =
@@ -78,9 +76,7 @@ static const transmitted_hook m_transmitted_hooks[] =
     nrf_802154_ack_timeout_transmitted_hook,
 #endif
 
-#ifndef __GNUC__
     NULL,
-#endif
 };
 
 static const tx_failed_hook m_tx_failed_hooks[] =
@@ -93,9 +89,7 @@ static const tx_failed_hook m_tx_failed_hooks[] =
     nrf_802154_ack_timeout_tx_failed_hook,
 #endif
 
-#ifndef __GNUC__
     NULL,
-#endif
 };
 
 static const tx_started_hook m_tx_started_hooks[] =
@@ -108,9 +102,7 @@ static const tx_started_hook m_tx_started_hooks[] =
     nrf_802154_ack_timeout_tx_started_hook,
 #endif
 
-#ifndef __GNUC__
     NULL,
-#endif
 };
 
 bool nrf_802154_core_hooks_terminate(nrf_802154_term_t term_lvl, req_originator_t req_orig)
