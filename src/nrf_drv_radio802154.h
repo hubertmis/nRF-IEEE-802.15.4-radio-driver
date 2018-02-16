@@ -536,7 +536,7 @@ extern void nrf_drv_radio802154_transmitted_raw(const uint8_t * p_frame,
  * @note Buffer pointed by the @p p_ack pointer may be modified by the function handler (and other
  *       modules) until @sa nrf_drv_radio802154_buffer_free() function is called.
  * @note The next higher layer should handle @sa nrf_drv_radio802154_transmitted() or @sa
- *       nrf_drv_radio802154_transmitted() function. It should not handle both.
+ *       nrf_drv_radio802154_transmitted_raw() function. It should not handle both.
  *
  * @param[in]  p_frame  Pointer to buffer containing PSDU of transmitted frame.
  * @param[in]  p_ack    Pointer to buffer containing received ACK payload (PHR excluding FCS).
