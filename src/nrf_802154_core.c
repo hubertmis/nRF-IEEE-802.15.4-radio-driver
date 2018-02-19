@@ -65,8 +65,8 @@
 #include "raal/nrf_raal_api.h"
 
 
-#define EGU_EVENT           NRF_EGU_EVENT_TRIGGERED0
-#define EGU_TASK            NRF_EGU_TASK_TRIGGER0
+#define EGU_EVENT           NRF_EGU_EVENT_TRIGGERED15
+#define EGU_TASK            NRF_EGU_TASK_TRIGGER15
 #define PPI_CH0             NRF_PPI_CHANNEL6
 #define PPI_CH1             NRF_PPI_CHANNEL7
 #define PPI_CH2             NRF_PPI_CHANNEL8
@@ -657,7 +657,7 @@ static void ppis_for_egu_and_ramp_up_set(nrf_radio_task_t ramp_up_task, bool sel
                                    (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED),
                                    (uint32_t)nrf_egu_task_address_get(
                                            NRF_802154_EGU_INSTANCE,
-                                           NRF_EGU_TASK_TRIGGER0));
+                                           EGU_TASK));
 
     if (self_disabling)
     {
@@ -1309,7 +1309,7 @@ static void rx_init(bool disabled_was_triggered)
                                    (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_DISABLED),
                                    (uint32_t)nrf_egu_task_address_get(
                                            NRF_802154_EGU_INSTANCE,
-                                           NRF_EGU_TASK_TRIGGER0));
+                                           EGU_TASK));
 #if NRF_802154_DISABLE_BCC_MATCHING
     nrf_ppi_channel_endpoint_setup(PPI_ADDRESS_COUNTER_COUNT,
                                    (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_ADDRESS),

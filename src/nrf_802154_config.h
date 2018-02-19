@@ -126,7 +126,7 @@ extern "C" {
 /**
  * @def NRF_802154_TIMER_INSTANCE
  *
- * TIMER instance used by FSM for Ack IFS and by FEM module.
+ * TIMER instance used by the driver for Ack IFS and by FEM module.
  *
  */
 #ifndef NRF_802154_TIMER_INSTANCE
@@ -136,11 +136,37 @@ extern "C" {
 /**
  * @def NRF_802154_EGU_INSTANCE
  *
- * EGU instance used by FSM for synchronize PPIs.
+ * EGU instance used by the driver for synchronize PPIs.
+ *
+ * @note This option is used by core module regardless driver configuration.
  *
  */
 #ifndef NRF_802154_EGU_INSTANCE
-#define NRF_802154_EGU_INSTANCE NRF_EGU0
+#define NRF_802154_EGU_INSTANCE NRF_EGU3
+#endif
+
+/**
+ * @def NRF_802154_EGU_IRQ_HANDLER
+ *
+ * EGU IRQ handler used by the driver for synchronize PPIs.
+ *
+ * @note This option is used when the driver uses SWI to process requests and notifications.
+ *
+ */
+#ifndef NRF_802154_EGU_IRQ_HANDLER
+#define NRF_802154_EGU_IRQ_HANDLER SWI3_EGU3_IRQHandler
+#endif
+
+/**
+ * @def NRF_802154_EGU_IRQN
+ *
+ * EGU IRQ number used by the driver for synchronize PPIs.
+ *
+ * @note This option is used when the driver uses SWI to process requests and notifications.
+ *
+ */
+#ifndef NRF_802154_EGU_IRQN
+#define NRF_802154_EGU_IRQN SWI3_EGU3_IRQn
 #endif
 
 /**
@@ -241,7 +267,7 @@ extern "C" {
 /**
  * @def NRF_802154_COUNTER_TIMER_INSTANCE
  *
- * Timer instance used by FSM for detecting when PSDU is being received.
+ * Timer instance used by the driver for detecting when PSDU is being received.
  *
  * @note This configuration is only used when NRF_RADIO_EVENT_BCMATCH event handling is disabled
  *       (@sa NRF_802154_DISABLE_BCC_MATCHING).

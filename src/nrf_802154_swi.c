@@ -61,9 +61,9 @@
  */
 #define REQ_QUEUE_SIZE 2
 
-#define SWI_EGU        NRF_EGU3                       ///< Label of SWI peripheral.
-#define SWI_IRQn       SWI3_EGU3_IRQn                 ///< Symbol of SWI IRQ number.
-#define SWI_IRQHandler SWI3_EGU3_IRQHandler           ///< Symbol of SWI IRQ handler.
+#define SWI_EGU        NRF_802154_EGU_INSTANCE        ///< Label of SWI peripheral.
+#define SWI_IRQn       NRF_802154_EGU_IRQN            ///< Symbol of SWI IRQ number.
+#define SWI_IRQHandler NRF_802154_EGU_IRQ_HANDLER     ///< Symbol of SWI IRQ handler.
 
 #define NTF_INT   NRF_EGU_INT_TRIGGERED0              ///< Label of notification interrupt.
 #define NTF_TASK  NRF_EGU_TASK_TRIGGER0               ///< Label of notification task.
