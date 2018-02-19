@@ -429,6 +429,13 @@ __STATIC_INLINE void nrf_radio_crc_includes_address_set(
 __STATIC_INLINE void nrf_radio_crc_polynominal_set(uint32_t radio_crc_polynominal);
 
 /**
+ * @brief Function for getting CRC polynominal.
+ *
+ * @return  CRC polynominal.
+ */
+__STATIC_INLINE uint32_t nrf_radio_crc_polynominal_get(void);
+
+/**
  * @brief Function for getting RSSI sample result.
  *
  * @note The value is a positive value while the actual received signal is a negative value.
@@ -680,6 +687,11 @@ __STATIC_INLINE void nrf_radio_crc_includes_address_set(
 __STATIC_INLINE void nrf_radio_crc_polynominal_set(uint32_t radio_crc_polynominal)
 {
     NRF_RADIO->CRCPOLY = (radio_crc_polynominal << RADIO_CRCPOLY_CRCPOLY_Pos);
+}
+
+__STATIC_INLINE uint32_t nrf_radio_crc_polynominal_get(void)
+{
+    return (NRF_RADIO->CRCPOLY & RADIO_CRCPOLY_CRCPOLY_Msk) >> RADIO_CRCPOLY_CRCPOLY_Pos;
 }
 
 __STATIC_INLINE uint8_t nrf_radio_rssi_sample_get(void)
