@@ -243,6 +243,7 @@ bool nrf_802154_sleep(void);
  */
 bool nrf_802154_receive(void);
 
+#if NRF_802154_USE_RAW_API
 /**
  * @brief Change radio state to Transmit.
  *
@@ -278,6 +279,8 @@ bool nrf_802154_receive(void);
  * @return  false  If the driver could not schedule the transmission procedure.
  */
 bool nrf_802154_transmit_raw(const uint8_t * p_data, bool cca);
+
+#else // NRF_802154_USE_RAW_API
 
 /**
  * @brief Change radio state to Transmit.
@@ -316,6 +319,8 @@ bool nrf_802154_transmit_raw(const uint8_t * p_data, bool cca);
  * @return  false  If the driver could not schedule the transmission procedure.
  */
 bool nrf_802154_transmit(const uint8_t * p_data, uint8_t length, bool cca);
+
+#endif // NRF_802154_USE_RAW_API
 
 /**
  * @brief Change radio state to Energy Detection.
@@ -375,6 +380,8 @@ bool nrf_802154_continuous_carrier(void);
  */
 extern void nrf_802154_tx_ack_started(void);
 
+#if NRF_802154_USE_RAW_API
+
 /**
  * @brief Notify that frame was received.
  *
@@ -402,6 +409,8 @@ extern void nrf_802154_tx_ack_started(void);
  */
 extern void nrf_802154_received_raw(uint8_t * p_data, int8_t power, uint8_t lqi);
 
+#else // NRF_802154_USE_RAW_API
+
 /**
  * @brief Notify that frame was received.
  *
@@ -427,8 +436,10 @@ extern void nrf_802154_received_raw(uint8_t * p_data, int8_t power, uint8_t lqi)
  */
 extern void nrf_802154_received(uint8_t * p_data, uint8_t length, int8_t power, uint8_t lqi);
 
-#if NRF_802154_FRAME_TIMESTAMP_ENABLED
+#endif // !NRF_802154_USE_RAW_API
 
+#if NRF_802154_FRAME_TIMESTAMP_ENABLED
+#if NRF_802154_USE_RAW_API
 /**
  * @brief Notify that frame was received at given time
  *
@@ -454,6 +465,8 @@ extern void nrf_802154_received_timestamp_raw(uint8_t * p_data,
                                               uint8_t   lqi,
                                               uint32_t  time);
 
+#else // NRF_802154_USE_RAW_API
+
 /**
  * @brief Notify that frame was received at given time
  *
@@ -476,6 +489,8 @@ extern void nrf_802154_received_timestamp(uint8_t * p_data,
                                           int8_t    power,
                                           uint8_t   lqi,
                                           uint32_t  time);
+
+#endif // NRF_802154_USE_RAW_API
 #endif // NRF_802154_FRAME_TIMESTAMP_ENABLED
 
 /**
@@ -495,6 +510,8 @@ extern void nrf_802154_receive_failed(nrf_802154_rx_error_t error);
  * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame being transmitted.
  */
 extern void nrf_802154_tx_started(const uint8_t * p_frame);
+
+#if NRF_802154_USE_RAW_API
 
 /**
  * @brief Notify that frame was transmitted.
@@ -524,6 +541,8 @@ extern void nrf_802154_transmitted_raw(const uint8_t * p_frame,
                                        int8_t          power,
                                        uint8_t         lqi);
 
+#else // NRF_802154_USE_RAW_API
+
 /**
  * @brief Notify that frame was transmitted.
  *
@@ -551,7 +570,10 @@ extern void nrf_802154_transmitted(const uint8_t * p_frame,
                                    int8_t          power,
                                    uint8_t         lqi);
 
+#endif // !NRF_802154_USE_RAW_API
+
 #if NRF_802154_FRAME_TIMESTAMP_ENABLED
+#if NRF_802154_USE_RAW_API
 
 /**
  * @brief Notify that frame was transmitted.
@@ -582,6 +604,8 @@ extern void nrf_802154_transmitted_timestamp_raw(const uint8_t * p_frame,
                                                  uint8_t         lqi,
                                                  uint32_t        time);
 
+#else // NRF_802154_USE_RAW_API
+
 /**
  * @brief Notify that frame was transmitted.
  *
@@ -610,6 +634,7 @@ extern void nrf_802154_transmitted_timestamp(const uint8_t * p_frame,
                                              uint8_t         lqi,
                                              uint32_t        time);
 
+#endif // NRF_802154_USE_RAW_API
 #endif // NRF_802154_FRAME_TIMESTAMP_ENABLED
 
 /**
@@ -660,6 +685,8 @@ extern void nrf_802154_cca_failed(nrf_802154_cca_error_t error);
  * @section Driver memory management
  */
 
+#if NRF_802154_USE_RAW_API
+
 /**
  * @brief Notify driver that buffer containing received frame is not used anymore.
  *
@@ -674,6 +701,8 @@ extern void nrf_802154_cca_failed(nrf_802154_cca_error_t error);
  */
 void nrf_802154_buffer_free_raw(uint8_t * p_data);
 
+#else // NRF_802154_USE_RAW_API
+
 /**
  * @brief Notify driver that buffer containing received frame is not used anymore.
  *
@@ -687,6 +716,8 @@ void nrf_802154_buffer_free_raw(uint8_t * p_data);
  *                     the higher layer.
  */
 void nrf_802154_buffer_free(uint8_t * p_data);
+
+#endif // NRF_802154_USE_RAW_API
 
 
 /**
@@ -852,6 +883,7 @@ void nrf_802154_cca_cfg_get(nrf_802154_cca_cfg_t * p_cca_cfg);
  * @section CSMA-CA procedure.
  */
 #if NRF_802154_CSMA_CA_ENABLED
+#if NRF_802154_USE_RAW_API
 
 /**
  * @brief Perform CSMA-CA procedure and transmit frame in case of success.
@@ -871,6 +903,8 @@ void nrf_802154_cca_cfg_get(nrf_802154_cca_cfg_t * p_cca_cfg);
  */
 void nrf_802154_transmit_csma_ca_raw(const uint8_t * p_data);
 
+#else // NRF_802154_USE_RAW_API
+
 /**
  * @brief Perform CSMA-CA procedure and transmit frame in case of success.
  *
@@ -888,6 +922,7 @@ void nrf_802154_transmit_csma_ca_raw(const uint8_t * p_data);
  */
 void nrf_802154_transmit_csma_ca(const uint8_t * p_data, uint8_t length);
 
+#endif // NRF_802154_USE_RAW_API
 #endif // NRF_802154_CSMA_CA_ENABLED
 
 /**

@@ -144,6 +144,15 @@ extern "C" {
 #endif
 
 /**
+ * @def NRF_802154_USE_RAW_API
+ *
+ * If RAW or copying API should be available for the MAC layer.
+ */
+#ifndef NRF_802154_USE_RAW_API
+#define NRF_802154_USE_RAW_API 1
+#endif
+
+/**
  * @def NRF_802154_PENDING_SHORT_ADDRESSES
  *
  * Number of slots containing short addresses of nodes for which pending data is stored.

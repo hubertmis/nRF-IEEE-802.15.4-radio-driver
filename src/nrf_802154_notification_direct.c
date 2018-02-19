@@ -42,6 +42,9 @@
 #include "nrf_802154.h"
 #include "nrf_802154_critical_section.h"
 
+#define RAW_LENGTH_OFFSET  0
+#define RAW_PAYLOAD_OFFSET 1
+
 void nrf_802154_notification_init(void)
 {
     // Intentionally empty
@@ -49,7 +52,11 @@ void nrf_802154_notification_init(void)
 
 void nrf_802154_notify_received(uint8_t * p_data, int8_t power, int8_t lqi)
 {
+#if NRF_802154_USE_RAW_API
     nrf_802154_received_raw(p_data, power, lqi);
+#else // NRF_802154_USE_RAW_API
+    nrf_802154_received(p_data + RAW_PAYLOAD_OFFSET, p_data[RAW_LENGTH_OFFSET], power, lqi);
+#endif // NRF_802154_USE_RAW_API
 }
 
 void nrf_802154_notify_receive_failed(nrf_802154_rx_error_t error)
@@ -62,7 +69,15 @@ void nrf_802154_notify_transmitted(const uint8_t * p_frame,
                                    int8_t          power,
                                    int8_t          lqi)
 {
+#if NRF_802154_USE_RAW_API
     nrf_802154_transmitted_raw(p_frame, p_ack, power, lqi);
+#else // NRF_802154_USE_RAW_API
+    nrf_802154_transmitted(p_frame,
+                           p_ack + RAW_PAYLOAD_OFFSET,
+                           p_ack[RAW_LENGTH_OFFSET],
+                           power,
+                           lqi);
+#endif // NRF_802154_USE_RAW_API
 }
 
 void nrf_802154_notify_transmit_failed(const uint8_t * p_frame, nrf_802154_tx_error_t error)

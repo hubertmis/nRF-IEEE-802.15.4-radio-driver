@@ -77,6 +77,9 @@
 #define REQ_TASK  NRF_EGU_TASK_TRIGGER2               ///< Label of request task.
 #define REQ_EVENT NRF_EGU_EVENT_TRIGGERED2            ///< Label of request event.
 
+#define RAW_LENGTH_OFFSET  0
+#define RAW_PAYLOAD_OFFSET 1
+
 /// Types of notifications in notification queue.
 typedef enum
 {
@@ -656,9 +659,16 @@ void SWI_IRQHandler(void)
             switch (p_slot->type)
             {
                 case NTF_TYPE_RECEIVED:
+#if NRF_802154_USE_RAW_API
                     nrf_802154_received_raw(p_slot->data.received.p_psdu,
                                             p_slot->data.received.power,
                                             p_slot->data.received.lqi);
+#else // NRF_802154_USE_RAW_API
+                    nrf_802154_received(p_slot->data.received.p_psdu + RAW_PAYLOAD_OFFSET,
+                                        p_slot->data.received.p_psdu[RAW_LENGTH_OFFSET],
+                                        p_slot->data.received.power,
+                                        p_slot->data.received.lqi);
+#endif
                     break;
 
                 case NTF_TYPE_RECEIVE_FAILED:
@@ -666,10 +676,18 @@ void SWI_IRQHandler(void)
                     break;
 
                 case NTF_TYPE_TRANSMITTED:
+#if NRF_802154_USE_RAW_API
                     nrf_802154_transmitted_raw(p_slot->data.transmitted.p_frame,
                                                p_slot->data.transmitted.p_psdu,
                                                p_slot->data.transmitted.power,
                                                p_slot->data.transmitted.lqi);
+#else // NRF_802154_USE_RAW_API
+                    nrf_802154_transmitted(p_slot->data.transmitted.p_frame,
+                                           p_slot->data.transmitted.p_psdu + RAW_PAYLOAD_OFFSET,
+                                           p_slot->data.transmitted.p_psdu[RAW_LENGTH_OFFSET],
+                                           p_slot->data.transmitted.power,
+                                           p_slot->data.transmitted.lqi);
+#endif
                     break;
 
                 case NTF_TYPE_TRANSMIT_FAILED:
