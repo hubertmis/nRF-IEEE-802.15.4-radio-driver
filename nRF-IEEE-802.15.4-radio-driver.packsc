@@ -228,7 +228,7 @@
                     "public"
                 ],
                 "_files": [
-                    "src/fem/nrf_fem_control_common.c"
+                    "src/fem/nrf_fem_control.c"
                 ]
             },
             {
