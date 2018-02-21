@@ -61,9 +61,9 @@
  */
 #define REQ_QUEUE_SIZE 2
 
-#define SWI_EGU        NRF_802154_EGU_INSTANCE        ///< Label of SWI peripheral.
-#define SWI_IRQn       NRF_802154_EGU_IRQN            ///< Symbol of SWI IRQ number.
-#define SWI_IRQHandler NRF_802154_EGU_IRQ_HANDLER     ///< Symbol of SWI IRQ handler.
+#define SWI_EGU        NRF_802154_SWI_EGU_INSTANCE    ///< Label of SWI peripheral.
+#define SWI_IRQn       NRF_802154_SWI_IRQN            ///< Symbol of SWI IRQ number.
+#define SWI_IRQHandler NRF_802154_SWI_IRQ_HANDLER     ///< Symbol of SWI IRQ handler.
 
 #define NTF_INT   NRF_EGU_INT_TRIGGERED0              ///< Label of notification interrupt.
 #define NTF_TASK  NRF_EGU_TASK_TRIGGER0               ///< Label of notification task.
@@ -394,12 +394,9 @@ void nrf_802154_swi_init(void)
     m_ntf_r_ptr = 0;
     m_ntf_w_ptr = 0;
 
-    nrf_egu_int_enable(SWI_EGU,
-                       NTF_INT |
-                       TIMESLOT_EXIT_INT |
-                       REQ_INT);
+    nrf_egu_int_enable(SWI_EGU, NTF_INT | TIMESLOT_EXIT_INT |  REQ_INT);
 
-    NVIC_SetPriority(SWI_IRQn, NRF_802154_NOTIFICATION_SWI_PRIORITY);
+    NVIC_SetPriority(SWI_IRQn, NRF_802154_SWI_PRIORITY);
     NVIC_ClearPendingIRQ(SWI_IRQn);
     NVIC_EnableIRQ(SWI_IRQn);
 }
@@ -682,7 +679,7 @@ void SWI_IRQHandler(void)
                                                p_slot->data.transmitted.power,
                                                p_slot->data.transmitted.lqi);
 #else // NRF_802154_USE_RAW_API
-                    nrf_802154_transmitted(p_slot->data.transmitted.p_frame,
+                    nrf_802154_transmitted(p_slot->data.transmitted.p_frame + RAW_PAYLOAD_OFFSET,
                                            p_slot->data.transmitted.p_psdu + RAW_PAYLOAD_OFFSET,
                                            p_slot->data.transmitted.p_psdu[RAW_LENGTH_OFFSET],
                                            p_slot->data.transmitted.power,
@@ -691,8 +688,13 @@ void SWI_IRQHandler(void)
                     break;
 
                 case NTF_TYPE_TRANSMIT_FAILED:
+#if NRF_802154_USE_RAW_API
                     nrf_802154_transmit_failed(p_slot->data.transmit_failed.p_frame,
                                                p_slot->data.transmit_failed.error);
+#else // NRF_802154_USE_RAW_API
+                    nrf_802154_transmit_failed(p_slot->data.transmit_failed.p_frame + RAW_PAYLOAD_OFFSET,
+                                               p_slot->data.transmit_failed.error);
+#endif
                     break;
 
                 case NTF_TYPE_ENERGY_DETECTED:

@@ -178,12 +178,12 @@ void nrf_802154_deinit(void)
     nrf_802154_core_deinit();
 }
 
-#if !NRF_802154_INTERNAL_IRQ_HANDLING
-void nrf_802154_irq_handler(void)
+#if !NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
+void nrf_802154_radio_irq_handler(void)
 {
     nrf_802154_core_irq_handler();
 }
-#endif // !NRF_802154_INTERNAL_IRQ_HANDLING
+#endif // !NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
 
 #if ENABLE_FEM
 void nrf_802154_fem_control_cfg_set(const nrf_802154_fem_control_cfg_t * p_cfg)
@@ -195,7 +195,7 @@ void nrf_802154_fem_control_cfg_get(nrf_802154_fem_control_cfg_t * p_cfg)
 {
     nrf_fem_control_cfg_get(p_cfg);
 }
-#endif
+#endif // ENABLE_FEM
 
 nrf_802154_state_t nrf_802154_state_get(void)
 {

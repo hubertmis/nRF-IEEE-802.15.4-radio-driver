@@ -48,9 +48,9 @@ extern "C" {
  * @brief Configuration of 802.15.4 radio driver for nRF SoC.
  */
 
-/*******************************************************************************
+/***************************************************************************************************
  * @section Radio Driver Configuration.
- ******************************************************************************/
+ **************************************************************************************************/
 
 /**
  * @def NRF_802154_CCA_MODE
@@ -93,23 +93,22 @@ extern "C" {
 #endif
 
 /**
- * @def NRF_802154_INTERNAL_IRQ_HANDLING
+ * @def NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
  *
  * If the driver should internally handle the RADIO IRQ.
  * In case the driver is used in an OS the RADIO IRQ may be handled by the OS and passed to
- * the driver @sa nrf_802154_irq_handler(). In this case internal handling should be
- * disabled.
+ * the driver @sa nrf_802154_radio_irq_handler(). In this case internal handling should be disabled.
  */
 
-#ifndef NRF_802154_INTERNAL_IRQ_HANDLING
+#ifndef NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
 
 #if RAAL_SOFTDEVICE
-#define NRF_802154_INTERNAL_IRQ_HANDLING 0
+#define NRF_802154_INTERNAL_RADIO_IRQ_HANDLING 0
 #else // RAAL_SOFTDEVICE
-#define NRF_802154_INTERNAL_IRQ_HANDLING 1
+#define NRF_802154_INTERNAL_RADIO_IRQ_HANDLING 1
 #endif // RAAL_SOFTDEVICE
 
-#endif // NRF_802154_INTERNAL_IRQ_HANDLING
+#endif // NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
 
 /**
  * @def NRF_802154_IRQ_PRIORITY
@@ -134,45 +133,73 @@ extern "C" {
 #endif
 
 /**
- * @def NRF_802154_EGU_INSTANCE
+ * @def NRF_802154_COUNTER_TIMER_INSTANCE
  *
- * EGU instance used by the driver for synchronize PPIs.
+ * Timer instance used by the driver for detecting when PSDU is being received.
+ *
+ * @note This configuration is only used when NRF_RADIO_EVENT_BCMATCH event handling is disabled
+ *       (@sa NRF_802154_DISABLE_BCC_MATCHING).
+ */
+#ifndef NRF_802154_COUNTER_TIMER_INSTANCE
+#define NRF_802154_COUNTER_TIMER_INSTANCE NRF_TIMER2
+#endif
+
+/**
+ * @def NRF_802154_SWI_EGU_INSTANCE
+ *
+ * SWI EGU instance used by the driver to synchronize PPIs and for requests and notifications if
+ * SWI is in use.
  *
  * @note This option is used by core module regardless driver configuration.
  *
  */
-#ifndef NRF_802154_EGU_INSTANCE
-#define NRF_802154_EGU_INSTANCE NRF_EGU3
+#ifndef NRF_802154_SWI_EGU_INSTANCE
+#define NRF_802154_SWI_EGU_INSTANCE NRF_EGU3
 #endif
 
 /**
- * @def NRF_802154_EGU_IRQ_HANDLER
+ * @def NRF_802154_SWI_IRQ_HANDLER
  *
- * EGU IRQ handler used by the driver for synchronize PPIs.
+ * SWI EGU IRQ handler used by the driver for requests and notifications if SWI is in use.
  *
  * @note This option is used when the driver uses SWI to process requests and notifications.
  *
  */
-#ifndef NRF_802154_EGU_IRQ_HANDLER
-#define NRF_802154_EGU_IRQ_HANDLER SWI3_EGU3_IRQHandler
+#ifndef NRF_802154_SWI_IRQ_HANDLER
+#define NRF_802154_SWI_IRQ_HANDLER SWI3_EGU3_IRQHandler
 #endif
 
 /**
- * @def NRF_802154_EGU_IRQN
+ * @def NRF_802154_SWI_IRQN
  *
- * EGU IRQ number used by the driver for synchronize PPIs.
+ * SWI EGU IRQ number used by the driver for requests and notifications if SWI is in use.
  *
  * @note This option is used when the driver uses SWI to process requests and notifications.
  *
  */
-#ifndef NRF_802154_EGU_IRQN
-#define NRF_802154_EGU_IRQN SWI3_EGU3_IRQn
+#ifndef NRF_802154_SWI_IRQN
+#define NRF_802154_SWI_IRQN SWI3_EGU3_IRQn
+#endif
+
+/**
+ * @def NRF_802154_SWI_PRIORITY
+ *
+ * Priority of software interrupt used for requests and notifications.
+ *
+ */
+#ifndef NRF_802154_SWI_PRIORITY
+#define NRF_802154_SWI_PRIORITY 5
 #endif
 
 /**
  * @def NRF_802154_USE_RAW_API
  *
- * If RAW or copying API should be available for the MAC layer.
+ * When this flag is set RAW API is available for the MAC layer. It is recommended to use RAW API,
+ * because it provides more optimized functions.
+ *
+ * @note If RAW API is not available for the MAC layer, only less optimized functions performing
+ *       copy are available.
+ *
  */
 #ifndef NRF_802154_USE_RAW_API
 #define NRF_802154_USE_RAW_API 1
@@ -209,32 +236,11 @@ extern "C" {
 #endif
 
 /**
- * @def NRF_802154_SHORT_CCAIDLE_TXEN
- *
- * RADIO peripheral can start transmission using short CCAIDLE->TXEN or interrupt handler.
- * If NRF_802154_SHORT_CCAIDLE_TXEN is set to 0 interrupt handler is used, otherwise
- * short is used.
- *
- */
-#ifndef NRF_802154_SHORT_CCAIDLE_TXEN
-#define NRF_802154_SHORT_CCAIDLE_TXEN  1
-#endif
-
-/**
- * @def NRF_802154_NOTIFICATION_SWI_PRIORITY
- *
- * Priority of software interrupt used to call notification from 802.15.4 driver.
- *
- */
-#ifndef NRF_802154_NOTIFICATION_SWI_PRIORITY
-#define NRF_802154_NOTIFICATION_SWI_PRIORITY 5
-#endif
-
-/**
  * @def NRF_802154_EXCLUDE_BCC_MATCHING
  *
- * Setting this flag will disable NRF_RADIO_EVENT_BCMATCH handling, and therefore address filtering during frame reception.
- * With this flag set to 1, address filtering is done after receiving a frame, during NRF_RADIO_EVENT_END handling.
+ * Setting this flag disables NRF_RADIO_EVENT_BCMATCH handling, and therefore address filtering
+ * during frame reception. With this flag set to 1, address filtering is done after receiving
+ * a frame, during NRF_RADIO_EVENT_END handling.
  *
  */
 #ifndef NRF_802154_DISABLE_BCC_MATCHING
@@ -244,7 +250,8 @@ extern "C" {
 /**
  * @def NRF_802154_NOTIFY_CRCERROR
  *
- * With this flag set to 1 CRC errors would be notified to upper layers. This requires interrupt handler to be used.
+ * With this flag set to 1 CRC errors would be notified to upper layers. This requires interrupt
+ * handler to be used.
  *
  */
 #ifndef NRF_802154_NOTIFY_CRCERROR
@@ -264,21 +271,9 @@ extern "C" {
 #define NRF_802154_FRAME_TIMESTAMP_ENABLED 1
 #endif
 
-/**
- * @def NRF_802154_COUNTER_TIMER_INSTANCE
- *
- * Timer instance used by the driver for detecting when PSDU is being received.
- *
- * @note This configuration is only used when NRF_RADIO_EVENT_BCMATCH event handling is disabled
- *       (@sa NRF_802154_DISABLE_BCC_MATCHING).
- */
-#ifndef NRF_802154_COUNTER_TIMER_INSTANCE
-#define NRF_802154_COUNTER_TIMER_INSTANCE NRF_TIMER2
-#endif
-
-/*******************************************************************************
+/***************************************************************************************************
  * @section Clock Driver Configuration.
- ******************************************************************************/
+ **************************************************************************************************/
 
 /**
  * @def NRF_802154_CLOCK_IRQ_PRIORITY
@@ -306,9 +301,9 @@ extern "C" {
 #define NRF_802154_CLOCK_LFCLK_SOURCE NRF_CLOCK_LFCLK_Xtal
 #endif
 
-/*******************************************************************************
+/***************************************************************************************************
  * @section RTC Driver Configuration.
- ******************************************************************************/
+ **************************************************************************************************/
 
 /**
  * @def NRF_802154_RTC_IRQ_PRIORITY
@@ -364,9 +359,9 @@ extern "C" {
 #endif
 
 
-/*******************************************************************************
+/***************************************************************************************************
  * @section CSMA/CA procedure configuration.
- ******************************************************************************/
+ **************************************************************************************************/
 
 /**
  * @def NRF_802154_CSMA_CA_ENABLED
@@ -412,9 +407,9 @@ extern "C" {
 #define NRF_802154_CSMA_CA_MAX_CSMA_BACKOFFS 4
 #endif
 
-/*******************************************************************************
+/***************************************************************************************************
  * @section ACK timeout feature configuration.
- ******************************************************************************/
+ **************************************************************************************************/
 
 /**
  * @def NRF_802154_ACK_TIMEOUT_ENABLED
@@ -436,9 +431,9 @@ extern "C" {
 #define NRF_802154_ACK_TIMEOUT_DEFAULT_TIMEOUT 7000
 #endif
 
-/*******************************************************************************
+/***************************************************************************************************
  * @section Transmission start notification feature configuration.
- ******************************************************************************/
+ **************************************************************************************************/
 
 /**
  * @def NRF_802154_TX_STARTED_NOTIFY_ENABLED
@@ -449,8 +444,7 @@ extern "C" {
  *       These features depend on notification of transmission start.
  */
 #ifndef NRF_802154_TX_STARTED_NOTIFY_ENABLED
-#if NRF_802154_ACK_TIMEOUT_ENABLED ||                                                     \
-    NRF_802154_CSMA_CA_ENABLED
+#if NRF_802154_ACK_TIMEOUT_ENABLED || NRF_802154_CSMA_CA_ENABLED
 #define NRF_802154_TX_STARTED_NOTIFY_ENABLED 1
 #else
 #define NRF_802154_TX_STARTED_NOTIFY_ENABLED 0

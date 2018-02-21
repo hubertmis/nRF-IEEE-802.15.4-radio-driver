@@ -104,8 +104,7 @@
 static bool active_vector_priority_is_high(void)
 {
 
-    return nrf_802154_critical_section_active_vector_priority_get() <=
-            NRF_802154_NOTIFICATION_SWI_PRIORITY;
+    return nrf_802154_critical_section_active_vector_priority_get() <= NRF_802154_SWI_PRIORITY;
 }
 
 void nrf_802154_request_init(void)

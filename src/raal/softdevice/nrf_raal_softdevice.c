@@ -477,7 +477,7 @@ static nrf_radio_signal_callback_return_param_t *signal_handler(uint8_t signal_t
         {
             if (!timer_is_margin_reached())
             {
-                nrf_802154_irq_handler();
+                nrf_802154_radio_irq_handler();
             }
             else
             {

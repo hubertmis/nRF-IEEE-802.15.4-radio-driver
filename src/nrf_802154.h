@@ -66,19 +66,19 @@ void nrf_802154_init(void);
  */
 void nrf_802154_deinit(void);
 
-#if !NRF_802154_INTERNAL_IRQ_HANDLING
+#if !NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
 /**
  * @brief Handle interrupt request from the RADIO peripheral.
  *
- * @note When NRF_802154_INTERNAL_IRQ_HANDLING is enabled the driver internally handles the
+ * @note When NRF_802154_INTERNAL_RADIO_IRQ_HANDLING is enabled the driver internally handles the
  *       RADIO IRQ and this function shall not be called.
  *
  * This function is intended to be used in Operating System environment when the OS handles IRQ
  * and indirectly passes it to the driver or with RAAL implementation that indirectly passes radio
  * IRQ handler to the driver (i.e. SoftDevice).
  */
-void nrf_802154_irq_handler(void);
-#endif // !NRF_802154_INTERNAL_IRQ_HANDLING
+void nrf_802154_radio_irq_handler(void);
+#endif // !NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
 
 /**
  * @brief Set channel on which the radio shall operate right now.
@@ -111,14 +111,16 @@ void nrf_802154_tx_power_set(int8_t power);
  */
 int8_t nrf_802154_tx_power_get(void);
 
-/**
+/***************************************************************************************************
  * @section Front-end module management.
- */
+ **************************************************************************************************/
 
 #if ENABLE_FEM
 
+/** Structure containing run-time configuration of FEM module. */
 typedef nrf_fem_control_cfg_t nrf_802154_fem_control_cfg_t;
 
+/** Macro with default configuration of FEM module. */
 #define NRF_802154_FEM_DEFAULT_SETTINGS                                                            \
     ((nrf_802154_fem_control_cfg_t) {                                                              \
         .pa_cfg = {                                                                                \
@@ -158,9 +160,9 @@ void nrf_802154_fem_control_cfg_get(nrf_802154_fem_control_cfg_t * p_cfg);
 #endif // ENABLE_FEM
 
 
-/**
+/***************************************************************************************************
  * @section Setting addresses and Pan Id of this device.
- */
+ **************************************************************************************************/
 
 /**
  * @brief Set PAN Id used by this device.
@@ -189,6 +191,11 @@ void nrf_802154_extended_address_set(const uint8_t *p_extended_address);
  */
 void nrf_802154_short_address_set(const uint8_t *p_short_address);
 
+
+/***************************************************************************************************
+ * @section Functions to calculate data given by the driver.
+ **************************************************************************************************/
+
 /**
  * @brief  Calculate dBm from energy level received during energy detection procedure.
  *
@@ -199,9 +206,9 @@ void nrf_802154_short_address_set(const uint8_t *p_short_address);
 int8_t nrf_802154_dbm_from_energy_level_calculate(uint8_t energy_level);
 
 /**
- * @brief  Calculate timestamp of first symbol of preamble in a received frame.
+ * @brief  Calculate timestamp of beginning of first symbol of preamble in a received frame.
  *
- * @param[in]  end_timestamp  Timestamp of last symbol in the frame (in us).
+ * @param[in]  end_timestamp  Timestamp of end of last symbol in the frame (in us).
  * @param[in]  psdu_length    Number of bytes in the frame PSDU.
  *
  * @return  Timestamp of first preamble symbol of given frame (in us).
@@ -209,9 +216,9 @@ int8_t nrf_802154_dbm_from_energy_level_calculate(uint8_t energy_level);
 uint32_t nrf_802154_first_symbol_timestamp_get(uint32_t end_timestamp, uint8_t psdu_length);
 
 
-/**
+/***************************************************************************************************
  * @section Functions to request FSM transitions and check current state.
- */
+ **************************************************************************************************/
 
 /**
  * @brief Get current state of the radio.
@@ -221,9 +228,11 @@ nrf_802154_state_t nrf_802154_state_get(void);
 /**
  * @brief Change radio state to Sleep.
  *
- * @note This function should be called only if radio is in Receive state.
- *
  * Sleep state is the lowest power state. In this state radio cannot transmit or receive frames.
+ * It is the only state in which the driver releases high frequency clock and does not request
+ * timeslots from a radio arbiter.
+ *
+ * @note High frequency clock may be enabled even in radio Sleep state if other module requests it.
  *
  * @return  true   If the radio changes it's state to low power mode.
  * @return  false  If the driver could not schedule changing state.
@@ -233,10 +242,8 @@ bool nrf_802154_sleep(void);
 /**
  * @brief Change radio state to Receive.
  *
- * @note This function should be called in Sleep or Transmit state.
- *
- * In Receive state radio receives frames and automatically sends ACK frames when appropriate.
- * Received frame is reported to higher layer by nrf_radio802154_received() call.
+ * In Receive state radio receives frames and may automatically send ACK frames when appropriate.
+ * Received frame is reported to higher layer by @sa nrf_radio802154_received() call.
  *
  * @return  true   If the radio enters Receive state.
  * @return  false  If the driver could not enter Receive state.
@@ -247,8 +254,6 @@ bool nrf_802154_receive(void);
 /**
  * @brief Change radio state to Transmit.
  *
- * @note This function should be called in Receive state. In other states transmission will not be
- *       scheduled.
  * @note If the CPU was halted or interrupted during performing this function
  *       @sa nrf_802154_transmitted() or @sa nrf_802154_transmit_failed() may be
  *       called before nrf_802154_transmit_raw() returns result.
@@ -256,8 +261,10 @@ bool nrf_802154_receive(void);
  *       the RADIO peripheral.
  *
  * In Transmit state radio transmits given frame. If requested it waits for ACK frame.
- * Radio driver waits infinitely for ACK frame. Higher layer is responsible to call
- * @sa nrf_radio802154_receive() after ACK timeout.
+ * Depending on @sa NRF_802154_ACK_TIMEOUT_ENABLED configuration option, Radio driver automatically
+ * stops waiting for an ACK frame or waits infinitely for an ACK frame. If it is configured to wait
+ * indefinitely, MAC layer is responsible to call @sa nrf_radio802154_receive() or
+ * @sa nrf_radio802154_sleep() after ACK timeout.
  * Transmission result is reported to higher layer by @sa nrf_radio802154_transmitted() or
  * @sa nrf_radio802154_transmit_failed() calls.
  *
@@ -285,8 +292,6 @@ bool nrf_802154_transmit_raw(const uint8_t * p_data, bool cca);
 /**
  * @brief Change radio state to Transmit.
  *
- * @note This function should be called in Receive state. In other states transmission will not be
- *       scheduled.
  * @note If the CPU was halted or interrupted during performing this function
  *       @sa nrf_802154_transmitted() or @sa nrf_802154_transmit_failed() may be
  *       called before nrf_802154_transmit() returns result.
@@ -295,9 +300,11 @@ bool nrf_802154_transmit_raw(const uint8_t * p_data, bool cca);
  *       to perform zero-copy transmission @sa nrf_802154_transmit_raw() function should
  *       be used instead of this.
  *
- * In Transmit state radio transmits given frame. If requested, it waits for ACK frame.
- * Radio driver waits infinitely for ACK frame. Higher layer is responsible to call
- * @sa nrf_radio802154_receive() after ACK timeout.
+ * In Transmit state radio transmits given frame. If requested it waits for ACK frame.
+ * Depending on @sa NRF_802154_ACK_TIMEOUT_ENABLED configuration option, Radio driver automatically
+ * stops waiting for an ACK frame or waits infinitely for an ACK frame. If it is configured to wait
+ * indefinitely, MAC layer is responsible to call @sa nrf_radio802154_receive() or
+ * @sa nrf_radio802154_sleep() after ACK timeout.
  * Transmission result is reported to higher layer by @sa nrf_radio802154_transmitted() or
  * @sa nrf_radio802154_transmit_failed() calls.
  *
@@ -325,12 +332,16 @@ bool nrf_802154_transmit(const uint8_t * p_data, uint8_t length, bool cca);
 /**
  * @brief Change radio state to Energy Detection.
  *
- * @note This function should be called in Receive state or Sleep state.
- * @note If this function is called in Sleep state nrf_802154_energy_detected() may be
- *       called before nrf_802154_energy_detection() returns result.
- *
  * In Energy Detection state radio detects maximum energy for given time. Result of the detection
  * is reported to the higher layer by @sa nrf_802154_energy_detected() call.
+ *
+ * @note @sa nrf_802154_energy_detected() may be called before nrf_802154_energy_detection()
+ *       returns result.
+ * @note Performing Energy Detection procedure make take longer than time requested in @p time_us.
+ *       Procedure is performed only during timeslots granted by a radio arbiter. It may be
+ *       interrupted by other protocols using radio hardware. If procedure is interrupted, it is
+ *       automatically continued and the sum of time periods during which the procedure is carried
+ *       out is not less than requested @p time_us.
  *
  * @param[in]  time_us   Duration of energy detection procedure. Given value is rounded up to
  *                       multiplication of 8s (128 us).
@@ -342,9 +353,8 @@ bool nrf_802154_energy_detection(uint32_t time_us);
 
 /**
  * @brief Change radio state to CCA.
- * @note This function should be called in Receive state or Sleep state.
- * @note If this function is called in Sleep state nrf_802154_cca_done() may be
- *       called before nrf_802154_cca() returns result.
+ *
+ * @note @sa nrf_802154_cca_done() may be called before nrf_802154_cca() returns result.
  *
  * In CCA state radio verifies if channel is clear. Result of verification is reported to the higher
  * layer by @sa nrf_802154_cca_done() call.
@@ -355,8 +365,8 @@ bool nrf_802154_energy_detection(uint32_t time_us);
 bool nrf_802154_cca(void);
 
 /**
- * @brief Change radio state to CONTINUOUS_CARRIER.
- * @note This function should be called in Receive or Sleep state.
+ * @brief Change radio state to Continuous Carrier.
+ *
  * @note When radio is emitting continuous carrier it blocks all transmissions on selected channel.
  *       This function should be called only during radio tests. It should not be used during
  *       normal device operation.
@@ -369,9 +379,9 @@ bool nrf_802154_cca(void);
 bool nrf_802154_continuous_carrier(void);
 
 
-/**
+/***************************************************************************************************
  * @section Calls to higher layer.
- */
+ **************************************************************************************************/
 
 /**
  * @brief Notify that transmitting ACK frame has started.
@@ -386,11 +396,9 @@ extern void nrf_802154_tx_ack_started(void);
  * @brief Notify that frame was received.
  *
  * @note Buffer pointed by the p_data pointer is not modified by the radio driver (and can't
- *       be used to receive a frame) until nrf_802154_buffer_free_raw() function is called.
+ *       be used to receive a frame) until @sa nrf_802154_buffer_free_raw() function is called.
  * @note Buffer pointed by the p_data pointer may be modified by the function handler (and other
  *       modules) until @sa nrf_802154_buffer_free_raw() function is called.
- * @note The next higher layer should handle @sa nrf_802154_received_raw() or @sa
- *       nrf_802154_received() function. It should not handle both.
  *
  * p_data
  * v
@@ -418,8 +426,6 @@ extern void nrf_802154_received_raw(uint8_t * p_data, int8_t power, uint8_t lqi)
  *       be used to receive a frame) until nrf_802154_buffer_free() function is called.
  * @note Buffer pointed by the p_data pointer may be modified by the function handler (and other
  *       modules) until @sa nrf_802154_buffer_free() function is called.
- * @note The next higher layer should handle @sa nrf_802154_received_raw() or @sa
- *       nrf_802154_received() function. It should not handle both.
  *
  *       p_data
  *       v
@@ -450,7 +456,7 @@ extern void nrf_802154_received(uint8_t * p_data, uint8_t length, int8_t power, 
  * @note @p timestamp granularity depends on granularity of the timer driver in platform/timer
  *       directory.
  * @note Including timestamp to received frame uses resources like CPU time and memory. If timestamp
- *       is not required use @sa nrf_802154_received_raw instead.
+ *       is not required use @sa nrf_802154_received_raw() instead.
  *
  * @param[in]  p_data  Pointer to the buffer containing received data (PHR + PSDU). First byte in
  *                     the buffer is length of the frame (PHR) and following bytes is the frame
@@ -476,7 +482,7 @@ extern void nrf_802154_received_timestamp_raw(uint8_t * p_data,
  * @note @p timestamp granularity depends on granularity of the timer driver in platform/timer
  *       directory.
  * @note Including timestamp to received frame uses resources like CPU time and memory. If timestamp
- *       is not required use @sa nrf_802154_received instead.
+ *       is not required use @sa nrf_802154_received instead().
  *
  * @param[in]  p_data  Pointer to the buffer containing payload of received frame (PSDU without FCS).
  * @param[in]  length  Length of received payload.
@@ -524,10 +530,8 @@ extern void nrf_802154_tx_started(const uint8_t * p_frame);
  *       called.
  * @note Buffer pointed by the @p p_ack pointer may be modified by the function handler (and other
  *       modules) until @sa nrf_802154_buffer_free_raw() function is called.
- * @note The next higher layer should handle @sa nrf_802154_transmitted_raw() or @sa
- *       nrf_802154_transmitted() function. It should not handle both.
  *
- * @param[in]  p_frame  Pointer to buffer containing PSDU of transmitted frame.
+ * @param[in]  p_frame  Pointer to buffer containing PHR and PSDU of transmitted frame.
  * @param[in]  p_ack    Pointer to received ACK buffer. Fist byte in the buffer is length of the
  *                      frame (PHR) and following bytes are the ACK frame itself (PSDU). Length byte
  *                      (PHR) includes FCS. FCS is already verified by the hardware and may be
@@ -560,7 +564,7 @@ extern void nrf_802154_transmitted_raw(const uint8_t * p_frame,
  * @param[in]  p_frame  Pointer to buffer containing PSDU of transmitted frame.
  * @param[in]  p_ack    Pointer to buffer containing received ACK payload (PHR excluding FCS).
   *                     If ACK was not requested @p p_ack is set to NULL.
- * @param[in]  length   Length of received ACK payload.
+ * @param[in]  length   Length of received ACK payload or 0 if ACK was not requested.
  * @param[in]  power    RSSI of received frame or 0 if ACK was not requested.
  * @param[in]  lqi      LQI of received frame or 0 if ACK was not requested.
  */
@@ -681,9 +685,9 @@ extern void nrf_802154_cca_done(bool channel_free);
 extern void nrf_802154_cca_failed(nrf_802154_cca_error_t error);
 
 
-/**
+/***************************************************************************************************
  * @section Driver memory management
- */
+ **************************************************************************************************/
 
 #if NRF_802154_USE_RAW_API
 
@@ -691,10 +695,6 @@ extern void nrf_802154_cca_failed(nrf_802154_cca_error_t error);
  * @brief Notify driver that buffer containing received frame is not used anymore.
  *
  * @note The buffer pointed by the @p p_data pointer may be modified by this function.
- * @note Use this function with buffers provided by @sa nrf_802154_received_raw() and
- *       @sa nrf_802154_transmitted_raw(). To free buffers provided by @sa
- *       nrf_802154_received() or @sa nrf_802154_transmitted() use
- *       @sa nrf_802154_buffer_free().
  *
  * @param[in]  p_data  A pointer to the buffer containing received data that is no more needed by
  *                     the higher layer.
@@ -707,10 +707,6 @@ void nrf_802154_buffer_free_raw(uint8_t * p_data);
  * @brief Notify driver that buffer containing received frame is not used anymore.
  *
  * @note The buffer pointed by the @p p_data pointer may be modified by this function.
- * @note Use this function with buffers provided by @sa nrf_802154_received() and
- *       @sa nrf_802154_transmitted(). To free buffers provided by @sa
- *       nrf_802154_received_raw() or @sa nrf_802154_transmitted_raw() use
- *       @sa nrf_802154_buffer_free_raw().
  *
  * @param[in]  p_data  A pointer to the buffer containing received data that is no more needed by
  *                     the higher layer.
@@ -720,9 +716,9 @@ void nrf_802154_buffer_free(uint8_t * p_data);
 #endif // NRF_802154_USE_RAW_API
 
 
-/**
+/***************************************************************************************************
  * @section RSSI measurement function.
- */
+ **************************************************************************************************/
 
 /**
  * @brief Begin RSSI measurement.
@@ -730,7 +726,7 @@ void nrf_802154_buffer_free(uint8_t * p_data);
  * @note This function should be called in Receive state.
  *
  * Begin RSSI measurement. The result will be available in 8 uS. The result can be read by
- * nrf_radio802154_rssi_last_get() function.
+ * @sa nrf_radio802154_rssi_last_get() function.
  */
 void nrf_802154_rssi_measure(void);
 
@@ -752,9 +748,9 @@ int8_t nrf_802154_rssi_last_get(void);
 int8_t nrf_802154_rssi_corrected_get(int8_t rssi, int8_t temp);
 
 
-/**
+/***************************************************************************************************
  * @section Promiscuous mode.
- */
+ **************************************************************************************************/
 
 /**
  * @brief Enable or disable promiscuous radio mode.
@@ -779,9 +775,9 @@ void nrf_802154_promiscuous_set(bool enabled);
 bool nrf_802154_promiscuous_get(void);
 
 
-/**
+/***************************************************************************************************
  * @section Auto ACK management.
- */
+ **************************************************************************************************/
 
 /**
  * @brief Enable or disable auto ACK procedure.
@@ -795,8 +791,8 @@ bool nrf_802154_promiscuous_get(void);
  * frame is transmitted.
  * If auto ACK procedure is disabled the driver does not transmit ACK frames. It notifies the next
  * higher layer about received frame when a frame is received. In this mode the next higher layer
- * is responsible for sending ACK frame. ACK frames should be sent using
- * nrf_802154_transmit() function.
+ * is responsible for sending ACK frame. ACK frames should be sent using @sa nrf_802154_transmit()
+ * function.
  *
  * @param[in]  enabled  If auto ACK procedure should be enabled.
  */
@@ -815,16 +811,16 @@ bool nrf_802154_auto_ack_get(void);
  *
  * @note Setting pending bit in automatically transmitted ACK frames is enabled by default.
  *
- * Radio driver automatically sends ACK frames in response to unicast frames destined to this node.
- * Pending bit in ACK frame can be set or cleared regarding data in pending buffer destined to ACK
- * destination.
+ * Radio driver automatically sends ACK frames in response frames destined to this node with Ack
+ * Request bit set. Pending bit in ACK frame can be set or cleared regarding data in indirect queue
+ * destined to ACK destination.
  *
  * If setting pending bit in ACK frames is disabled, pending bit in every ACK frame is set.
  * If setting pending bit in ACK frames is enabled, radio driver checks if there is data
- * in pending buffer destined to ACK destination. If there is no such data, pending bit is cleared.
+ * in indirect queue destined to ACK destination. If there is no such data, pending bit is cleared.
  *
- * @note It is possible that if there is a lot of supported peers radio driver cannot verify
- *       if there is pending data before ACK is sent. In this case pending bit is set.
+ * @note It is possible that due to ISR latency, radio driver cannot verify if there is data in
+ *       indirect queue before ACK is sent. In this case pending bit is set.
  *
  * @param[in]  enabled  If setting pending bit in ACK frames is enabled.
  */
@@ -861,45 +857,47 @@ bool nrf_802154_pending_bit_for_addr_clear(const uint8_t *p_addr, bool extended)
  */
 void nrf_802154_pending_bit_for_addr_reset(bool extended);
 
-/**
+/***************************************************************************************************
  * @section CCA configuration management.
- */
+ **************************************************************************************************/
 
 /**
  * @brief Configure radio CCA mode and threshold.
  *
- * @param[in] p_cca_cfg A pointer to the CCA configuration structure. Only fields relevant to selected mode are updated.
+ * @param[in]  p_cca_cfg  A pointer to the CCA configuration structure. Only fields relevant to
+ *                        selected mode are updated.
  */
 void nrf_802154_cca_cfg_set(const nrf_802154_cca_cfg_t * p_cca_cfg);
 
 /**
  * @brief Get current radio CCA configuration
  *
- * @param[out] p_cca_cfg A pointer to the structure for current CCA configuration.
+ * @param[out]  p_cca_cfg  A pointer to the structure for current CCA configuration.
  */
 void nrf_802154_cca_cfg_get(nrf_802154_cca_cfg_t * p_cca_cfg);
 
-/**
+/***************************************************************************************************
  * @section CSMA-CA procedure.
- */
+ **************************************************************************************************/
 #if NRF_802154_CSMA_CA_ENABLED
 #if NRF_802154_USE_RAW_API
 
 /**
  * @brief Perform CSMA-CA procedure and transmit frame in case of success.
  *
- * End of CSMA-CA procedure is notified by @sa nrf_802154_transmitted() or
+ * End of CSMA-CA procedure is notified by @sa nrf_802154_transmitted_raw() or
  * @sa nrf_802154_transmit_failed() function.
  *
- * @note CSMA-CA procedure does not time out waiting for ACK frame in case frame with ACK request
- *       bit set was transmitted. MAC layer should manage timer to time out waiting for ACK frame.
- *       This timer may be started by @sa nrf_802154_tx_started() function. When the timer
- *       expires MAC layer should call @sa nrf_802154_receive() to stop waiting for ACK
- *       frame.
- *
+ * @note The driver may be configured to automatically time out waiting for ACK frame depending on
+ *       @sa NRF_802154_ACK_TIMEOUT_ENABLED configuration option. If automatic ACK timeout is
+ *       disabled, CSMA-CA procedure does not time out waiting for ACK frame in case frame with ACK
+ *       request bit set was transmitted. MAC layer should manage timer to time out waiting for ACK
+ *       frame. This timer may be started by @sa nrf_802154_tx_started() function. When the timer
+ *       expires MAC layer should call @sa nrf_802154_receive() or @sa nrf_802154_sleep() to stop
+ *       waiting for ACK frame.
  * @note Before CSMA-CA procedure is used, application should initialize random seed with srand().
  *
- * @param[in]  p_data    Pointer to frame to transmit @sa nrf_802154_transmit_raw()
+ * @param[in]  p_data  Pointer to frame to transmit. @sa nrf_802154_transmit_raw()
  */
 void nrf_802154_transmit_csma_ca_raw(const uint8_t * p_data);
 
@@ -911,11 +909,14 @@ void nrf_802154_transmit_csma_ca_raw(const uint8_t * p_data);
  * End of CSMA-CA procedure is notified by @sa nrf_802154_transmitted() or
  * @sa nrf_802154_transmit_failed() function.
  *
- * @note CSMA-CA procedure does not time out waiting for ACK frame in case frame with ACK request
- *       bit set was transmitted. MAC layer should manage timer to time out waiting for ACK frame.
- *       This timer may be started by @sa nrf_802154_tx_started() function. When the timer
- *       expires MAC layer should call @sa nrf_802154_receive() to stop waiting for ACK
- *       frame.
+ * @note The driver may be configured to automatically time out waiting for ACK frame depending on
+ *       @sa NRF_802154_ACK_TIMEOUT_ENABLED configuration option. If automatic ACK timeout is
+ *       disabled, CSMA-CA procedure does not time out waiting for ACK frame in case frame with ACK
+ *       request bit set was transmitted. MAC layer should manage timer to time out waiting for ACK
+ *       frame. This timer may be started by @sa nrf_802154_tx_started() function. When the timer
+ *       expires MAC layer should call @sa nrf_802154_receive() or @sa nrf_802154_sleep() to stop
+ *       waiting for ACK frame.
+ * @note Before CSMA-CA procedure is used, application should initialize random seed with srand().
  *
  * @param[in]  p_data    Pointer to frame to transmit. @sa nrf_802154_transmit()
  * @param[in]  length    Length of given frame. @sa nrf_802154_transmit()
@@ -925,9 +926,9 @@ void nrf_802154_transmit_csma_ca(const uint8_t * p_data, uint8_t length);
 #endif // NRF_802154_USE_RAW_API
 #endif // NRF_802154_CSMA_CA_ENABLED
 
-/**
+/***************************************************************************************************
  * @section ACK timeout procedure.
- */
+ **************************************************************************************************/
 #if NRF_802154_ACK_TIMEOUT_ENABLED
 
 /**
@@ -935,9 +936,9 @@ void nrf_802154_transmit_csma_ca(const uint8_t * p_data, uint8_t length);
  * 
  * Timeout is notified by @sa nrf_802154_transmit_failed() function.
  * 
- * @param[in]  time  Timeout time in us. Timeout is started at the beginning of frame
- *                   transmission (after transmission of PHR).
- *                   Default value is defined in nrf_802154_config.h.
+ * @param[in]  time  Timeout time in us. Timeout is started at the beginning of frame transmission
+ *                   (after transmission of PHR). Default value is defined in nrf_802154_config.h
+ *                   @sa NRF_802154_ACK_TIMEOUT_DEFAULT_TIMEOUT .
  */
 void nrf_802154_ack_timeout_set(uint32_t time);
 
