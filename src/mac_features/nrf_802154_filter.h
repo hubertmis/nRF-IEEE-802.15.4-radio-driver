@@ -39,6 +39,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "nrf_802154_types.h"
+
 /**
  * @defgroup nrf_802154_filter Incoming frame filter API.
  * @{
@@ -65,10 +67,12 @@
  *                            unchanged if no more iterations shall be performed during filtering of
  *                            given frame.
  *
- * @retval true   Verified part of the incoming frame is valid.
- * @retval false  Verified part of the incoming frame is invalid.
+ * @retval NRF_802154_RX_ERROR_NONE               Verified part of the incoming frame is valid.
+ * @retval NRF_802154_RX_ERROR_INVALID_FRAME      Verified part of the incoming frame is invalid.
+ * @retval NRF_802154_RX_ERROR_INVALID_DEST_ADDR  Incoming frame has destination address that
+ *                                                mismatches address of this node.
  */
-bool nrf_802154_filter_frame_part(const uint8_t * p_psdu, uint8_t * p_num_bytes);
+nrf_802154_rx_error_t nrf_802154_filter_frame_part(const uint8_t * p_psdu, uint8_t * p_num_bytes);
 
 #endif /* NRF_802154_FILTER_H_ */
 

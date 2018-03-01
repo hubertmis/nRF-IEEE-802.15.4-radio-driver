@@ -368,9 +368,9 @@ static bool dst_extended_addr_check(const uint8_t *p_psdu)
     return result;
 }
 
-bool nrf_802154_filter_frame_part(const uint8_t * p_psdu, uint8_t * p_num_bytes)
+nrf_802154_rx_error_t nrf_802154_filter_frame_part(const uint8_t * p_psdu, uint8_t * p_num_bytes)
 {
-    bool result;
+    nrf_802154_rx_error_t result;
 
     switch (*p_num_bytes)
     {
@@ -379,7 +379,7 @@ bool nrf_802154_filter_frame_part(const uint8_t * p_psdu, uint8_t * p_num_bytes)
             if (p_psdu[0] < ACK_LENGTH || p_psdu[0] > MAX_PACKET_SIZE)
             {
                 // Frame length is invalid
-                result = false;
+                result = NRF_802154_RX_ERROR_INVALID_FRAME;
                 break;
             }
 
@@ -388,38 +388,41 @@ bool nrf_802154_filter_frame_part(const uint8_t * p_psdu, uint8_t * p_num_bytes)
 
             if (!frame_type_and_version_filter(frame_type, frame_version))
             {
-                result = false;
+                result = NRF_802154_RX_ERROR_INVALID_FRAME;
                 break;
             }
 
             if (!dst_addressing_may_be_present(frame_type))
             {
-                result = true;
+                result = NRF_802154_RX_ERROR_NONE;
                 break;
             }
 
-            result = dst_addressing_end_offset_get(p_psdu, p_num_bytes, frame_type, frame_version);
+            result = dst_addressing_end_offset_get(p_psdu, p_num_bytes, frame_type, frame_version) ?
+                    NRF_802154_RX_ERROR_NONE : NRF_802154_RX_ERROR_INVALID_FRAME;
             break;
         }
 
         case SHORT_ADDR_CHECK_OFFSET:
             if (!dst_pan_id_check(p_psdu))
             {
-                result = false;
+                result = NRF_802154_RX_ERROR_INVALID_DEST_ADDR;
                 break;
             }
 
-            result = dst_short_addr_check(p_psdu);
+            result = dst_short_addr_check(p_psdu) ? NRF_802154_RX_ERROR_NONE :
+                    NRF_802154_RX_ERROR_INVALID_DEST_ADDR;
             break;
 
         case EXTENDED_ADDR_CHECK_OFFSET:
             if (!dst_pan_id_check(p_psdu))
             {
-                result = false;
+                result = NRF_802154_RX_ERROR_INVALID_DEST_ADDR;
                 break;
             }
 
-            result = dst_extended_addr_check(p_psdu);
+            result = dst_extended_addr_check(p_psdu) ? NRF_802154_RX_ERROR_NONE :
+                    NRF_802154_RX_ERROR_INVALID_DEST_ADDR;
             break;
 
         default:

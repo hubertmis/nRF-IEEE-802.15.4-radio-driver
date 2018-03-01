@@ -1643,8 +1643,9 @@ static void irq_address_state_tx_ack(void)
 /// This event is generated during frame reception to request RAAL timeslot and to filter frame
 static void irq_bcmatch_state_rx(void)
 {
-    uint8_t prev_num_psdu_bytes;
-    uint8_t num_psdu_bytes;
+    uint8_t               prev_num_psdu_bytes;
+    uint8_t               num_psdu_bytes;
+    nrf_802154_rx_error_t filter_result;
 
     num_psdu_bytes      = nrf_radio_bcc_get() / 8;
     prev_num_psdu_bytes = num_psdu_bytes;
@@ -1680,8 +1681,9 @@ static void irq_bcmatch_state_rx(void)
     if (!m_flags.frame_filtered)
     {
         m_flags.psdu_being_received = true;
+        filter_result = nrf_802154_filter_frame_part(mp_current_rx_buffer->psdu, &num_psdu_bytes);
 
-        if (nrf_802154_filter_frame_part(mp_current_rx_buffer->psdu, &num_psdu_bytes))
+        if (filter_result == NRF_802154_RX_ERROR_NONE)
         {
             if (num_psdu_bytes != prev_num_psdu_bytes)
             {
@@ -1700,7 +1702,7 @@ static void irq_bcmatch_state_rx(void)
             if ((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
                 FRAME_TYPE_ACK)
             {
-                receive_failed_notify(NRF_802154_RX_ERROR_INVALID_FRAME);
+                receive_failed_notify(filter_result);
             }
         }
         else
@@ -1728,10 +1730,10 @@ static void irq_crcok_state_rx(void)
     uint8_t * p_received_psdu = mp_current_rx_buffer->psdu;
     uint32_t  ints_to_disable = 0;
     uint32_t  ints_to_enable  = 0;
-    bool      invalid_frame   = false;
 #if NRF_802154_DISABLE_BCC_MATCHING
-    uint8_t num_psdu_bytes      = PHR_SIZE + FCF_SIZE;
-    uint8_t prev_num_psdu_bytes = 0;
+    uint8_t               num_psdu_bytes      = PHR_SIZE + FCF_SIZE;
+    uint8_t               prev_num_psdu_bytes = 0;
+    nrf_802154_rx_error_t filter_result;
 
     // Frame filtering
     while (num_psdu_bytes != prev_num_psdu_bytes)
@@ -1739,7 +1741,9 @@ static void irq_crcok_state_rx(void)
         prev_num_psdu_bytes = num_psdu_bytes;
 
         // Keep checking consecutive parts of the frame header.
-        if (nrf_802154_filter_frame_part(mp_current_rx_buffer->psdu, &num_psdu_bytes))
+        filter_result = nrf_802154_filter_frame_part(mp_current_rx_buffer->psdu, &num_psdu_bytes);
+
+        if (filter_result == NRF_802154_RX_ERROR_NONE)
         {
             if (num_psdu_bytes == prev_num_psdu_bytes)
             {
@@ -1748,7 +1752,6 @@ static void irq_crcok_state_rx(void)
         }
         else
         {
-            invalid_frame = true;
             break;
         }
     }
@@ -1934,11 +1937,14 @@ static void irq_crcok_state_rx(void)
         rx_terminate();
         rx_init(true);
 
+#if NRF_802154_DISABLE_BCC_MATCHING
         if ((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK)
         {
-            receive_failed_notify(invalid_frame ? NRF_802154_RX_ERROR_INVALID_FRAME :
-                                  NRF_802154_RX_ERROR_RUNTIME);
+            receive_failed_notify(filter_result);
         }
+#else // NRF_802154_DISABLE_BCC_MATCHING
+        receive_failed_notify(NRF_802154_RX_ERROR_RUNTIME);
+#endif // NRF_802154_DISABLE_BCC_MATCHING
     }
 }
 
