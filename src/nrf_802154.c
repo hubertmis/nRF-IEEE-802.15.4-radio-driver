@@ -140,8 +140,7 @@ void nrf_802154_short_address_set(const uint8_t * p_short_address)
 
 int8_t nrf_802154_dbm_from_energy_level_calculate(uint8_t energy_level)
 {
-    // TODO: Correct this calculation after lab tests.
-    return -94 + energy_level;
+    return ED_MIN_DBM + (energy_level / ED_RESULT_FACTOR);
 }
 
 uint32_t nrf_802154_first_symbol_timestamp_get(uint32_t end_timestamp, uint8_t psdu_length)

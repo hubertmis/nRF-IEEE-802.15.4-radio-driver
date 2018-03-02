@@ -105,6 +105,10 @@
 #define PHY_SYMBOLS_PER_OCTET  2  ///< Number of symbols in single byte (octet)
 #define PHY_SHR_DURATION      10  ///< Number of symbols in Synchronization Header (SHR)
 
+#define ED_MIN_DBM       (-94) ///< dBm value corresponding to value 0 in EDSAMPLE register
+#define ED_RESULT_FACTOR 4     ///< Factor needed to calculate ED result based on data from RADIO peripheral
+#define ED_RESULT_MAX    0xff  ///< Maximal ED result
+
 #define BROADCAST_ADDRESS    ((uint8_t [SHORT_ADDRESS_SIZE]) {0xff, 0xff}) ///< Broadcast Short Address
 
 typedef enum

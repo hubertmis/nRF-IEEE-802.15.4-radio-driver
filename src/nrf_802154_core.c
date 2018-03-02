@@ -156,6 +156,10 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 #define TXRU_TIME  40               ///< Transmitter ramp up time [us]
 #define EVENT_LAT  23               ///< END event latency [us]
 
+#define LQI_VALUE_FACTOR 4     ///< Factor needed to calculate LQI value based on data from RADIO peripheral
+#define LQI_MAX          0xff  ///< Maximal LQI value
+
+
 /** Get LQI of given received packet. If CRC is calculated by hardware LQI is included instead of CRC
  *  in the frame. Length is stored in byte with index 0; CRC is 2 last bytes.
  */
@@ -221,6 +225,26 @@ static int8_t rssi_last_measurement_get(void)
     return -((int8_t)nrf_radio_rssi_sample_get());
 }
 
+/** Get LQI of a received frame.
+ *
+ * @param[in]  p_data  Pointer to buffer containing PHR and PSDU of received frame
+ *
+ * @returns  LQI of given frame.
+ */
+static uint8_t lqi_get(const uint8_t * p_data)
+{
+    uint32_t lqi = RX_FRAME_LQI(p_data);
+
+    lqi *= LQI_VALUE_FACTOR;
+
+    if (lqi > LQI_MAX)
+    {
+        lqi = LQI_MAX;
+    }
+
+    return (uint8_t)lqi;
+}
+
 /** Notify MAC layer that a frame was received. */
 static void received_frame_notify(uint8_t * p_psdu)
 {
@@ -228,7 +252,7 @@ static void received_frame_notify(uint8_t * p_psdu)
 
     nrf_802154_notify_received(p_psdu,                       // data
                                rssi_last_measurement_get(),  // rssi
-                               RX_FRAME_LQI(p_psdu));        // lqi
+                               lqi_get(p_psdu));             // lqi
 
     nrf_802154_critical_section_nesting_deny();
 }
@@ -523,6 +547,24 @@ static void nrf_timer_init(void)
 /***************************************************************************************************
  * @section Energy detection management
  **************************************************************************************************/
+
+/** Get ED result value.
+ *
+ * @returns ED result based on data collected during Energy Detection procedure.
+ */
+static uint8_t ed_result_get(void)
+{
+    uint32_t result = m_ed_result;
+
+    result *= ED_RESULT_FACTOR;
+
+    if (result > ED_RESULT_MAX)
+    {
+        result = ED_RESULT_MAX;
+    }
+
+    return (uint8_t)result;
+}
 
 /** Setup next iteration of energy detection procedure.
  *
@@ -2160,9 +2202,9 @@ static void irq_end_state_rx_ack(void)
 
     if (ack_match)
     {
-        transmitted_frame_notify(p_ack_buffer->psdu,                // psdu
-                                 rssi_last_measurement_get(),       // rssi
-                                 RX_FRAME_LQI(p_ack_buffer->psdu)); // lqi;
+        transmitted_frame_notify(p_ack_buffer->psdu,            // psdu
+                                 rssi_last_measurement_get(),   // rssi
+                                 lqi_get(p_ack_buffer->psdu));  // lqi;
     }
     else
     {
@@ -2231,7 +2273,7 @@ static void irq_edend_state_ed(void)
         state_set(RADIO_STATE_RX);
         rx_init(true);
 
-        energy_detected_notify(m_ed_result);
+        energy_detected_notify(ed_result_get());
     }
 }
 
