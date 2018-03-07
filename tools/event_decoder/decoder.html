@@ -140,7 +140,23 @@
                 {
                     return "Note over DRIVER: Reset";
                 }
-            }
+            },
+            {
+                id :  "TIMESLOT_REQUEST",
+                val:  0x0007,
+                draw: function(from, to, text, param)
+                {
+                    return "Note over RAAL: Timeslot Request (" +  param + "us)";
+                }
+            },
+            {
+                id :  "TIMESLOT_REQUEST_RESULT",
+                val:  0x0008,
+                draw: function(from, to, text, param)
+                {
+                    return "Note over RAAL: Timeslot Request Result (" +  param + ")";
+                }
+            },
         ];
 
         var functions = [
@@ -183,8 +199,11 @@
             {id: "TIMESLOT_EXTEND", val: 0x0403, from: "RAAL", to: "RAAL", text: "EVENT_EXTEND"},
             {id: "TIMESLOT_ENDED", val: 0x0404, from: "RAAL", to: "RAAL", text: "EVENT_ENDED"},
             {id: "TIMESLOT_RADIO", val: 0x0405, from: "RAAL", to: "RAAL", text: "EVENT_RADIO"},
-            {id: "TIMESLOT_EXCEED_SUCCESS", val: 0x0406, from: "RAAL", to: "RAAL", text: "EVENT_EXCEED_SUCCESS"},
-            {id: "TIMESLOT_EXCEED_FAIL", val: 0x0407, from: "RAAL", to: "RAAL", text: "EVENT_EXCEED_FAIL"},
+            {id: "TIMESLOT_EXTEND_SUCCESS", val: 0x0406, from: "RAAL", to: "RAAL", text: "EVENT_EXTEND_SUCCESS"},
+            {id: "TIMESLOT_EXTEND_FAIL", val: 0x0407, from: "RAAL", to: "RAAL", text: "EVENT_EXTEND_FAIL"},
+            {id: "TIMESLOT_EVT_BLOCKED", val: 0x0408, from: "RAAL", to: "RAAL", text: "EVENT_BLOCKED"},
+            {id: "TIMESLOT_SESSION_IDLE", val: 0x0409, from: "RAAL", to: "RAAL", text: "EVENT_SESSION_IDLE"},
+            {id: "EVENT_HFCLK_READY", val: 0x040A, from: "RAAL", to: "RAAL", text: "EVENT_HFCLK_READY"}
         ];
 
         var debugDecoder = function(debug_json, debug_ptr)
