@@ -796,7 +796,9 @@ static void fem_for_tx_set(bool cca)
 static void fem_for_tx_reset(bool disable_ppi_egu_timer_start)
 {
     nrf_fem_control_ppi_disable(NRF_FEM_CONTROL_ANY_PIN);
-    nrf_fem_control_timer_reset(NRF_FEM_CONTROL_ANY_PIN, NRF_TIMER_SHORT_COMPARE0_STOP_MASK | NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
+    nrf_fem_control_timer_reset(NRF_FEM_CONTROL_ANY_PIN,
+                                (nrf_timer_short_mask_t) (NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
+                                                          NRF_TIMER_SHORT_COMPARE1_STOP_MASK));
     nrf_fem_control_ppi_fork_clear(NRF_FEM_CONTROL_ANY_PIN, PPI_CCAIDLE_FEM);
     nrf_ppi_channel_disable(PPI_CCAIDLE_FEM);
 
@@ -2187,8 +2189,8 @@ static void irq_phyend_state_tx_frame(void)
 
 static void irq_end_state_rx_ack(void)
 {
-    bool          ack_match = ack_is_matched();
-    rx_buffer_t * p_ack_buffer;
+    bool          ack_match    = ack_is_matched();
+    rx_buffer_t * p_ack_buffer = NULL;
 
     if (ack_match)
     {
