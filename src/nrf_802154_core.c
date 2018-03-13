@@ -511,7 +511,6 @@ static void irq_init(void)
 {
     NVIC_SetPriority(RADIO_IRQn, NRF_802154_IRQ_PRIORITY);
     NVIC_ClearPendingIRQ(RADIO_IRQn);
-    NVIC_EnableIRQ(RADIO_IRQn);
 }
 
 /** Deinitialize interrupts for radio peripheral. */
