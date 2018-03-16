@@ -52,6 +52,7 @@
 #include "nrf_802154_priority_drop.h"
 #include "nrf_802154_procedures_duration.h"
 #include "nrf_802154_revision.h"
+#include "nrf_802154_rssi.h"
 #include "nrf_802154_rx_buffer.h"
 #include "nrf_802154_types.h"
 #include "fem/nrf_fem_control_api.h"
@@ -222,7 +223,11 @@ static void rx_flags_clear(void)
  */
 static int8_t rssi_last_measurement_get(void)
 {
-    return -((int8_t)nrf_radio_rssi_sample_get());
+    uint8_t rssi_sample = nrf_radio_rssi_sample_get();
+
+    rssi_sample = nrf_802154_rssi_sample_corrected_get(rssi_sample);
+
+    return -((int8_t)rssi_sample);
 }
 
 /** Get LQI of a received frame.
@@ -235,6 +240,7 @@ static uint8_t lqi_get(const uint8_t * p_data)
 {
     uint32_t lqi = RX_FRAME_LQI(p_data);
 
+    lqi = nrf_802154_rssi_lqi_corrected_get(lqi);
     lqi *= LQI_VALUE_FACTOR;
 
     if (lqi > LQI_MAX)
@@ -328,7 +334,8 @@ static void cca_configuration_update(void)
 
     nrf_802154_pib_cca_cfg_get(&cca_cfg);
     nrf_radio_cca_mode_set(cca_cfg.mode);
-    nrf_radio_cca_ed_threshold_set(cca_cfg.ed_threshold);
+    nrf_radio_cca_ed_threshold_set(
+            nrf_802154_rssi_cca_ed_threshold_corrected_get(cca_cfg.ed_threshold));
     nrf_radio_cca_corr_threshold_set(cca_cfg.corr_threshold);
     nrf_radio_cca_corr_counter_set(cca_cfg.corr_limit);
 }
@@ -555,6 +562,7 @@ static uint8_t ed_result_get(void)
 {
     uint32_t result = m_ed_result;
 
+    result = nrf_802154_rssi_ed_corrected_get(result);
     result *= ED_RESULT_FACTOR;
 
     if (result > ED_RESULT_MAX)

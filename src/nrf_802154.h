@@ -757,16 +757,6 @@ void nrf_802154_rssi_measure(void);
  */
 int8_t nrf_802154_rssi_last_get(void);
 
-/**
- * @brief Adjust the given RSSI measurement using a temperature correction factor.
- *
- * @param[in]  rssi  Measured RSSI value [dBm].
- * @param[in]  temp  Temperature value when RSSI sample took place [C].
- *
- * @returns RSSI [dBm] corrected by a temperature factor (Errata 153).
- */
-int8_t nrf_802154_rssi_corrected_get(int8_t rssi, int8_t temp);
-
 
 /**
  * @}
