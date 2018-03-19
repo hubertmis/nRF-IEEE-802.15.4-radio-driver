@@ -368,6 +368,7 @@ static nrf_802154_req_data_t * req_enter(void)
     __ISB();
 
     assert(!req_queue_is_full());
+    (void)req_queue_is_full();
 
     return &m_req_queue[m_req_w_ptr];
 }
@@ -511,6 +512,7 @@ void nrf_802154_swi_notify_cca(bool channel_free)
 void nrf_802154_swi_notify_cca_failed(nrf_802154_cca_error_t error)
 {
     assert(!ntf_queue_is_full());
+    (void)ntf_queue_is_full();
 
     nrf_802154_ntf_data_t * p_slot = &m_ntf_queue[m_ntf_w_ptr];
 

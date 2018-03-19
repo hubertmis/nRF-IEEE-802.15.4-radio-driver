@@ -1628,6 +1628,7 @@ void nrf_raal_timeslot_ended(void)
 
     result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RAAL, false);
     assert(result);
+    (void)result;
 
     switch (m_state)
     {

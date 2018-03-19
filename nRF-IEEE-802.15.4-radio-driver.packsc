@@ -332,5 +332,24 @@
         "_defines": [
             "ENABLE_DEBUG_GPIO"
         ]
+    },
+
+    "ndebug": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "This option enables NDEBUG compile option that removes asserts.",
+        "_defines": [
+            "NDEBUG"
+        ]
+    },
+
+    "lto": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "This option enables Link Time Optimizations for driver applications build.",
+        "_replacements": [
+            {
+                "_value": "Lto=1",
+                "_condition": "'armgcc' in _toolchains"
+            }
+        ]
     }
 }

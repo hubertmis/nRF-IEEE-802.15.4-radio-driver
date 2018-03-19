@@ -334,11 +334,13 @@ void nrf_802154_buffer_free_raw(uint8_t * p_data)
     rx_buffer_t * p_buffer = (rx_buffer_t *)p_data;
 
     assert(p_buffer->free == false);
+    (void)p_buffer;
 
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_BUFFER_FREE);
 
     result = nrf_802154_request_buffer_free(p_data);
     assert(result);
+    (void)result;
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_BUFFER_FREE);
 }
