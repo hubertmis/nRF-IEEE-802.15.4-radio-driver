@@ -756,6 +756,12 @@ void SWI_IRQHandler(void)
                                                     p_slot->data.receive.req_orig,
                                                     p_slot->data.receive.notif_func) :
                             false;
+
+                    if (!in_crit_sect)
+                    {
+                        p_slot->data.receive.notif_func(false);
+                    }
+
                     break;
 
                 case REQ_TYPE_TRANSMIT:
@@ -766,6 +772,12 @@ void SWI_IRQHandler(void)
                                                      p_slot->data.transmit.cca,
                                                      p_slot->data.transmit.notif_func) :
                             false;
+
+                    if (!in_crit_sect)
+                    {
+                        p_slot->data.transmit.notif_func(false);
+                    }
+
                     break;
 
                 case REQ_TYPE_ENERGY_DETECTION:
