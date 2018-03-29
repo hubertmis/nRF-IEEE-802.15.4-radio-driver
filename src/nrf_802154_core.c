@@ -1124,6 +1124,11 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                 if (term_lvl >= NRF_802154_TERM_802154)
                 {
                     tx_ack_terminate();
+
+                    if (notify_abort)
+                    {
+                        received_frame_notify(mp_current_rx_buffer->psdu);
+                    }
                 }
                 else
                 {
@@ -1651,7 +1656,7 @@ void nrf_raal_timeslot_ended(void)
 
         case RADIO_STATE_TX_ACK:
             state_set(RADIO_STATE_RX);
-            receive_failed_notify(NRF_802154_RX_ERROR_TIMESLOT_ENDED);
+            received_frame_notify(mp_current_rx_buffer->psdu);
             break;
 
         case RADIO_STATE_CCA_TX:
