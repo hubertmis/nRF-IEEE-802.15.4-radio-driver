@@ -145,7 +145,8 @@
             "hal"
         ],
         "_includes": [
-            "src/raal"
+            "src/raal",
+            "external/softdevice/s140/headers"
         ],
         "_variants": [
             {
