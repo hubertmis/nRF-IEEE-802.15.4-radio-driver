@@ -863,6 +863,12 @@ static void falling_asleep_terminate(void)
     }
 }
 
+/** Terminate Sleep procedure. */
+static void sleep_terminate(void)
+{
+    nrf_802154_priority_drop_timeslot_exit_terminate();
+}
+
 /** Terminate RX procedure. */
 static void rx_terminate(void)
 {
@@ -1083,6 +1089,8 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
         switch (m_state)
         {
             case RADIO_STATE_SLEEP:
+                sleep_terminate();
+
                 if (req_orig != REQ_ORIG_RAAL)
                 {
                     // Enter continuous mode unless terminating current operation is requested by

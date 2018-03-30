@@ -531,6 +531,11 @@ void nrf_802154_swi_timeslot_exit(void)
     nrf_egu_task_trigger(SWI_EGU, TIMESLOT_EXIT_TASK);
 }
 
+void nrf_802154_swi_timeslot_exit_terminate(void)
+{
+    nrf_egu_event_clear(SWI_EGU, TIMESLOT_EXIT_EVENT);
+}
+
 void nrf_802154_swi_sleep(nrf_802154_term_t term_lvl, bool * p_result)
 {
     nrf_802154_req_data_t * p_slot = req_enter();
