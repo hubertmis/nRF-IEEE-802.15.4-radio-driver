@@ -251,14 +251,19 @@ static uint8_t lqi_get(const uint8_t * p_data)
     return (uint8_t)lqi;
 }
 
-/** Notify MAC layer that a frame was received. */
 static void received_frame_notify(uint8_t * p_psdu)
 {
-    nrf_802154_critical_section_nesting_allow();
-
     nrf_802154_notify_received(p_psdu,                       // data
                                rssi_last_measurement_get(),  // rssi
                                lqi_get(p_psdu));             // lqi
+}
+
+/** Allow nesting critical sections and notify MAC layer that a frame was received. */
+static void received_frame_notify_and_nesting_allow(uint8_t * p_psdu)
+{
+    nrf_802154_critical_section_nesting_allow();
+
+    received_frame_notify(p_psdu);
 
     nrf_802154_critical_section_nesting_deny();
 }
@@ -1135,6 +1140,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 
                     if (notify_abort)
                     {
+                        mp_current_rx_buffer->free = false;
                         received_frame_notify(mp_current_rx_buffer->psdu);
                     }
                 }
@@ -1664,7 +1670,8 @@ void nrf_raal_timeslot_ended(void)
 
         case RADIO_STATE_TX_ACK:
             state_set(RADIO_STATE_RX);
-            received_frame_notify(mp_current_rx_buffer->psdu);
+            mp_current_rx_buffer->free = false;
+            received_frame_notify_and_nesting_allow(mp_current_rx_buffer->psdu);
             break;
 
         case RADIO_STATE_CCA_TX:
@@ -1837,7 +1844,7 @@ static void irq_crcok_state_rx(void)
             nrf_802154_pib_promiscuous_get())
         {
             mp_current_rx_buffer->free = false;
-            received_frame_notify(p_received_psdu);
+            received_frame_notify_and_nesting_allow(p_received_psdu);
         }
 
         return;
@@ -1955,7 +1962,7 @@ static void irq_crcok_state_rx(void)
                 rx_terminate();
                 rx_init(true);
 
-                received_frame_notify(p_received_psdu);
+                received_frame_notify_and_nesting_allow(p_received_psdu);
             }
         }
         else
@@ -1981,7 +1988,7 @@ static void irq_crcok_state_rx(void)
                     }
                 }
 
-                received_frame_notify(p_received_psdu);
+                received_frame_notify_and_nesting_allow(p_received_psdu);
             }
             else
             {
@@ -2115,7 +2122,7 @@ static void irq_phyend_state_tx_ack(void)
 
     rx_flags_clear();
 
-    received_frame_notify(p_received_psdu);
+    received_frame_notify_and_nesting_allow(p_received_psdu);
 }
 
 static void irq_phyend_state_tx_frame(void)

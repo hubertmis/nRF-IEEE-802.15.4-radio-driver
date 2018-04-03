@@ -345,6 +345,22 @@ void nrf_802154_buffer_free_raw(uint8_t * p_data)
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_BUFFER_FREE);
 }
 
+bool nrf_802154_buffer_free_immediately_raw(uint8_t * p_data)
+{
+    bool          result;
+    rx_buffer_t * p_buffer = (rx_buffer_t *)p_data;
+
+    assert(p_buffer->free == false);
+    (void)p_buffer;
+
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_BUFFER_FREE);
+
+    result = nrf_802154_request_buffer_free(p_data);
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_BUFFER_FREE);
+    return result;
+}
+
 #else // NRF_802154_USE_RAW_API
 
 void nrf_802154_buffer_free(uint8_t * p_data)
@@ -353,13 +369,31 @@ void nrf_802154_buffer_free(uint8_t * p_data)
     rx_buffer_t * p_buffer = (rx_buffer_t *)(p_data - RAW_PAYLOAD_OFFSET);
 
     assert(p_buffer->free == false);
+    (void)p_buffer;
 
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_BUFFER_FREE);
 
     result = nrf_802154_request_buffer_free(p_data - RAW_PAYLOAD_OFFSET);
     assert(result);
+    (void)result;
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_BUFFER_FREE);
+}
+
+bool nrf_802154_buffer_free_immediately(uint8_t * p_data)
+{
+    bool          result;
+    rx_buffer_t * p_buffer = (rx_buffer_t *)(p_data - RAW_PAYLOAD_OFFSET);
+
+    assert(p_buffer->free == false);
+    (void)p_buffer;
+
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_BUFFER_FREE);
+
+    result = nrf_802154_request_buffer_free(p_data - RAW_PAYLOAD_OFFSET);
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_BUFFER_FREE);
+    return result;
 }
 
 #endif // NRF_802154_USE_RAW_API
