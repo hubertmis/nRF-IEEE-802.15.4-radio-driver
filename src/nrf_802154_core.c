@@ -886,6 +886,7 @@ static void falling_asleep_terminate(void)
 static void sleep_terminate(void)
 {
     nrf_802154_priority_drop_timeslot_exit_terminate();
+    nrf_raal_continuous_mode_enter();
 }
 
 /** Terminate RX procedure. */
@@ -1108,13 +1109,10 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
         switch (m_state)
         {
             case RADIO_STATE_SLEEP:
-                sleep_terminate();
-
                 if (req_orig != REQ_ORIG_RAAL)
                 {
-                    // Enter continuous mode unless terminating current operation is requested by
-                    // RAAL during timeslot end procedure.
-                    nrf_raal_continuous_mode_enter();
+                    // Terminate sleep state unless it is requested by RAAL during timeslot end.
+                    sleep_terminate();
                 }
 
                 break;
@@ -1249,6 +1247,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 static void sleep_init(void)
 {
     nrf_802154_priority_drop_timeslot_exit();
+    m_timeslot_is_granted = false;
 }
 
 /** Initialize Falling Asleep operation. */
@@ -1601,7 +1600,10 @@ void nrf_raal_timeslot_started(void)
     nrf_radio_init();
     irq_init();
 
-    m_timeslot_is_granted = true;
+    if (m_state != RADIO_STATE_SLEEP)
+    {
+        m_timeslot_is_granted = true;
+    }
 
     assert(nrf_radio_shorts_get() == SHORTS_IDLE);
 
@@ -1661,11 +1663,11 @@ void nrf_raal_timeslot_ended(void)
     nrf_radio_reset();
     nrf_fem_control_pin_clear();
 
-    m_timeslot_is_granted = false;
-
     result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RAAL, false);
     assert(result);
     (void)result;
+
+    m_timeslot_is_granted = false;
 
     switch (m_state)
     {

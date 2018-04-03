@@ -232,7 +232,6 @@ static void verify_receive_begin_finds_free_buffer(void)
 
 static void verify_complete_receive_begin(void)
 {
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK       |
@@ -673,8 +672,6 @@ static void verify_tx_terminate_periph_reset(bool in_timeslot)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(in_timeslot);
-
     if (in_timeslot)
     {
         nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
@@ -688,6 +685,8 @@ static void verify_tx_terminate_periph_reset(bool in_timeslot)
 
 void test_tx_terminate_ShallNotModifyRadioRegistersOutOfTimeslot(void)
 {
+    m_timeslot_is_granted = false;
+
     verify_tx_terminate_periph_reset(false);
 
     tx_terminate();
@@ -695,6 +694,8 @@ void test_tx_terminate_ShallNotModifyRadioRegistersOutOfTimeslot(void)
 
 void test_tx_terminate_ShallResetPeriphAndTriggerDisableTask(void)
 {
+    m_timeslot_is_granted = true;
+
     verify_tx_terminate_periph_reset(true);
 
     tx_terminate();
@@ -702,6 +703,8 @@ void test_tx_terminate_ShallResetPeriphAndTriggerDisableTask(void)
 
 void test_tx_terminate_ShallDisableEndEventIfPhyendIsNotAvailable(void)
 {
+    m_timeslot_is_granted = true;
+
     nrf_ppi_channel_disable_Expect(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable_Expect(PPI_EGU_RAMP_UP);
 
@@ -715,8 +718,6 @@ void test_tx_terminate_ShallDisableEndEventIfPhyendIsNotAvailable(void)
 
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
-
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
 
     nrf_802154_revision_has_phyend_event_ExpectAndReturn(false);
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_CCABUSY_MASK |
@@ -734,6 +735,8 @@ void test_tx_terminate_ShallDisableEndEventIfPhyendIsNotAvailable(void)
 
 void test_ccabusy_handler_ShallResetToRxStateAndNotifyFailure(void)
 {
+    m_timeslot_is_granted = true;
+
     insert_frame_with_noack_to_tx_buffer();
 
     verify_tx_terminate_periph_reset(true);
@@ -807,6 +810,7 @@ static void verify_phyend_ack_req_periph_setup(uint32_t shorts, bool buffer_free
 
 void test_phyend_handler_ShallResetToRxStateAndNotifySuccessIfAckNotRequested(void)
 {
+    m_timeslot_is_granted = true;
     insert_frame_with_noack_to_tx_buffer();
 
     verify_tx_terminate_periph_reset(true);
@@ -975,8 +979,6 @@ static void verify_rx_ack_terminate_hardware_reset(bool in_timeslot)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(in_timeslot);
-
     if (in_timeslot)
     {
         nrf_radio_int_disable_Expect(NRF_RADIO_INT_END_MASK);
@@ -990,6 +992,8 @@ static void verify_rx_ack_terminate_hardware_reset(bool in_timeslot)
 
 void test_rx_ack_terminate_ShallNotModifyRadioRegistersOutOfTimeslot(void)
 {
+    m_timeslot_is_granted = false;
+
     verify_rx_ack_terminate_hardware_reset(false);
 
     rx_ack_terminate();
@@ -997,6 +1001,8 @@ void test_rx_ack_terminate_ShallNotModifyRadioRegistersOutOfTimeslot(void)
 
 void test_rx_ack_terminate_ShallResetHardwareAndTriggerDisableTask(void)
 {
+    m_timeslot_is_granted = true;
+
     verify_rx_ack_terminate_hardware_reset(true);
 
     rx_ack_terminate();
@@ -1008,6 +1014,7 @@ void test_rx_ack_terminate_ShallResetHardwareAndTriggerDisableTask(void)
 
 void test_end_handler_ShallResetRadioToStartReceivingAndNotifyTransmittedFrame(void)
 {
+    m_timeslot_is_granted = true;
     mark_rx_buffer_free();
 
     verify_complete_ack_is_matched();

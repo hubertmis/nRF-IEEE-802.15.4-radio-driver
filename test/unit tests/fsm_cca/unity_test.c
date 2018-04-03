@@ -157,7 +157,8 @@ static void verify_receive_begin_finds_free_buffer(void)
 
 static void verify_complete_receive_begin(void)
 {
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK       |
@@ -328,8 +329,6 @@ static void verify_cca_terminate_periph_reset(bool in_timeslot)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
     
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(in_timeslot);
-
     if (in_timeslot)
     {
         nrf_radio_int_disable_Expect(NRF_RADIO_INT_CCAIDLE_MASK | NRF_RADIO_INT_CCABUSY_MASK);
@@ -340,6 +339,8 @@ static void verify_cca_terminate_periph_reset(bool in_timeslot)
 
 void test_cca_terminate_ShallNotModifyRadioRegistersOutOfTimeslot(void)
 {
+    m_timeslot_is_granted = false;
+
     verify_cca_terminate_periph_reset(false);
 
     cca_terminate();
@@ -347,6 +348,8 @@ void test_cca_terminate_ShallNotModifyRadioRegistersOutOfTimeslot(void)
 
 void test_cca_terminate_ShallResetPeriphAndTriggerDisableTask(void)
 {
+    m_timeslot_is_granted = true;
+
     verify_cca_terminate_periph_reset(true);
 
     cca_terminate();

@@ -203,8 +203,6 @@ static void mock_rx_terminate(void)
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
-
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_BCMATCH_MASK  |
                                  NRF_RADIO_INT_CRCERROR_MASK |
                                  NRF_RADIO_INT_CRCOK_MASK);
@@ -223,8 +221,6 @@ static void mock_rx_ack_terminate(void)
 
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
-
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
 
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_END_MASK);
     nrf_radio_shorts_set_Expect(SHORTS_IDLE);
@@ -250,8 +246,6 @@ static void mock_tx_terminate(void)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
-
     nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_PHYEND_MASK  |
                                  NRF_RADIO_INT_CCABUSY_MASK |
@@ -267,8 +261,6 @@ static void mock_receive_begin(bool free_buffer, uint32_t shorts)
     uint32_t task2_addr;
     uint32_t lna_target_time;
     uint32_t pa_target_time;
-
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
 
     int8_t power = rand();
     nrf_802154_pib_tx_power_get_ExpectAndReturn(power);
@@ -554,6 +546,7 @@ void test_OnBcmatchEventStateRx_TransactionShallBeAbortedIfHeaderPartFilteringFa
     uint8_t expected_size = PHR_SIZE + FCF_SIZE;
     uint8_t expected_bcc  = (PHR_SIZE + FCF_SIZE) * 8;
 
+    m_timeslot_is_granted         = true;
     m_flags.rx_timeslot_requested = true;
 
     nrf_radio_bcc_get_ExpectAndReturn(expected_bcc);
@@ -580,6 +573,7 @@ void test_OnBcmatchEventStateRx_TransactionShallBeAbortedIfDstAddrDoesNotMatch(v
     uint8_t expected_size = PHR_SIZE + FCF_SIZE;
     uint8_t expected_bcc  = (PHR_SIZE + FCF_SIZE) * 8;
 
+    m_timeslot_is_granted         = true;
     m_flags.rx_timeslot_requested = true;
 
     nrf_radio_bcc_get_ExpectAndReturn(expected_bcc);
@@ -740,6 +734,8 @@ void test_OnBcmatchEventStateRx_ShallNotRequestTimeslotIfAlreadyGranted(void)
 
 void test_OnCrcOkEventStateRx_ShallResetRadioAndReportRuntimeErrorIfFrameWasNotCorrectlyFilteredAndNotInPromiscuousMode(void)
 {
+    m_timeslot_is_granted = true;
+
     nrf_802154_pib_promiscuous_get_ExpectAndReturn(false);
 
     mock_rx_terminate();
@@ -823,6 +819,7 @@ void test_OnPhyendEventStateTx_ShallSetupAckMatchAcceleratorToCorrectPattern(voi
 
 void test_OnPhyendEventStateTx_ShallNotifyFrameAndNotSetupAckMatchAcceleratorIfAckWasNotRequested(void)
 {
+    m_timeslot_is_granted = true;
     ack_not_requested_set_tx();
 
     mock_tx_terminate();
@@ -838,6 +835,8 @@ void test_OnPhyendEventStateTx_ShallNotifyFrameAndNotSetupAckMatchAcceleratorIfA
 
 void test_OnEndEventStateRxAck_ShallCallTransmitFailedOnAckMismatch(void)
 {
+    m_timeslot_is_granted = true;
+
     nrf_radio_event_get_ExpectAndReturn(NRF_RADIO_EVENT_MHRMATCH, false);
 
     mock_rx_ack_terminate();
@@ -853,6 +852,8 @@ void test_OnEndEventStateRxAck_ShallCallTransmitFailedOnAckMismatch(void)
 
 void test_OnEndEventStateRxAck_ShallNotifyFrameTransmittedOnAckMatch(void)
 {
+    m_timeslot_is_granted = true;
+
     nrf_radio_event_get_ExpectAndReturn(NRF_RADIO_EVENT_MHRMATCH, true);
     nrf_radio_crc_status_get_ExpectAndReturn(NRF_RADIO_CRC_STATUS_OK);
 
@@ -907,6 +908,7 @@ void test_OnBcmatchEventStateRx_ShallClearPsduBeingReceivedFlagOnFailedFiltering
     uint8_t expected_size = PHR_SIZE + FCF_SIZE;
     uint8_t expected_bcc  = (PHR_SIZE + FCF_SIZE) * 8;
 
+    m_timeslot_is_granted         = true;
     m_flags.rx_timeslot_requested = true;
     m_flags.psdu_being_received   = true;
 
