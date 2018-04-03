@@ -212,6 +212,16 @@ void nrf_802154_short_address_set(const uint8_t *p_short_address);
 int8_t nrf_802154_dbm_from_energy_level_calculate(uint8_t energy_level);
 
 /**
+ * @brief  Calculate the CCA energy detection threshold value from a given dBm level.
+ *
+ * @param[in]  dbm  Energy level in dBm used to calculate the CCAEDTHRES value.
+ *
+ * @return  Energy level value corresponding to the given dBm level that should be written to
+ *          the CCACTRL register.
+ */
+uint8_t nrf_802154_ccaedthres_from_dbm_calculate(int8_t dbm);
+
+/**
  * @brief  Calculate the timestamp of the first symbol of the preamble in a received frame.
  *
  * @param[in]  end_timestamp  Timestamp of the end of the last symbol in the frame (in us).
