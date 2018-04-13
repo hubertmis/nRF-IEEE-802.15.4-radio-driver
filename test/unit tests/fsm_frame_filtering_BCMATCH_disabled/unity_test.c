@@ -176,14 +176,12 @@ static void mock_rx_terminate(void)
 
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_TIMER_START, 0);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable_Expect(NRF_802154_TIMER_INSTANCE,
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable_Expect(NRF_802154_COUNTER_TIMER_INSTANCE,NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
 
     nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
@@ -260,7 +258,7 @@ static void mock_receive_begin(uint32_t shorts)
 
     task_addr_1 = rand();
     nrf_timer_task_address_get_ExpectAndReturn(NRF_802154_TIMER_INSTANCE,
-                                               NRF_TIMER_TASK_CLEAR,
+                                               NRF_TIMER_TASK_SHUTDOWN,
                                                (uint32_t *)task_addr_1);
     event_addr = rand();
     nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCERROR, (uint32_t *)event_addr);
@@ -292,7 +290,7 @@ static void mock_receive_begin(uint32_t shorts)
 
     task_addr_1 = rand();
     nrf_timer_task_address_get_ExpectAndReturn(NRF_802154_COUNTER_TIMER_INSTANCE,
-                                               NRF_TIMER_TASK_CLEAR,
+                                               NRF_TIMER_TASK_SHUTDOWN,
                                                (uint32_t *)task_addr_1);
     event_addr = rand();
     nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCERROR, (uint32_t *)event_addr);
@@ -356,11 +354,9 @@ static void mock_ack_not_requested(bool frame_filtered)
     nrf_radio_shorts_set_Expect(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                 NRF_RADIO_SHORT_END_DISABLE_MASK);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
 
@@ -711,14 +707,12 @@ void test_OnPhyEndStateTxAck_ShallResetCounterTimer(void)
     nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_CRCOK);
     nrf_radio_int_enable_Expect(NRF_RADIO_INT_CRCOK_MASK | NRF_RADIO_INT_CRCERROR_MASK);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     task_addr = rand();
-    nrf_timer_task_address_get_ExpectAndReturn(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR, (uint32_t *)task_addr);
+    nrf_timer_task_address_get_ExpectAndReturn(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN, (uint32_t *)task_addr);
     event_addr = rand();
     nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCERROR, (uint32_t *)event_addr);
     nrf_ppi_channel_endpoint_setup_Expect(PPI_CRCERROR_CLEAR, event_addr, task_addr);

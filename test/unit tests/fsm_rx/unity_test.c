@@ -438,8 +438,7 @@ static inline void rx_terminate_periph_reset_verify(bool timeslot_granted)
 
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable_Expect(NRF_802154_TIMER_INSTANCE,
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
@@ -736,8 +735,7 @@ static void crcok_noack_periph_reset_verify(void)
                                 NRF_RADIO_SHORT_END_DISABLE_MASK |
                                 NRF_RADIO_SHORT_ADDRESS_BCSTART_MASK);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
 
@@ -893,8 +891,7 @@ static void verify_phyend_tx_ack_periph_reset(void)
                                 NRF_RADIO_INT_BCMATCH_MASK  |
                                 NRF_RADIO_INT_CRCOK_MASK);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_disable_Expect(PPI_TIMER_TX_ACK);
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
@@ -932,8 +929,7 @@ void test_phyend_handler_ShallResetPeripheralsForRxStateAndNotfiThatFrameWasRece
                                 NRF_RADIO_INT_BCMATCH_MASK  |
                                 NRF_RADIO_INT_CRCOK_MASK);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_disable_Expect(PPI_TIMER_TX_ACK);
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
@@ -982,8 +978,7 @@ void test_phyend_handler_ShallResetEndEventIfPhyendIsNotSupported(void)
                                 NRF_RADIO_INT_BCMATCH_MASK  |
                                 NRF_RADIO_INT_CRCOK_MASK);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_disable_Expect(PPI_TIMER_TX_ACK);
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
@@ -1122,8 +1117,7 @@ void test_tx_ack_terminate_ShallNotModifyRadioRegistersOutOfTimeslot(void)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable_Expect(NRF_802154_TIMER_INSTANCE,
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
@@ -1145,8 +1139,7 @@ void test_tx_ack_terminate_ShallResetShortsAndPpisAndTriggerTasksToStopHardware(
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable_Expect(NRF_802154_TIMER_INSTANCE,
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
@@ -1172,8 +1165,7 @@ void test_tx_ack_terminate_ShallResetEndEventIfPhyendIsNotSupported(void)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable_Expect(NRF_802154_TIMER_INSTANCE,
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
@@ -1192,8 +1184,7 @@ void test_irq_crcerror_state_rx_ShallReserRadioForRxAndNotifyReceiveFailed(void)
 {
     nrf_ppi_channel_disable_Expect(PPI_DISABLED_EGU);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
 

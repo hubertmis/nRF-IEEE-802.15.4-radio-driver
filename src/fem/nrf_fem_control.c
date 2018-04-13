@@ -284,8 +284,8 @@ void nrf_fem_control_timer_reset(nrf_fem_control_pin_t pin, nrf_timer_short_mask
 {
     if (pin_is_enabled(pin))
     {
-        nrf_timer_task_trigger(NRF_FEM_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-        nrf_timer_task_trigger(NRF_FEM_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+        // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
+        nrf_timer_task_trigger(NRF_FEM_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
         nrf_timer_shorts_disable(NRF_FEM_TIMER_INSTANCE, short_mask);
     }
 }

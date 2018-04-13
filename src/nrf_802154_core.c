@@ -832,12 +832,12 @@ static void rx_restart(bool set_shorts)
     }
 
     // Restart TIMER.
-    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
 #if NRF_802154_DISABLE_BCC_MATCHING
-    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
+    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
     // Enable self-disabled PPI or PPI disabled by CRCOK
@@ -900,13 +900,13 @@ static void rx_terminate(void)
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
-    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK | NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
 #if NRF_802154_DISABLE_BCC_MATCHING
-    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
+    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
@@ -945,13 +945,13 @@ static void tx_ack_terminate(void)
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
 
-    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK | NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
 #if NRF_802154_DISABLE_BCC_MATCHING
-    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
+    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
@@ -1346,11 +1346,12 @@ static void rx_init(bool disabled_was_triggered)
                                             (uint32_t)nrf_timer_task_address_get(
                                                     NRF_802154_COUNTER_TIMER_INSTANCE,
                                                     NRF_TIMER_TASK_START));
+    // Anomaly 78: use SHUTDOWN instead of CLEAR.
     nrf_ppi_channel_endpoint_setup(PPI_CRCERROR_CLEAR,
                                    (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCERROR),
                                    (uint32_t)nrf_timer_task_address_get(
                                            NRF_802154_TIMER_INSTANCE,
-                                           NRF_TIMER_TASK_CLEAR));
+                                           NRF_TIMER_TASK_SHUTDOWN));
     nrf_ppi_channel_endpoint_setup(PPI_CRCOK_DIS_PPI,
                                    (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCOK),
                                    (uint32_t)nrf_ppi_task_address_get(PPI_CHGRP0_DIS_TASK));
@@ -1384,11 +1385,12 @@ static void rx_init(bool disabled_was_triggered)
                                    (uint32_t)nrf_timer_task_address_get(
                                            NRF_802154_COUNTER_TIMER_INSTANCE,
                                            NRF_TIMER_TASK_COUNT));
+    // Anomaly 78: use SHUTDOWN instead of CLEAR.
     nrf_ppi_channel_endpoint_setup(PPI_CRCERROR_COUNTER_CLEAR,
                                    (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCERROR),
                                    (uint32_t)nrf_timer_task_address_get(
                                            NRF_802154_COUNTER_TIMER_INSTANCE,
-                                           NRF_TIMER_TASK_CLEAR));
+                                           NRF_TIMER_TASK_SHUTDOWN));
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
     nrf_ppi_channel_enable(PPI_EGU_RAMP_UP);
@@ -2060,22 +2062,23 @@ static void irq_phyend_state_tx_ack(void)
     nrf_radio_int_enable(ints_to_enable);
 
     // Restart TIMER.
-    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
 #if NRF_802154_DISABLE_BCC_MATCHING
-    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
+    nrf_timer_task_trigger(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     // Reset PPI for RX mode
 #if PPI_TIMER_TX_ACK != PPI_CRCERROR_CLEAR
 #error Invalid PPI configuration
 #endif
+    // Anomaly 78: use SHUTDOWN instead of CLEAR.
     nrf_ppi_channel_endpoint_setup(PPI_CRCERROR_CLEAR,
                                    (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCERROR),
                                    (uint32_t)nrf_timer_task_address_get(
                                            NRF_802154_TIMER_INSTANCE,
-                                           NRF_TIMER_TASK_CLEAR));
+                                           NRF_TIMER_TASK_SHUTDOWN));
 
     nrf_ppi_fork_endpoint_setup(PPI_EGU_TIMER_START,
                                 (uint32_t)nrf_timer_task_address_get(

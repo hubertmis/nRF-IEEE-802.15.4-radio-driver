@@ -197,8 +197,7 @@ static void mock_rx_terminate(void)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable_Expect(NRF_802154_TIMER_INSTANCE,
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
@@ -396,8 +395,7 @@ static void mock_ack_not_requested_rx(void)
                                 NRF_RADIO_SHORT_END_DISABLE_MASK |
                                 NRF_RADIO_SHORT_ADDRESS_BCSTART_MASK);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
 
@@ -937,8 +935,7 @@ void test_OnCrcErrorEventStateRx_ShallClearPsduBeingReceivedFlag(void)
 
     nrf_ppi_channel_disable_Expect(PPI_DISABLED_EGU);
 
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_STOP);
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
+    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
 
