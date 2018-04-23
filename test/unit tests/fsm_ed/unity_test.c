@@ -157,6 +157,7 @@ static void verify_receive_begin_finds_free_buffer(void)
 
 static void verify_complete_receive_begin(void)
 {
+    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -192,9 +193,9 @@ void nrf_802154_tx_ack_started(void){}
 
 void test_ed_begin_ShallDoNothingIfOutOfTimeslot(void)
 {
-    m_timeslot_is_granted = false;
-
     nrf_raal_timeslot_us_left_get_ExpectAndReturn(0);
+
+    nrf_raal_timeslot_is_granted_ExpectAndReturn(false);
 
     nrf_fem_control_ppi_disable_Expect(NRF_FEM_CONTROL_LNA_PIN);
     nrf_fem_control_pin_clear_Expect();
@@ -204,9 +205,9 @@ void test_ed_begin_ShallDoNothingIfOutOfTimeslot(void)
 
 void test_ed_begin_ShallResetRadioIfTimeslotIsTooShort(void)
 {
-    m_timeslot_is_granted = true;
-
     nrf_raal_timeslot_us_left_get_ExpectAndReturn(1);
+
+    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
 
     nrf_radio_power_set_Expect(false);
     nrf_radio_power_set_Expect(true);
@@ -341,6 +342,8 @@ static void verify_ed_terminate_periph_reset(bool is_in_timeslot)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
+    nrf_raal_timeslot_is_granted_ExpectAndReturn(is_in_timeslot);
+
     if (is_in_timeslot)
     {
         nrf_radio_int_disable_Expect(NRF_RADIO_INT_EDEND_MASK);
@@ -351,7 +354,6 @@ static void verify_ed_terminate_periph_reset(bool is_in_timeslot)
 
 void test_ed_terminate_ShallNotModifyRadioRegistersIfTimslotIsNotGranted(void)
 {
-    m_timeslot_is_granted = false;
     verify_ed_terminate_periph_reset(false);
 
     ed_terminate();
@@ -359,7 +361,6 @@ void test_ed_terminate_ShallNotModifyRadioRegistersIfTimslotIsNotGranted(void)
 
 void test_ed_terminate_ShallResetPeriphAndTriggerDisableTask(void)
 {
-    m_timeslot_is_granted = true;
     verify_ed_terminate_periph_reset(true);
 
     ed_terminate();
@@ -384,8 +385,6 @@ void test_edend_handler_ShallResetToRxStateAndNotifySuccessIfEdEnded(void)
 
     m_ed_result    = 0;
     m_ed_time_left = 0;
-
-    m_timeslot_is_granted = true;
 
     nrf_radio_ed_sample_get_ExpectAndReturn(result);
 
@@ -424,11 +423,10 @@ void test_edend_handler_ShallResetRadioAndWaitForNextTimeslotIfCannotStartNextIt
     m_ed_time_left = rand();
     m_ed_time_left = m_ed_time_left ? m_ed_time_left : 1;
 
-    m_timeslot_is_granted = true;
-
     nrf_radio_ed_sample_get_ExpectAndReturn(result);
 
     nrf_raal_timeslot_us_left_get_ExpectAndReturn(0);
+    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
 
     nrf_radio_power_set_Expect(false);
     nrf_radio_power_set_Expect(true);

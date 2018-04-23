@@ -133,6 +133,9 @@ static volatile bool m_continuous = false;
 /**@brief Defines if RAAL is currently in a timeslot. */
 static volatile timeslot_state_t m_timeslot_state;
 
+/**@brief Defines if the timeslot is reported to the core module. */
+static bool m_timeslot_reported;
+
 /**@brief Current timeslot length. */
 static uint16_t m_timeslot_length;
 
@@ -279,6 +282,12 @@ static inline bool timeslot_is_granted(void)
     return (m_timeslot_state == TIMESLOT_STATE_GRANTED);
 }
 
+/**@brief Indicate if timeslot has been reported to the driver core. */
+static inline bool timeslot_is_reported(void)
+{
+    return m_timeslot_reported;
+}
+
 /**@brief Enter timeslot critical section. */
 static inline void timeslot_critical_section_enter(void)
 {
@@ -298,6 +307,7 @@ static inline void timeslot_started_notify(void)
 {
     if (timeslot_is_granted() && m_continuous)
     {
+        m_timeslot_reported = true;
         nrf_raal_timeslot_started();
     }
 }
@@ -307,6 +317,7 @@ static inline void timeslot_ended_notify(void)
 {
     if (!timeslot_is_granted() && m_continuous)
     {
+        m_timeslot_reported = false;
         nrf_raal_timeslot_ended();
     }
 }
@@ -325,6 +336,8 @@ static void timeslot_request_prepare(void)
 /**@brief Request earliest timeslot. */
 static void timeslot_request(void)
 {
+    assert(!m_timeslot_reported);
+
     timeslot_request_prepare();
 
     m_timeslot_state = TIMESLOT_STATE_REQUESTED;
@@ -475,8 +488,9 @@ static nrf_radio_signal_callback_return_param_t *signal_handler(uint8_t signal_t
         nrf_802154_pin_clr(PIN_DBG_TIMESLOT_ACTIVE);
         nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_EVENT_ENDED);
 
-        m_pending_event  = PENDING_EVENT_NONE;
-        m_timeslot_state = TIMESLOT_STATE_IDLE;
+        m_pending_event     = PENDING_EVENT_NONE;
+        m_timeslot_state    = TIMESLOT_STATE_IDLE;
+        m_timeslot_reported = false;
 
         // TODO: Change to NRF_RADIO_SIGNAL_CALLBACK_ACTION_END (KRKNWK-937)
         m_ret_param.callback_action = NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
@@ -679,8 +693,9 @@ void nrf_raal_init(void)
 {
     assert(!m_initialized);
 
-    m_continuous     = false;
-    m_timeslot_state = TIMESLOT_STATE_IDLE;
+    m_continuous        = false;
+    m_timeslot_state    = TIMESLOT_STATE_IDLE;
+    m_timeslot_reported = false;
 
     m_config.lf_clk_accuracy_ppm  = NRF_RAAL_DEFAULT_LF_CLK_ACCURACY_PPM;
     m_config.timeslot_length      = NRF_RAAL_TIMESLOT_DEFAULT_LENGTH;
@@ -704,8 +719,9 @@ void nrf_raal_uninit(void)
     assert(err_code == NRF_SUCCESS);
     (void)err_code;
 
-    m_continuous     = false;
-    m_timeslot_state = TIMESLOT_STATE_IDLE;
+    m_continuous        = false;
+    m_timeslot_state    = TIMESLOT_STATE_IDLE;
+    m_timeslot_reported = false;
 
     nrf_802154_pin_clr(PIN_DBG_TIMESLOT_ACTIVE);
 }
@@ -756,7 +772,7 @@ bool nrf_raal_timeslot_request(uint32_t length_us)
 
 bool nrf_raal_timeslot_is_granted(void)
 {
-    return (m_continuous && timeslot_is_granted());
+    return (m_continuous && timeslot_is_reported());
 }
 
 uint32_t nrf_raal_timeslot_us_left_get(void)

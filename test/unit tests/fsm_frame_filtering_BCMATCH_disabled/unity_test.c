@@ -186,6 +186,8 @@ static void mock_rx_terminate(void)
     nrf_timer_task_trigger_Expect(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_TASK_CLEAR);
     nrf_timer_shorts_disable_Expect(NRF_802154_COUNTER_TIMER_INSTANCE,NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
 
+    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_CRCOK_MASK | NRF_RADIO_INT_CRCERROR_MASK);
     nrf_radio_shorts_set_Expect(0);
     nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
@@ -198,6 +200,8 @@ static void mock_receive_begin(uint32_t shorts)
     uint32_t task_addr_2;
     uint32_t lna_target_time;
     uint32_t pa_target_time;
+
+    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
 
     int8_t power = rand();
     nrf_802154_pib_tx_power_get_ExpectAndReturn(power);
@@ -503,8 +507,6 @@ void test_OnCrcOkEventStateRx_ShallAbortOperationAndFrameFilteredFlagShallBeFals
 
     ack_not_requested_set();
 
-    m_timeslot_is_granted = true;
-
     nrf_802154_filter_frame_part_ExpectAndReturn(m_test_radio_buffer.psdu, NULL, NRF_802154_RX_ERROR_NONE);
     nrf_802154_filter_frame_part_IgnoreArg_p_num_bytes();
     nrf_802154_filter_frame_part_ReturnThruPtr_p_num_bytes(&expected_updated_size);
@@ -531,8 +533,6 @@ void test_OnCrcOkEventStateRx_ShallAbortOperationAndNotifyRxErrorIfFrameDstAddrD
     uint8_t expected_updated_size = PHR_SIZE + FCF_SIZE + 4;
 
     ack_not_requested_set();
-
-    m_timeslot_is_granted = true;
 
     nrf_802154_filter_frame_part_ExpectAndReturn(m_test_radio_buffer.psdu, NULL, NRF_802154_RX_ERROR_NONE);
     nrf_802154_filter_frame_part_IgnoreArg_p_num_bytes();
@@ -646,8 +646,6 @@ void test_OnCrcOkEventStateRx_ShallResetRadioAndNotifyRxFrameIfAckRequestedAndTi
 
 void test_ReceiveBegin_ShallSetupCounterTimerForCountOnAddressEventAndClearOnCrcErrorEvent(void)
 {
-    m_timeslot_is_granted = true;
-
     mock_receive_begin(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                        NRF_RADIO_SHORT_END_DISABLE_MASK |
                        NRF_RADIO_SHORT_RXREADY_START_MASK);
