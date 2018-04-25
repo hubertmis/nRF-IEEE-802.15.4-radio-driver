@@ -53,13 +53,13 @@
 #include "nrf_802154_priority_drop.h"
 #include "nrf_802154_request.h"
 #include "nrf_802154_revision.h"
+#include "nrf_802154_rsch.h"
 #include "nrf_802154_rssi.h"
 #include "nrf_802154_rx_buffer.h"
 #include "hal/nrf_radio.h"
 #include "platform/clock/nrf_802154_clock.h"
 #include "platform/temperature/nrf_802154_temperature.h"
 #include "platform/timer/nrf_802154_timer.h"
-#include "raal/nrf_raal_api.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
 #include "mac_features/nrf_802154_csma_ca.h"
@@ -179,7 +179,7 @@ void nrf_802154_init(void)
     nrf_802154_temperature_init();
     nrf_802154_timer_init();
     nrf_802154_timer_sched_init();
-    nrf_raal_init();
+    nrf_802154_rsch_init();
 }
 
 void nrf_802154_deinit(void)

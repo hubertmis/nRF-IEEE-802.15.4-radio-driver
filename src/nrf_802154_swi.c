@@ -44,9 +44,9 @@
 #include "nrf_802154_config.h"
 #include "nrf_802154_core.h"
 #include "nrf_802154_critical_section.h"
+#include "nrf_802154_rsch.h"
 #include "nrf_802154_rx_buffer.h"
 #include "hal/nrf_egu.h"
-#include "raal/nrf_raal_api.h"
 
 
 /** Size of notification queue.
@@ -732,7 +732,7 @@ void SWI_IRQHandler(void)
 
     if (nrf_egu_event_check(SWI_EGU, TIMESLOT_EXIT_EVENT))
     {
-        nrf_raal_continuous_mode_exit();
+        nrf_802154_rsch_continuous_mode_exit();
 
         nrf_egu_event_clear(SWI_EGU, TIMESLOT_EXIT_EVENT);
     }

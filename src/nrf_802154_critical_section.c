@@ -41,9 +41,9 @@
 
 #include "nrf_802154_config.h"
 #include "nrf_802154_debug.h"
+#include "nrf_802154_rsch.h"
 #include "hal/nrf_radio.h"
 #include "platform/timer/nrf_802154_timer.h"
-#include "raal/nrf_raal_api.h"
 
 #include <nrf.h>
 
@@ -61,7 +61,7 @@ static volatile int8_t  m_nested_critical_section_allowed_priority;  ///< Indica
  */
 static void radio_critical_section_enter(void)
 {
-    if (nrf_raal_timeslot_is_granted())
+    if (nrf_802154_rsch_timeslot_is_granted())
     {
         NVIC_DisableIRQ(RADIO_IRQn);
         __DSB();
@@ -76,7 +76,7 @@ static void radio_critical_section_enter(void)
  */
 static void radio_critical_section_exit(void)
 {
-    if (nrf_raal_timeslot_is_granted())
+    if (nrf_802154_rsch_timeslot_is_granted())
     {
         NVIC_EnableIRQ(RADIO_IRQn);
     }
@@ -126,7 +126,7 @@ static bool critical_section_enter(bool forced)
         }
 
         radio_critical_section_enter();
-        nrf_raal_critical_section_enter();
+        nrf_802154_rsch_critical_section_enter();
     }
     while (__STREXB(cnt + 1, &m_nested_critical_section_counter));
 
@@ -173,7 +173,7 @@ void nrf_802154_critical_section_exit(void)
 
             // RAAL critical section shall be exited before RADIO IRQ handler is enabled. In other
             // case RADIO IRQ handler may be called out of timeslot.
-            nrf_raal_critical_section_exit();
+            nrf_802154_rsch_critical_section_exit();
             radio_critical_section_exit();
 
             exiting_crit_sect = false;

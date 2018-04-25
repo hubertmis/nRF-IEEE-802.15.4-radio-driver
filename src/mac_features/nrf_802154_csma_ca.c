@@ -182,9 +182,9 @@ void nrf_802154_csma_ca_start(const uint8_t * p_data)
 
 bool nrf_802154_csma_ca_abort(nrf_802154_term_t term_lvl, req_originator_t req_orig)
 {
-    // Don't stop CSMA-CA if request by itself or RAAL.
+    // Don't stop CSMA-CA if request by itself or Radio Scheduler.
     if (req_orig == REQ_ORIG_CSMA_CA ||
-        req_orig == REQ_ORIG_RAAL)
+        req_orig == REQ_ORIG_RSCH)
     {
         return true;
     }

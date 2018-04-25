@@ -52,6 +52,7 @@
 #include "nrf_802154_priority_drop.h"
 #include "nrf_802154_procedures_duration.h"
 #include "nrf_802154_revision.h"
+#include "nrf_802154_rsch.h"
 #include "nrf_802154_rssi.h"
 #include "nrf_802154_rx_buffer.h"
 #include "nrf_802154_types.h"
@@ -63,7 +64,6 @@
 #include "mac_features/nrf_802154_filter.h"
 
 #include "nrf_802154_core_hooks.h"
-#include "raal/nrf_raal_api.h"
 
 
 #define EGU_EVENT           NRF_EGU_EVENT_TRIGGERED15
@@ -591,7 +591,7 @@ static uint8_t ed_result_get(void)
  */
 static bool ed_iter_setup(uint32_t time_us)
 {
-    uint32_t us_left_in_timeslot = nrf_raal_timeslot_us_left_get();
+    uint32_t us_left_in_timeslot = nrf_802154_rsch_timeslot_us_left_get();
     uint32_t next_ed_iters       = us_left_in_timeslot / ED_ITER_DURATION;
 
     if (next_ed_iters > ED_ITERS_OVERHEAD)
@@ -872,7 +872,7 @@ static void falling_asleep_terminate(void)
 static void sleep_terminate(void)
 {
     nrf_802154_priority_drop_timeslot_exit_terminate();
-    nrf_raal_continuous_mode_enter();
+    nrf_802154_rsch_continuous_mode_enter();
 }
 
 /** Terminate RX procedure. */
@@ -1074,8 +1074,8 @@ static void continuous_carrier_terminate(void)
  *
  * This function is called when MAC layer requests transition to another operation.
  *
- * After calling this function RADIO should enter DISABLED state and RAAL should be in continuous
- * mode.
+ * After calling this function RADIO should enter DISABLED state and Radio Scheduler 
+ * should be in continuous mode.
  *
  * @param[in]  term_lvl      Termination level of this request. Selects procedures to abort.
  * @param[in]  req_orig      Module that originates termination request.
@@ -1095,9 +1095,10 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
         switch (m_state)
         {
             case RADIO_STATE_SLEEP:
-                if (req_orig != REQ_ORIG_RAAL)
+                if (req_orig != REQ_ORIG_RSCH)
                 {
-                    // Terminate sleep state unless it is requested by RAAL during timeslot end.
+                    // Terminate sleep state unless it is requested by Radio Scheduler
+                    // during timeslot end.
                     sleep_terminate();
                 }
 
@@ -1432,7 +1433,7 @@ static bool tx_init(const uint8_t * p_data, bool cca, bool disabled_was_triggere
 {
     uint32_t ints_to_enable = 0;
 
-    if (!nrf_raal_timeslot_request(
+    if (!nrf_802154_rsch_timeslot_request(
             nrf_802154_tx_duration_get(p_data[0], cca, ack_is_requested(p_data))))
     {
         return false;
@@ -1520,7 +1521,7 @@ static void ed_init(bool disabled_was_triggered)
 /** Initialize CCA operation. */
 static void cca_init(bool disabled_was_triggered)
 {
-    if (!nrf_raal_timeslot_request(nrf_802154_cca_duration_get()))
+    if (!nrf_802154_rsch_timeslot_request(nrf_802154_cca_duration_get()))
     {
         return;
     }
@@ -1573,10 +1574,10 @@ static void continuous_carrier_init(bool disabled_was_triggered)
 
 
 /***************************************************************************************************
- * @section RAAL notification handlers
+ * @section Radio Scheduler notification handlers
  **************************************************************************************************/
 
-void nrf_raal_timeslot_started(void)
+void nrf_802154_rsch_timeslot_started(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
 
@@ -1618,9 +1619,9 @@ void nrf_raal_timeslot_started(void)
         case RADIO_STATE_SLEEP:
             // This case may happen when sleep is requested by the next higher layer right before
             // timeslot starts and the driver uses SWI for requests and notifications. In this case
-            // RAAL may report timeslot start event when exiting sleep request critical section.
-            // The driver is already in SLEEP state but did not request timeslot end yet - it will
-            // be requested in the next SWI handler.
+            // Radio Scheduler may report timeslot start event when exiting sleep request critical
+            // section. The driver is already in SLEEP state but did not request timeslot end yet 
+            // it will be requested in the next SWI handler.
             break;
 
         default:
@@ -1632,7 +1633,7 @@ void nrf_raal_timeslot_started(void)
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_STARTED);
 }
 
-void nrf_raal_timeslot_ended(void)
+void nrf_802154_rsch_timeslot_ended(void)
 {
     bool result;
 
@@ -1645,7 +1646,7 @@ void nrf_raal_timeslot_ended(void)
     nrf_radio_reset();
     nrf_fem_control_pin_clear();
 
-    result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RAAL, false);
+    result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RSCH, false);
     assert(result);
     (void)result;
 
@@ -1712,7 +1713,8 @@ static void irq_address_state_tx_ack(void)
 }
 
 #if !NRF_802154_DISABLE_BCC_MATCHING
-/// This event is generated during frame reception to request RAAL timeslot and to filter frame
+// This event is generated during frame reception to request Radio Scheduler timeslot
+// and to filter frame
 static void irq_bcmatch_state_rx(void)
 {
     uint8_t               prev_num_psdu_bytes;
@@ -1733,7 +1735,7 @@ static void irq_bcmatch_state_rx(void)
     {
         assert(num_psdu_bytes >= PHR_SIZE + FCF_SIZE);
 
-        if (nrf_raal_timeslot_request(nrf_802154_rx_duration_get(
+        if (nrf_802154_rsch_timeslot_request(nrf_802154_rx_duration_get(
                 mp_current_rx_buffer->psdu[0],
                 ack_is_requested(mp_current_rx_buffer->psdu))))
         {
@@ -1831,7 +1833,7 @@ static void irq_crcok_state_rx(void)
     // Timeslot request
     if (m_flags.frame_filtered &&
         ack_is_requested(p_received_psdu) &&
-        !nrf_raal_timeslot_request(nrf_802154_rx_duration_get(0, true)))
+        !nrf_802154_rsch_timeslot_request(nrf_802154_rx_duration_get(0, true)))
     {
         // Frame is destined to this node but there is no timeslot to transmit ACK
         irq_deinit();

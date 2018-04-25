@@ -18,6 +18,7 @@
             "src/nrf_802154_procedures_duration.h",
             "src/nrf_802154_request.h",
             "src/nrf_802154_revision.h",
+            "src/nrf_802154_rsch.h",
             "src/nrf_802154_rssi.h",
             "src/nrf_802154_rx_buffer.h",
             "src/mac_features/nrf_802154_filter.h"
@@ -46,6 +47,7 @@
                     "src/nrf_802154_debug.c",
                     "src/nrf_802154_pib.c",
                     "src/nrf_802154_revision.c",
+                    "src/nrf_802154_rsch.c",
                     "src/nrf_802154_rssi.c",
                     "src/nrf_802154_rx_buffer.c",
                     "src/mac_features/nrf_802154_ack_timeout.c",
@@ -79,6 +81,7 @@
                     "src/nrf_802154_debug.c",
                     "src/nrf_802154_pib.c",
                     "src/nrf_802154_revision.c",
+                    "src/nrf_802154_rsch.c",
                     "src/nrf_802154_rssi.c",
                     "src/nrf_802154_rx_buffer.c",
                     "src/mac_features/nrf_802154_ack_timeout.c",
