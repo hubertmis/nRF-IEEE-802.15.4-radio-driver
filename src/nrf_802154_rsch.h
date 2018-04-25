@@ -113,6 +113,25 @@ void nrf_802154_rsch_continuous_mode_exit(void);
 bool nrf_802154_rsch_timeslot_request(uint32_t length_us);
 
 /**
+ * @brief Request timeslot in the future.
+ *
+ * Request timeslot that should be granted in the future. Function parameters provides data when
+ * the timeslot should start and how long should it last. When requested timeslot starts the
+ * @ref nrf_802154_rsch_delayed_timeslot_started is called. If requested timeslot cannot be granted
+ * with requested parameters, the @ref nrf_802154_rsch_delayed_timeslot_failed is called.
+ *
+ * @note Time parameters use the same units that are used in the Timer Scheduler module.
+ *
+ * @param[in]  t0      Base time of the timestamp of the timeslot start [us].
+ * @param[in]  dt      Time delta between @p t0 and the timestamp of the timeslot start [us].
+ * @param[in]  length  Requested radio timeslot length [us].
+ *
+ * @retval true   Requested timeslot has been scheduled.
+ * @retval false  Requested timeslot cannot be scheduled and will not be granted.
+ */
+bool nrf_802154_rsch_delayed_timeslot_request(uint32_t t0, uint32_t dt, uint32_t length);
+
+/**
  * @brief Check if the 802.15.4 driver is currently in timeslot.
  *
  * @retval true   Timeslot is currently granted.
@@ -182,6 +201,19 @@ extern void nrf_802154_rsch_timeslot_started(void);
  *
  */
 extern void nrf_802154_rsch_timeslot_ended(void);
+
+/**
+ * @brief Notification that previously requested delayed timeslot has started just now.
+ */
+extern void nrf_802154_rsch_delayed_timeslot_started(void);
+
+/**
+ * @brief Notification that previously requested delayed timeslot cannot be started.
+ *
+ * This function may be called when any of radio activity precondition is not satisfied at the
+ * time when the timeslot should start.
+ */
+extern void nrf_802154_rsch_delayed_timeslot_failed(void);
 
 /**
  *@}
