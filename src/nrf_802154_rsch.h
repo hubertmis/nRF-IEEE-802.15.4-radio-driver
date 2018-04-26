@@ -58,6 +58,16 @@ extern "C" {
  */
 
 /**
+ * @brief List of preconditions that have to be met before any radio activity.
+ */
+typedef enum
+{
+    RSCH_PREC_HFCLK,
+    RSCH_PREC_RAAL,
+    RSCH_PREC_CNT,
+} rsch_prec_t;
+
+/**
  * @brief Initialize Radio Scheduler.
  *
  * @note This function shall be called once, before any other function from this module.
@@ -83,7 +93,7 @@ void nrf_802154_rsch_uninit(void);
  * possible in order to give to the radio driver core as much radio time as possible while
  * disturbing the other activities as little as possible.
  *
- * @note The start of a timeslot will be indicated by @ref nrf_802154_rsch_timeslot_started call.
+ * @note The start of a timeslot will be indicated by @ref nrf_802154_rsch_prec_approved call.
  *
  */
 void nrf_802154_rsch_continuous_mode_enter(void);
@@ -100,7 +110,7 @@ void nrf_802154_rsch_continuous_mode_exit(void);
 /**
  * @brief Request timeslot for radio communication immediately.
  *
- * This function should be called only after @ref nrf_802154_rsch_timeslot_started indicated the
+ * This function should be called only after @ref nrf_802154_rsch_prec_approved indicated the
  * start of a timeslot.
  *
  * @param[in] length_us  Requested radio timeslot length in microsecond.
@@ -132,14 +142,14 @@ bool nrf_802154_rsch_timeslot_request(uint32_t length_us);
 bool nrf_802154_rsch_delayed_timeslot_request(uint32_t t0, uint32_t dt, uint32_t length);
 
 /**
- * @brief Check if the RAAL precondition is satisfied.
+ * @brief Check if the RSCH precondition is satisfied.
  *
- * @todo: Modify this function to check for passed precondition instead of RAAL only.
- *
- * @retval true   RAAL timeslot is currently granted.
- * @retval false  RAAL timeslot is not currently granted.
+ * @param[in]  prec    RSCH precondition to be checked.
+ * 
+ * @retval true   Precondition @p prec is currently granted.
+ * @retval false  Precondition @p prec is not currently granted.
  */
-bool nrf_802154_rsch_precondition_is_satisfied(void);
+bool nrf_802154_rsch_prec_is_approved(rsch_prec_t prec);
 
 /**
  * @brief Get left time of currently granted timeslot [us].
@@ -149,41 +159,20 @@ bool nrf_802154_rsch_precondition_is_satisfied(void);
 uint32_t nrf_802154_rsch_timeslot_us_left_get(void);
 
 /**
- * @brief Enter critical section of the module.
- *
- * When this function is called, the execution of the @ref nrf_802154_rsch_timeslot_started and
- * @ref nrf_802154_rsch_timeslot_ended function is blocked.
- *
- * @note This function may be called when the Radio Scheduler is already in critical section.
- *       Ongoing call may be interrupted by another call from IRQ with higher priority.
- *
- */
-void nrf_802154_rsch_critical_section_enter(void);
-
-/**
- * @brief Exit critical section of the module.
- *
- * When this function is called, the driver core has to expect the execution of the
- * @ref nrf_802154_rsch_timeslot_started or @ref nrf_802154_rsch_timeslot_ended.
- *
- * @note This function may be called when the Radio Scheduler has already exited critical section.
- *       Ongoing call may NOT be interrupted by another call from IRQ with higher priority.
- */
-void nrf_802154_rsch_critical_section_exit(void);
-
-/**
- * @brief The Radio Scheduler calls this function to notify the core about the start of a timeslot.
+ * @brief The Radio Scheduler calls this function to notify the core
+ *        about granting all preconditions.
  *
  * The radio driver now has exclusive access to the peripherals until
- * @ref nrf_802154_rsch_timeslot_ended is called.
+ * @ref nrf_802154_rsch_prec_denied is called.
  *
- * @note The end of the timeslot will be indicated by @ref nrf_802154_rsch_timeslot_ended function.
+ * @note The end of the timeslot will be indicated by @ref nrf_802154_rsch_prec_denied function.
  *
  */
-extern void nrf_802154_rsch_timeslot_started(void);
+extern void nrf_802154_rsch_prec_approved(void);
 
 /**
- * @brief The Radio Scheduler calls this function to notify the core about the end of a timeslot.
+ * @brief The Radio Scheduler calls this function to notify the core
+ *        about denial of one or all preconditions.
  *
  * Depending on the preconditions configuration, radio driver has NRF_RAAL_MAX_CLEAN_UP_TIME_US
  * microseconds to do any clean-up actions on RADIO peripheral and stop using it completely.
@@ -191,18 +180,16 @@ extern void nrf_802154_rsch_timeslot_started(void);
  * before the timeslot is finished.
  *
  * If the Radio Scheduler is in the continuous mode, the next timeslot will be indicated again by
- * the @ref nrf_802154_rsch_timeslot_started.
- *
- * This function shall not be called if the @ref nrf_802154_rsch_continuous_mode_exit has been
- * called. The driver core shall assume that the timeslot has been finished after
- * @ref nrf_802154_rsch_continuous_mode_exit call.
+ * the @ref nrf_802154_rsch_prec_approved.
  *
  * @note Because the radio driver core needs to stop any operation on the RADIO peripheral within
  *       NRF_RAAL_MAX_CLEAN_UP_TIME_US microseconds, this function should be called with high
  *       interrupt priority level to avoid unwanted delays.
+ * 
+ * @note This function may be called after @ref nrf_802154_rsch_continuous_mode_exit is called.
  *
  */
-extern void nrf_802154_rsch_timeslot_ended(void);
+extern void nrf_802154_rsch_prec_denied(void);
 
 /**
  * @brief Notification that previously requested delayed timeslot has started just now.

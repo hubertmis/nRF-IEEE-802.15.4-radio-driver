@@ -46,7 +46,6 @@
 #include <nrf_raal_api.h>
 #include <nrf_802154.h>
 #include <nrf_802154_debug.h>
-#include <platform/clock/nrf_802154_clock.h>
 
 #if defined(__GNUC__)
     _Pragma("GCC diagnostic push")
@@ -508,8 +507,6 @@ static nrf_radio_signal_callback_return_param_t *signal_handler(uint8_t signal_t
         nrf_802154_pin_set(PIN_DBG_TIMESLOT_ACTIVE);
         nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_EVENT_START);
 
-        // Ensure HFCLK is running before start is issued.
-        assert(NRF_CLOCK->HFCLKSTAT == (CLOCK_HFCLKSTAT_SRC_Msk | CLOCK_HFCLKSTAT_STATE_Msk));
         assert(m_timeslot_state == TIMESLOT_STATE_REQUESTED);
 
         m_start_rtc_ticks = NRF_RTC0->COUNTER;
@@ -660,23 +657,6 @@ void nrf_raal_softdevice_soc_evt_handler(uint32_t evt_id)
 }
 
 /***************************************************************************************************
- * @section HFCLK management.
- **************************************************************************************************/
-
-void nrf_802154_clock_hfclk_ready(void)
-{
-    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_EVT_HFCLK_READY);
-
-    if (m_continuous && timeslot_is_idle())
-    {
-        timeslot_data_init();
-        timeslot_request();
-    }
-
-    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_EVT_HFCLK_READY);
-}
-
-/***************************************************************************************************
  * @section RAAL API.
  **************************************************************************************************/
 
@@ -735,7 +715,11 @@ void nrf_raal_continuous_mode_enter(void)
 
     m_continuous = true;
 
-    nrf_802154_clock_hfclk_start();
+    if (timeslot_is_idle())
+    {
+        timeslot_data_init();
+        timeslot_request();
+    }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_ENTER);
 }
@@ -754,8 +738,6 @@ void nrf_raal_continuous_mode_exit(void)
     {
         NVIC_SetPendingIRQ(RAAL_TIMER_IRQn);
     }
-
-    nrf_802154_clock_hfclk_stop();
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_EXIT);
 }

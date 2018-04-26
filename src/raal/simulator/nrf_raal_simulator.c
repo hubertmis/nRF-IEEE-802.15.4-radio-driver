@@ -44,7 +44,6 @@
 
 #include "nrf.h"
 #include "nrf_802154_debug.h"
-#include "platform/clock/nrf_802154_clock.h"
 
 static bool m_continuous_requested;
 static bool m_continuous_granted;
@@ -121,8 +120,6 @@ void nrf_raal_continuous_mode_enter(void)
     m_continuous_requested = true;
     m_pending_event = PENDING_EVENT_NONE;
 
-    nrf_802154_clock_hfclk_start();
-
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_ENTER);
 }
 
@@ -134,8 +131,6 @@ void nrf_raal_continuous_mode_exit(void)
 
     m_continuous_requested = false;
     m_continuous_granted   = false;
-
-    nrf_802154_clock_hfclk_stop();
 
     nrf_802154_pin_clr(PIN_DBG_TIMESLOT_ACTIVE);
 
@@ -216,13 +211,6 @@ uint32_t nrf_raal_timeslot_us_left_get(void)
     timer = NRF_TIMER0->CC[3];
 
     return timer >= timeslot_start && timer < timeslot_end ? timeslot_end - timer : 0;
-}
-
-void nrf_802154_clock_hfclk_ready(void)
-{
-    // Just wait for next timeslot to report that timeslot is ready.
-    // It is hard to report start of timeslot from this context due to races (i.e. different
-    // priorities of TIMER0, CLOCK, RADIO).
 }
 
 void TIMER0_IRQHandler(void)

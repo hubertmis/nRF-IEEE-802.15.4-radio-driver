@@ -1817,7 +1817,7 @@ static void critical_section_exit(void)
  * @section Radio Scheduler notification handlers
  **************************************************************************************************/
 
-void nrf_802154_rsch_timeslot_started(void)
+void nrf_802154_rsch_prec_approved(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
 
@@ -1835,7 +1835,7 @@ void nrf_802154_rsch_timeslot_started(void)
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_STARTED);
 }
 
-void nrf_802154_rsch_timeslot_ended(void)
+void nrf_802154_rsch_prec_denied(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_ENDED);
 
