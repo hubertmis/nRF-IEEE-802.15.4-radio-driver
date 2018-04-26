@@ -62,8 +62,9 @@
 #include "platform/timer/nrf_802154_timer.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
-#include "mac_features/nrf_802154_csma_ca.h"
 #include "mac_features/nrf_802154_ack_timeout.h"
+#include "mac_features/nrf_802154_csma_ca.h"
+#include "mac_features/nrf_802154_delayed_trx.h"
 
 #if ENABLE_FEM
 #include "fem/nrf_fem_control_api.h"
@@ -298,6 +299,21 @@ bool nrf_802154_transmit(const uint8_t * p_data, uint8_t length, bool cca)
 }
 
 #endif // NRF_802154_USE_RAW_API
+
+bool nrf_802154_transmit_raw_at(const uint8_t * p_data,
+                                bool            cca,
+                                uint32_t        t0,
+                                uint32_t        dt,
+                                uint8_t         channel)
+{
+    bool result;
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TRANSMIT_AT);
+
+    result = nrf_802154_delayed_trx_transmit(p_data, cca, t0, dt, channel);
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TRANSMIT_AT);
+    return result;
+}
 
 bool nrf_802154_energy_detection(uint32_t time_us)
 {

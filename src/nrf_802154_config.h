@@ -273,6 +273,16 @@ extern "C" {
 #endif
 
 /**
+ * @def NRF_802154_DELAYED_TRX_ENABLED
+ *
+ * If delayed transmission and receive window features are available.
+ *
+ */
+#ifndef NRF_802154_DELAYED_TRX_ENABLED
+#define NRF_802154_DELAYED_TRX_ENABLED 1
+#endif
+
+/**
  * @}
  * @defgroup nrf_802154_config_clock Clock driver configuration
  * @{

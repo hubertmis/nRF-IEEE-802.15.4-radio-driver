@@ -353,6 +353,41 @@ bool nrf_802154_transmit(const uint8_t * p_data, uint8_t length, bool cca);
 #endif // NRF_802154_USE_RAW_API
 
 /**
+ * @brief Request transmission at specified time.
+ *
+ * @note This function is implemented in zero-copy fashion. It passes the given buffer pointer to
+ *       the RADIO peripheral.
+ *
+ * This function works as delayed version of the @sref nrf_drv_radio802154_transmit_raw. It is not
+ * blocking, but queues delayed transmission using Radio Scheduler module. If delayed transmission
+ * cannot be performed (the @ref nrf_drv_radio802154_transmit_raw would return false) or requested
+ * transmission timeslot is denied, the @ref nrf_drv_radio802154_transmit_failed with the
+ * @ref NRF_802154_TX_ERROR_TIMESLOT_DENIED argument is called.
+ *
+ * This function is designed to transmit first symbol of SHR at given time.
+ *
+ * If the requested transmission time is in the past, the function returns false and does not
+ * schedule transmission.
+ *
+ * @param[in]  p_data   Pointer to array containing data to transmit. First byte should contain frame
+ *                      length (including PHR and FCS). Following bytes should contain data. CRC is
+ *                      computed automatically by radio hardware. Therefore, the FCS field can
+ *                      contain any bytes.
+ * @param[in]  cca      If the driver should perform a CCA procedure before transmission.
+ * @param[in]  t0       Base of delay time - absolute time used by the Timer Scheduler [us].
+ * @param[in]  dt       Delta of delay time from @p t0 [us].
+ * @param[in]  channel  Radio channel on which the frame should be transmitted.
+ *
+ * @retval  true   If the transmission procedure was scheduled.
+ * @retval  false  If the driver could not schedule the transmission procedure.
+ */
+bool nrf_802154_transmit_raw_at(const uint8_t * p_data,
+                                bool            cca,
+                                uint32_t        t0,
+                                uint32_t        dt,
+                                uint8_t         channel);
+
+/**
  * @brief Change radio state to energy detection.
  *
  * In energy detection state, the radio detects the maximum energy for a given time. The result of
