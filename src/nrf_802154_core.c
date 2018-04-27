@@ -188,9 +188,17 @@ typedef struct
 #if !NRF_802154_DISABLE_BCC_MATCHING
     bool psdu_being_received   :1;  ///< If PSDU is currently being received.
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
-} nrf_radio802154_flags_t;
-static nrf_radio802154_flags_t m_flags;  ///< Flags used to store current driver state.
+} nrf_802154_flags_t;
+static nrf_802154_flags_t m_flags;  ///< Flags used to store current driver state.
 
+typedef enum
+{
+    RSCH_EVT_NONE,
+    RSCH_EVT_STARTED,
+    RSCH_EVT_ENDED,
+} rsch_evt_t;
+
+static volatile rsch_evt_t m_rsch_pending_evt;          ///< Indicator of pending RSCH event.
 
 /***************************************************************************************************
  * @section Common core operations
@@ -1574,16 +1582,54 @@ static void continuous_carrier_init(bool disabled_was_triggered)
 
 
 /***************************************************************************************************
- * @section Radio Scheduler notification handlers
+ * @section RSCH pending events management
  **************************************************************************************************/
 
-void nrf_802154_rsch_timeslot_started(void)
+static void rsch_evt_set(rsch_evt_t evt)
 {
-    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
+    rsch_evt_t curr_evt;
+    rsch_evt_t new_evt;
 
-    // Prevent interrupting of this handler by requests from higher priority code.
-    nrf_802154_critical_section_forcefully_enter();
+    do
+    {
+        curr_evt = __LDREXB(&m_rsch_pending_evt);
 
+        switch (curr_evt)
+        {
+        case RSCH_EVT_NONE:
+            new_evt = evt;
+            break;
+
+        case RSCH_EVT_ENDED:
+            assert(evt == RSCH_EVT_STARTED);
+            new_evt = RSCH_EVT_NONE;
+            break;
+
+        case RSCH_EVT_STARTED:
+            assert(evt == RSCH_EVT_ENDED);
+            new_evt = RSCH_EVT_NONE;
+            break;
+
+        default:
+            assert(false);
+        }
+    } while (__STREXB(new_evt, &m_rsch_pending_evt));
+}
+
+static rsch_evt_t rsch_evt_clear(void)
+{
+    rsch_evt_t evt;
+
+    do
+    {
+        evt = __LDREXB(&m_rsch_pending_evt);
+    } while (__STREXB(RSCH_EVT_NONE, &m_rsch_pending_evt));
+
+    return evt;
+}
+
+static void rsch_started_handler(void)
+{
     nrf_radio_reset();
     nrf_radio_init();
     irq_init();
@@ -1620,27 +1666,18 @@ void nrf_802154_rsch_timeslot_started(void)
             // This case may happen when sleep is requested by the next higher layer right before
             // timeslot starts and the driver uses SWI for requests and notifications. In this case
             // Radio Scheduler may report timeslot start event when exiting sleep request critical
-            // section. The driver is already in SLEEP state but did not request timeslot end yet 
+            // section. The driver is already in SLEEP state but did not request timeslot end yet
             // it will be requested in the next SWI handler.
             break;
 
         default:
             assert(false);
     }
-
-    nrf_802154_critical_section_exit();
-
-    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_STARTED);
 }
 
-void nrf_802154_rsch_timeslot_ended(void)
+static void rsch_ended_handler(void)
 {
     bool result;
-
-    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_ENDED);
-
-    // Prevent interrupting of this handler by requests from higher priority code.
-    nrf_802154_critical_section_forcefully_enter();
 
     irq_deinit();
     nrf_radio_reset();
@@ -1691,8 +1728,85 @@ void nrf_802154_rsch_timeslot_ended(void)
         default:
             assert(false);
     }
+}
 
-    nrf_802154_critical_section_exit();
+static void critical_section_exit(void)
+{
+    rsch_evt_t evt;
+    bool       result;
+
+    do
+    {
+        evt = rsch_evt_clear();
+
+        switch (evt)
+        {
+            case RSCH_EVT_NONE:
+                break;
+
+            case RSCH_EVT_STARTED:
+                rsch_started_handler();
+                break;
+
+            case RSCH_EVT_ENDED:
+                rsch_ended_handler();
+                break;
+
+            default:
+                assert(false);
+        }
+
+        nrf_802154_critical_section_exit();
+
+        if (m_rsch_pending_evt == RSCH_EVT_NONE)
+        {
+            break;
+        }
+
+        result = nrf_802154_critical_section_enter();
+
+        assert(result);
+        (void)result;
+    } while (true);
+}
+
+
+/***************************************************************************************************
+ * @section Radio Scheduler notification handlers
+ **************************************************************************************************/
+
+void nrf_802154_rsch_timeslot_started(void)
+{
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
+
+    if (nrf_802154_critical_section_enter() && (m_rsch_pending_evt == RSCH_EVT_NONE))
+    {
+        rsch_started_handler();
+
+        nrf_802154_critical_section_exit();
+    }
+    else
+    {
+        rsch_evt_set(RSCH_EVT_STARTED);
+    }
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_STARTED);
+}
+
+void nrf_802154_rsch_timeslot_ended(void)
+{
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_ENDED);
+
+    if (nrf_802154_critical_section_enter() && (m_rsch_pending_evt == RSCH_EVT_NONE))
+    {
+        rsch_ended_handler();
+
+        nrf_802154_critical_section_exit();
+    }
+    else
+    {
+        rsch_evt_set(RSCH_EVT_ENDED);
+    }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_ENDED);
 }
@@ -2587,17 +2701,22 @@ radio_state_t nrf_802154_core_state_get(void)
 
 bool nrf_802154_core_sleep(nrf_802154_term_t term_lvl)
 {
-    bool result = true;
+    bool result = nrf_802154_critical_section_enter();
 
-    if ((m_state != RADIO_STATE_SLEEP) && (m_state != RADIO_STATE_FALLING_ASLEEP))
+    if (result)
     {
-        result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
-
-        if (result)
+        if ((m_state != RADIO_STATE_SLEEP) && (m_state != RADIO_STATE_FALLING_ASLEEP))
         {
-            state_set(RADIO_STATE_FALLING_ASLEEP);
-            falling_asleep_init();
+            result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
+
+            if (result)
+            {
+                state_set(RADIO_STATE_FALLING_ASLEEP);
+                falling_asleep_init();
+            }
         }
+
+        critical_section_exit();
     }
 
     return result;
@@ -2607,21 +2726,33 @@ bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
                              req_originator_t               req_orig,
                              nrf_802154_notification_func_t notify_function)
 {
-    bool result = true;
+    bool result = nrf_802154_critical_section_enter();
 
-    if ((m_state != RADIO_STATE_RX) && (m_state != RADIO_STATE_TX_ACK))
+    if (result)
     {
-        result = current_operation_terminate(term_lvl, req_orig, notify_function == NULL);
-
-        if (result)
+        if ((m_state != RADIO_STATE_RX) && (m_state != RADIO_STATE_TX_ACK))
         {
-            state_set(RADIO_STATE_RX);
-            rx_init(true);
+            result = current_operation_terminate(term_lvl, req_orig, notify_function == NULL);
+
+            if (result)
+            {
+                state_set(RADIO_STATE_RX);
+                rx_init(true);
+            }
+
+            if (notify_function != NULL)
+            {
+                notify_function(result);
+            }
         }
 
+        critical_section_exit();
+    }
+    else
+    {
         if (notify_function != NULL)
         {
-            notify_function(result);
+            notify_function(false);
         }
     }
 
@@ -2634,25 +2765,39 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
                               bool                           cca,
                               nrf_802154_notification_func_t notify_function)
 {
-    bool result = current_operation_terminate(term_lvl, req_orig, notify_function == NULL);
+    bool result = nrf_802154_critical_section_enter();
 
     if (result)
     {
-        // Set state to RX in case sleep terminate succeeded, but transmit_begin fails.
-        state_set(RADIO_STATE_RX);
+        result = current_operation_terminate(term_lvl, req_orig, notify_function == NULL);
 
-        mp_tx_data = p_data;
-        result     = tx_init(p_data, cca, true);
+        if (result)
+        {
+            // Set state to RX in case sleep terminate succeeded, but transmit_begin fails.
+            state_set(RADIO_STATE_RX);
+
+            mp_tx_data = p_data;
+            result     = tx_init(p_data, cca, true);
+        }
+
+        if (result)
+        {
+            state_set(cca ? RADIO_STATE_CCA_TX : RADIO_STATE_TX);
+        }
+
+        if (notify_function != NULL)
+        {
+            notify_function(result);
+        }
+
+        critical_section_exit();
     }
-
-    if (result)
+    else
     {
-        state_set(cca ? RADIO_STATE_CCA_TX : RADIO_STATE_TX);
-    }
-
-    if (notify_function != NULL)
-    {
-        notify_function(result);
+        if (notify_function != NULL)
+        {
+            notify_function(false);
+        }
     }
 
     return result;
@@ -2660,14 +2805,21 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
 
 bool nrf_802154_core_energy_detection(nrf_802154_term_t term_lvl, uint32_t time_us)
 {
-    bool result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
+    bool result = nrf_802154_critical_section_enter();
 
     if (result)
     {
-        state_set(RADIO_STATE_ED);
-        m_ed_time_left = time_us;
-        m_ed_result    = 0;
-        ed_init(true);
+        result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
+
+        if (result)
+        {
+            state_set(RADIO_STATE_ED);
+            m_ed_time_left = time_us;
+            m_ed_result    = 0;
+            ed_init(true);
+        }
+
+        critical_section_exit();
     }
 
     return result;
@@ -2675,12 +2827,19 @@ bool nrf_802154_core_energy_detection(nrf_802154_term_t term_lvl, uint32_t time_
 
 bool nrf_802154_core_cca(nrf_802154_term_t term_lvl)
 {
-    bool result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
+    bool result = nrf_802154_critical_section_enter();
 
     if (result)
     {
-        state_set(RADIO_STATE_CCA);
-        cca_init(true);
+        result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
+
+        if (result)
+        {
+            state_set(RADIO_STATE_CCA);
+            cca_init(true);
+        }
+
+        critical_section_exit();
     }
 
     return result;
@@ -2688,12 +2847,19 @@ bool nrf_802154_core_cca(nrf_802154_term_t term_lvl)
 
 bool nrf_802154_core_continuous_carrier(nrf_802154_term_t term_lvl)
 {
-    bool result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
+    bool result = nrf_802154_critical_section_enter();
 
     if (result)
     {
-        state_set(RADIO_STATE_CONTINUOUS_CARRIER);
-        continuous_carrier_init(true);
+        result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
+
+        if (result)
+        {
+            state_set(RADIO_STATE_CONTINUOUS_CARRIER);
+            continuous_carrier_init(true);
+        }
+
+        critical_section_exit();
     }
 
     return result;
@@ -2702,116 +2868,134 @@ bool nrf_802154_core_continuous_carrier(nrf_802154_term_t term_lvl)
 bool nrf_802154_core_notify_buffer_free(uint8_t * p_data)
 {
     rx_buffer_t * p_buffer = (rx_buffer_t *)p_data;
+    bool          result   = nrf_802154_critical_section_enter();
 
-    p_buffer->free = true;
-
-    if (!nrf_802154_rsch_timeslot_is_granted())
+    if (result)
     {
-        return true;
+        p_buffer->free = true;
+
+        if (nrf_802154_rsch_timeslot_is_granted())
+        {
+            switch (m_state)
+            {
+                case RADIO_STATE_RX:
+                    if (nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE)
+                    {
+                        assert(nrf_radio_shorts_get() == SHORTS_RX);
+
+                        rx_buffer_in_use_set(p_buffer);
+
+                        nrf_radio_packet_ptr_set(rx_buffer_get());
+                        nrf_radio_shorts_set(SHORTS_RX | SHORTS_RX_FREE_BUFFER);
+
+                        nrf_radio_task_trigger(NRF_RADIO_TASK_START);
+                    }
+
+                    break;
+
+                case RADIO_STATE_RX_ACK:
+                    if (nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE)
+                    {
+                        assert(nrf_radio_shorts_get() == SHORTS_RX_ACK);
+
+                        rx_buffer_in_use_set(p_buffer);
+
+                        nrf_radio_packet_ptr_set(rx_buffer_get());
+                        nrf_radio_shorts_set(SHORTS_RX_ACK | SHORTS_RX_FREE_BUFFER);
+
+                        nrf_radio_task_trigger(NRF_RADIO_TASK_START);
+                    }
+
+                    break;
+
+                default:
+                    // Don't perform any action in any other state (receiver should not be started).
+                    break;
+            }
+        }
+
+        critical_section_exit();
     }
 
-    switch (m_state)
-    {
-        case RADIO_STATE_RX:
-            if (nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE)
-            {
-                assert(nrf_radio_shorts_get() == SHORTS_RX);
-
-                rx_buffer_in_use_set(p_buffer);
-
-                nrf_radio_packet_ptr_set(rx_buffer_get());
-                nrf_radio_shorts_set(SHORTS_RX | SHORTS_RX_FREE_BUFFER);
-
-                nrf_radio_task_trigger(NRF_RADIO_TASK_START);
-            }
-
-            break;
-
-        case RADIO_STATE_RX_ACK:
-            if (nrf_radio_state_get() == NRF_RADIO_STATE_RX_IDLE)
-            {
-                assert(nrf_radio_shorts_get() == SHORTS_RX_ACK);
-
-                rx_buffer_in_use_set(p_buffer);
-
-                nrf_radio_packet_ptr_set(rx_buffer_get());
-                nrf_radio_shorts_set(SHORTS_RX_ACK | SHORTS_RX_FREE_BUFFER);
-
-                nrf_radio_task_trigger(NRF_RADIO_TASK_START);
-            }
-
-            break;
-
-        default:
-            // Don't perform any action in any other state (receiver should not be started).
-            break;
-    }
-
-    return true;
+    return result;
 }
 
 bool nrf_802154_core_channel_update(void)
 {
-    switch (m_state)
+    bool result = nrf_802154_critical_section_enter();
+
+    if (result)
     {
-        case RADIO_STATE_RX:
+        switch (m_state)
         {
-            bool result;
-
-            if (nrf_802154_rsch_timeslot_is_granted())
+            case RADIO_STATE_RX:
             {
-                channel_set(nrf_802154_pib_channel_get());
+                bool result;
+
+                if (nrf_802154_rsch_timeslot_is_granted())
+                {
+                    channel_set(nrf_802154_pib_channel_get());
+                }
+
+                result = current_operation_terminate(NRF_802154_TERM_NONE, REQ_ORIG_CORE, true);
+
+                if (result)
+                {
+                    rx_init(true);
+                }
+
+                break;
             }
 
-            result = current_operation_terminate(NRF_802154_TERM_NONE, REQ_ORIG_CORE, true);
+            case RADIO_STATE_CONTINUOUS_CARRIER:
+                if (nrf_802154_rsch_timeslot_is_granted())
+                {
+                    channel_set(nrf_802154_pib_channel_get());
+                    nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+                }
 
-            if (result)
-            {
-                rx_init(true);
-            }
+                break;
 
-            break;
+            case RADIO_STATE_TX_ACK:
+            case RADIO_STATE_CCA_TX:
+            case RADIO_STATE_TX:
+            case RADIO_STATE_RX_ACK:
+            case RADIO_STATE_CCA:
+                if (nrf_802154_rsch_timeslot_is_granted())
+                {
+                    channel_set(nrf_802154_pib_channel_get());
+                }
+
+                break;
+
+            case RADIO_STATE_SLEEP:
+            case RADIO_STATE_FALLING_ASLEEP:
+            case RADIO_STATE_ED:
+                // Don't perform any action in these states (channel will be updated on state change).
+                break;
         }
 
-        case RADIO_STATE_CONTINUOUS_CARRIER:
-            if (nrf_802154_rsch_timeslot_is_granted())
-            {
-                channel_set(nrf_802154_pib_channel_get());
-                nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
-            }
-
-            break;
-
-        case RADIO_STATE_TX_ACK:
-        case RADIO_STATE_CCA_TX:
-        case RADIO_STATE_TX:
-        case RADIO_STATE_RX_ACK:
-        case RADIO_STATE_CCA:
-            if (nrf_802154_rsch_timeslot_is_granted())
-            {
-                channel_set(nrf_802154_pib_channel_get());
-            }
-
-            break;
-
-        case RADIO_STATE_SLEEP:
-        case RADIO_STATE_FALLING_ASLEEP:
-        case RADIO_STATE_ED:
-            // Don't perform any action in these states (channel will be updated on state change).
-            break;
+        critical_section_exit();
     }
 
-    return true;
+    return result;
 }
 
 bool nrf_802154_core_cca_cfg_update(void)
 {
-    if (nrf_802154_rsch_timeslot_is_granted())
+    bool result = nrf_802154_critical_section_enter();
+
+    if (result)
     {
-        cca_configuration_update();
+        if (nrf_802154_rsch_timeslot_is_granted())
+        {
+            cca_configuration_update();
+        }
+
+        critical_section_exit();
     }
 
-    return true;
+    return result;
 }
 
 #if NRF_802154_INTERNAL_RADIO_IRQ_HANDLING

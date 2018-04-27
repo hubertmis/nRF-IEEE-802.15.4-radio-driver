@@ -43,7 +43,6 @@
 #include "nrf_802154.h"
 #include "nrf_802154_config.h"
 #include "nrf_802154_core.h"
-#include "nrf_802154_critical_section.h"
 #include "nrf_802154_rsch.h"
 #include "nrf_802154_rx_buffer.h"
 #include "hal/nrf_egu.h"
@@ -744,95 +743,62 @@ void SWI_IRQHandler(void)
         while (!req_queue_is_empty())
         {
             nrf_802154_req_data_t * p_slot = &m_req_queue[m_req_r_ptr];
-            bool                    in_crit_sect;
-
-            in_crit_sect = nrf_802154_critical_section_enter();
 
             switch (p_slot->type)
             {
                 case REQ_TYPE_SLEEP:
-                    *(p_slot->data.sleep.p_result) = in_crit_sect ?
-                            nrf_802154_core_sleep(p_slot->data.sleep.term_lvl) :
-                            false;
+                    *(p_slot->data.sleep.p_result) =
+                            nrf_802154_core_sleep(p_slot->data.sleep.term_lvl);
                     break;
 
                 case REQ_TYPE_RECEIVE:
-                    *(p_slot->data.receive.p_result) = in_crit_sect ?
+                    *(p_slot->data.receive.p_result) =
                             nrf_802154_core_receive(p_slot->data.receive.term_lvl,
                                                     p_slot->data.receive.req_orig,
-                                                    p_slot->data.receive.notif_func) :
-                            false;
-
-                    if (!in_crit_sect)
-                    {
-                        p_slot->data.receive.notif_func(false);
-                    }
-
+                                                    p_slot->data.receive.notif_func);
                     break;
 
                 case REQ_TYPE_TRANSMIT:
-                    *(p_slot->data.transmit.p_result) = in_crit_sect ?
+                    *(p_slot->data.transmit.p_result) =
                             nrf_802154_core_transmit(p_slot->data.transmit.term_lvl,
                                                      p_slot->data.transmit.req_orig,
                                                      p_slot->data.transmit.p_data,
                                                      p_slot->data.transmit.cca,
-                                                     p_slot->data.transmit.notif_func) :
-                            false;
-
-                    if (!in_crit_sect)
-                    {
-                        p_slot->data.transmit.notif_func(false);
-                    }
-
+                                                     p_slot->data.transmit.notif_func);
                     break;
 
                 case REQ_TYPE_ENERGY_DETECTION:
-                    *(p_slot->data.energy_detection.p_result) = in_crit_sect ?
+                    *(p_slot->data.energy_detection.p_result) =
                             nrf_802154_core_energy_detection(
                                     p_slot->data.energy_detection.term_lvl,
-                                    p_slot->data.energy_detection.time_us) :
-                            false;
+                                    p_slot->data.energy_detection.time_us);
                     break;
 
                 case REQ_TYPE_CCA:
-                    *(p_slot->data.cca.p_result) = in_crit_sect ?
-                            nrf_802154_core_cca(p_slot->data.cca.term_lvl) :
-                            false;
+                    *(p_slot->data.cca.p_result) = nrf_802154_core_cca(p_slot->data.cca.term_lvl);
                     break;
 
                 case REQ_TYPE_CONTINUOUS_CARRIER:
-                    *(p_slot->data.continuous_carrier.p_result) = in_crit_sect ?
+                    *(p_slot->data.continuous_carrier.p_result) =
                             nrf_802154_core_continuous_carrier(
-                                    p_slot->data.continuous_carrier.term_lvl) :
-                            false;
+                                    p_slot->data.continuous_carrier.term_lvl);
                     break;
 
                 case REQ_TYPE_BUFFER_FREE:
-                    *(p_slot->data.buffer_free.p_result) = in_crit_sect ?
-                            nrf_802154_core_notify_buffer_free(
-                                    p_slot->data.buffer_free.p_data):
-                            false;
+                    *(p_slot->data.buffer_free.p_result) =
+                            nrf_802154_core_notify_buffer_free(p_slot->data.buffer_free.p_data);
                     break;
 
                 case REQ_TYPE_CHANNEL_UPDATE:
-                    *(p_slot->data.channel_update.p_result) = in_crit_sect ?
-                            nrf_802154_core_channel_update() :
-                            false;
+                    *(p_slot->data.channel_update.p_result) = nrf_802154_core_channel_update();
                     break;
 
                 case REQ_TYPE_CCA_CFG_UPDATE:
-                    *(p_slot->data.cca_cfg_update.p_result) = in_crit_sect ?
-                            nrf_802154_core_cca_cfg_update() :
-                            false;
+                    *(p_slot->data.cca_cfg_update.p_result) = nrf_802154_core_cca_cfg_update();
                     break;
 
                 default:
                     assert(false);
-            }
-
-            if (in_crit_sect)
-            {
-                nrf_802154_critical_section_exit();
             }
 
             req_queue_ptr_increment(&m_req_r_ptr);

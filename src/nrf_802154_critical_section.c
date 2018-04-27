@@ -126,7 +126,6 @@ static bool critical_section_enter(bool forced)
         }
 
         radio_critical_section_enter();
-        nrf_802154_rsch_critical_section_enter();
     }
     while (__STREXB(cnt + 1, &m_nested_critical_section_counter));
 
@@ -171,9 +170,6 @@ void nrf_802154_critical_section_exit(void)
             (void)exiting_crit_sect;
             exiting_crit_sect = true;
 
-            // RAAL critical section shall be exited before RADIO IRQ handler is enabled. In other
-            // case RADIO IRQ handler may be called out of timeslot.
-            nrf_802154_rsch_critical_section_exit();
             radio_critical_section_exit();
 
             exiting_crit_sect = false;
