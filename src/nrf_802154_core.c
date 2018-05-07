@@ -198,7 +198,7 @@ typedef enum
     RSCH_EVT_ENDED,
 } rsch_evt_t;
 
-static volatile rsch_evt_t m_rsch_pending_evt;          ///< Indicator of pending RSCH event.
+static volatile uint8_t m_rsch_pending_evt;  ///< Indicator of pending RSCH event.
 
 /***************************************************************************************************
  * @section Common core operations
@@ -1589,10 +1589,12 @@ static void rsch_evt_set(rsch_evt_t evt)
 {
     rsch_evt_t curr_evt;
     rsch_evt_t new_evt;
+    uint8_t    evt_value;
 
     do
     {
-        curr_evt = __LDREXB(&m_rsch_pending_evt);
+        evt_value = __LDREXB(&m_rsch_pending_evt);
+        curr_evt  = (rsch_evt_t)evt_value;
 
         switch (curr_evt)
         {
@@ -1613,19 +1615,30 @@ static void rsch_evt_set(rsch_evt_t evt)
         default:
             assert(false);
         }
-    } while (__STREXB(new_evt, &m_rsch_pending_evt));
+
+        evt_value = (uint8_t)new_evt;
+    } while (__STREXB(evt_value, &m_rsch_pending_evt));
 }
 
 static rsch_evt_t rsch_evt_clear(void)
 {
     rsch_evt_t evt;
+    uint8_t    evt_value;
 
     do
     {
-        evt = __LDREXB(&m_rsch_pending_evt);
-    } while (__STREXB(RSCH_EVT_NONE, &m_rsch_pending_evt));
+        evt_value = __LDREXB(&m_rsch_pending_evt);
+        evt       = (rsch_evt_t)evt_value;
+
+        evt_value = RSCH_EVT_NONE;
+    } while (__STREXB(evt_value, &m_rsch_pending_evt));
 
     return evt;
+}
+
+static bool rsch_evt_is_none(void)
+{
+    return (rsch_evt_t)m_rsch_pending_evt == RSCH_EVT_NONE;
 }
 
 static void rsch_started_handler(void)
@@ -1768,7 +1781,7 @@ static void critical_section_exit(void)
 
             nrf_802154_critical_section_exit();
 
-            if (m_rsch_pending_evt == RSCH_EVT_NONE)
+            if (rsch_evt_is_none())
             {
                 break;
             }
@@ -1790,7 +1803,7 @@ void nrf_802154_rsch_timeslot_started(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
 
-    if (nrf_802154_critical_section_enter() && (m_rsch_pending_evt == RSCH_EVT_NONE))
+    if (nrf_802154_critical_section_enter() && rsch_evt_is_none())
     {
         rsch_started_handler();
 
@@ -1808,7 +1821,7 @@ void nrf_802154_rsch_timeslot_ended(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_ENDED);
 
-    if (nrf_802154_critical_section_enter() && (m_rsch_pending_evt == RSCH_EVT_NONE))
+    if (nrf_802154_critical_section_enter() && rsch_evt_is_none())
     {
         rsch_ended_handler();
 
