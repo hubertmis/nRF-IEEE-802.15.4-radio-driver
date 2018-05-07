@@ -196,6 +196,11 @@ void nrf_802154_critical_section_nesting_deny(void)
     m_nested_critical_section_allowed_priority = NESTED_CRITICAL_SECTION_ALLOWED_PRIORITY_NONE;
 }
 
+bool nrf_802154_critical_section_is_nested(void)
+{
+    return m_nested_critical_section_counter > 1;
+}
+
 uint32_t nrf_802154_critical_section_active_vector_priority_get(void)
 {
     uint32_t  active_vector_id = (SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk) >> SCB_ICSR_VECTACTIVE_Pos;

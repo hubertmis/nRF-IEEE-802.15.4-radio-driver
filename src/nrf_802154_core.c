@@ -1730,44 +1730,55 @@ static void rsch_ended_handler(void)
     }
 }
 
+static void rsch_pending_evt_process(void)
+{
+    rsch_evt_t evt = rsch_evt_clear();
+
+    switch (evt)
+    {
+        case RSCH_EVT_NONE:
+            break;
+
+        case RSCH_EVT_STARTED:
+            rsch_started_handler();
+            break;
+
+        case RSCH_EVT_ENDED:
+            rsch_ended_handler();
+            break;
+
+        default:
+            assert(false);
+    }
+}
+
 static void critical_section_exit(void)
 {
-    rsch_evt_t evt;
     bool       result;
 
-    do
+    if (nrf_802154_critical_section_is_nested())
     {
-        evt = rsch_evt_clear();
-
-        switch (evt)
-        {
-            case RSCH_EVT_NONE:
-                break;
-
-            case RSCH_EVT_STARTED:
-                rsch_started_handler();
-                break;
-
-            case RSCH_EVT_ENDED:
-                rsch_ended_handler();
-                break;
-
-            default:
-                assert(false);
-        }
-
         nrf_802154_critical_section_exit();
-
-        if (m_rsch_pending_evt == RSCH_EVT_NONE)
+    }
+    else
+    {
+        do
         {
-            break;
-        }
+            rsch_pending_evt_process();
 
-        result = nrf_802154_critical_section_enter();
+            nrf_802154_critical_section_exit();
 
-        assert(result);
-        (void)result;
-    } while (true);
+            if (m_rsch_pending_evt == RSCH_EVT_NONE)
+            {
+                break;
+            }
+
+            result = nrf_802154_critical_section_enter();
+
+            assert(result);
+            (void)result;
+        } while (true);
+    }
 }
 
 

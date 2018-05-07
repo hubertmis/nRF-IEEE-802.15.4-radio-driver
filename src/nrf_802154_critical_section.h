@@ -90,6 +90,14 @@ void nrf_802154_critical_section_nesting_allow(void);
 void nrf_802154_critical_section_nesting_deny(void);
 
 /**
+ * @brief Check if critical section is nested.
+ *
+ * @retval true   Critical section is nested.
+ * @retval false  Critical section is not nested.
+ */
+bool nrf_802154_critical_section_is_nested(void);
+
+/**
  * @brief Get current IRQ priority.
  *
  * @return IRQ priority
