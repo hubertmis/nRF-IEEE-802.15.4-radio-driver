@@ -132,12 +132,14 @@ bool nrf_802154_rsch_timeslot_request(uint32_t length_us);
 bool nrf_802154_rsch_delayed_timeslot_request(uint32_t t0, uint32_t dt, uint32_t length);
 
 /**
- * @brief Check if the 802.15.4 driver is currently in timeslot.
+ * @brief Check if the RAAL precondition is satisfied.
  *
- * @retval true   Timeslot is currently granted.
- * @retval false  Timeslot is not currently granted.
+ * @todo: Modify this function to check for passed precondition instead of RAAL only.
+ *
+ * @retval true   RAAL timeslot is currently granted.
+ * @retval false  RAAL timeslot is not currently granted.
  */
-bool nrf_802154_rsch_timeslot_is_granted(void);
+bool nrf_802154_rsch_precondition_is_satisfied(void);
 
 /**
  * @brief Get left time of currently granted timeslot [us].

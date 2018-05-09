@@ -27,7 +27,7 @@ bool nrf_802154_rsch_timeslot_request(uint32_t length_us)
     return nrf_raal_timeslot_request(length_us);
 }
 
-bool nrf_802154_rsch_timeslot_is_granted(void)
+bool nrf_802154_rsch_precondition_is_satisfied(void)
 {
     return nrf_raal_timeslot_is_granted();
 }

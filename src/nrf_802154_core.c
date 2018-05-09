@@ -200,6 +200,8 @@ typedef enum
 
 static volatile uint8_t m_rsch_pending_evt;  ///< Indicator of pending RSCH event.
 
+static volatile bool m_rsch_timeslot_is_granted;  ///< State of the RSCH timeslot.
+
 /***************************************************************************************************
  * @section Common core operations
  **************************************************************************************************/
@@ -369,6 +371,16 @@ static bool psdu_is_being_received(void)
 #else // NRF_802154_DISABLE_BCC_MATCHING
     return m_flags.psdu_being_received;
 #endif // NRF_802154_DISABLE_BCC_MATCHING
+}
+
+/** Check if timeslot is currently granted.
+ *
+ * @retval true   The timeslot is granted.
+ * @retval false  The timeslot is not granted.
+ */
+static bool timeslot_is_granted(void)
+{
+    return m_rsch_timeslot_is_granted;
 }
 
 /***************************************************************************************************
@@ -623,7 +635,7 @@ static bool ed_iter_setup(uint32_t time_us)
     }
     else
     {
-        if (nrf_802154_rsch_timeslot_is_granted())
+        if (timeslot_is_granted())
         {
             irq_deinit();
             nrf_radio_reset();
@@ -870,7 +882,7 @@ static void rx_restart(bool set_shorts)
 /** Terminate Falling Asleep procedure. */
 static void falling_asleep_terminate(void)
 {
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (timeslot_is_granted())
     {
         nrf_radio_int_disable(NRF_RADIO_INT_DISABLED_MASK);
     }
@@ -918,7 +930,7 @@ static void rx_terminate(void)
     nrf_timer_shorts_disable(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (timeslot_is_granted())
     {
 #if !NRF_802154_DISABLE_BCC_MATCHING || NRF_802154_NOTIFY_CRCERROR
         ints_to_disable |= NRF_RADIO_INT_CRCERROR_MASK;
@@ -963,7 +975,7 @@ static void tx_ack_terminate(void)
     nrf_timer_shorts_disable(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (timeslot_is_granted())
     {
         ints_to_disable = nrf_802154_revision_has_phyend_event() ?
                 NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK;
@@ -990,7 +1002,7 @@ static void tx_terminate(void)
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (timeslot_is_granted())
     {
         ints_to_disable = nrf_802154_revision_has_phyend_event() ?
                 NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK;
@@ -1016,7 +1028,7 @@ static void rx_ack_terminate(void)
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (timeslot_is_granted())
     {
         nrf_radio_int_disable(NRF_RADIO_INT_END_MASK);
         nrf_radio_shorts_set(SHORTS_IDLE);
@@ -1037,7 +1049,7 @@ static void ed_terminate(void)
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (timeslot_is_granted())
     {
         nrf_radio_int_disable(NRF_RADIO_INT_EDEND_MASK);
         nrf_radio_shorts_set(SHORTS_IDLE);
@@ -1056,7 +1068,7 @@ static void cca_terminate(void)
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
 
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (timeslot_is_granted())
     {
         nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
         nrf_radio_shorts_set(SHORTS_IDLE);
@@ -1072,7 +1084,7 @@ static void continuous_carrier_terminate(void)
 
     fem_for_pa_reset();
 
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (timeslot_is_granted())
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
@@ -1242,12 +1254,13 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 static void sleep_init(void)
 {
     nrf_802154_priority_drop_timeslot_exit();
+    m_rsch_timeslot_is_granted = false;
 }
 
 /** Initialize Falling Asleep operation. */
 static void falling_asleep_init(void)
 {
-    if (!nrf_802154_rsch_timeslot_is_granted())
+    if (!timeslot_is_granted())
     {
         state_set(RADIO_STATE_SLEEP);
         sleep_init();
@@ -1274,7 +1287,7 @@ static void rx_init(bool disabled_was_triggered)
     uint32_t lna_target_time;
     uint32_t pa_target_time;
 
-    if (!nrf_802154_rsch_timeslot_is_granted())
+    if (!timeslot_is_granted())
     {
         return;
     }
@@ -1560,7 +1573,7 @@ static void cca_init(bool disabled_was_triggered)
 /** Initialize Continuous Carrier operation. */
 static void continuous_carrier_init(bool disabled_was_triggered)
 {
-    if (!nrf_802154_rsch_timeslot_is_granted())
+    if (!timeslot_is_granted())
     {
         return;
     }
@@ -1649,8 +1662,18 @@ static void rsch_started_handler(void)
 
     assert(nrf_radio_shorts_get() == SHORTS_IDLE);
 
+    if (m_state != RADIO_STATE_SLEEP)
+    {
+        m_rsch_timeslot_is_granted = true;
+    }
+
     switch (m_state)
     {
+        case RADIO_STATE_SLEEP:
+            // Intentionally empty.
+            // Ignore this notification if continuous mode was not requested.
+            break;
+
         case RADIO_STATE_RX:
             rx_init(false);
             break;
@@ -1675,14 +1698,6 @@ static void rsch_started_handler(void)
             continuous_carrier_init(false);
             break;
 
-        case RADIO_STATE_SLEEP:
-            // This case may happen when sleep is requested by the next higher layer right before
-            // timeslot starts and the driver uses SWI for requests and notifications. In this case
-            // Radio Scheduler may report timeslot start event when exiting sleep request critical
-            // section. The driver is already in SLEEP state but did not request timeslot end yet
-            // it will be requested in the next SWI handler.
-            break;
-
         default:
             assert(false);
     }
@@ -1700,10 +1715,13 @@ static void rsch_ended_handler(void)
     assert(result);
     (void)result;
 
+    m_rsch_timeslot_is_granted = false;
+
     switch (m_state)
     {
         case RADIO_STATE_SLEEP:
             // Intentionally empty.
+            // Ignore this notification if continuous mode was not requested.
             break;
 
         case RADIO_STATE_FALLING_ASLEEP:
@@ -1767,7 +1785,7 @@ static void rsch_pending_evt_process(void)
 
 static void critical_section_exit(void)
 {
-    bool       result;
+    bool result;
 
     if (nrf_802154_critical_section_is_nested())
     {
@@ -2707,7 +2725,7 @@ void nrf_802154_core_init(void)
 
 void nrf_802154_core_deinit(void)
 {
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (timeslot_is_granted())
     {
         nrf_radio_reset();
     }
@@ -2898,7 +2916,7 @@ bool nrf_802154_core_notify_buffer_free(uint8_t * p_data)
     {
         p_buffer->free = true;
 
-        if (nrf_802154_rsch_timeslot_is_granted())
+        if (timeslot_is_granted())
         {
             switch (m_state)
             {
@@ -2956,7 +2974,7 @@ bool nrf_802154_core_channel_update(void)
             {
                 bool result;
 
-                if (nrf_802154_rsch_timeslot_is_granted())
+                if (timeslot_is_granted())
                 {
                     channel_set(nrf_802154_pib_channel_get());
                 }
@@ -2972,7 +2990,7 @@ bool nrf_802154_core_channel_update(void)
             }
 
             case RADIO_STATE_CONTINUOUS_CARRIER:
-                if (nrf_802154_rsch_timeslot_is_granted())
+                if (timeslot_is_granted())
                 {
                     channel_set(nrf_802154_pib_channel_get());
                     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
@@ -2985,7 +3003,7 @@ bool nrf_802154_core_channel_update(void)
             case RADIO_STATE_TX:
             case RADIO_STATE_RX_ACK:
             case RADIO_STATE_CCA:
-                if (nrf_802154_rsch_timeslot_is_granted())
+                if (timeslot_is_granted())
                 {
                     channel_set(nrf_802154_pib_channel_get());
                 }
@@ -3011,7 +3029,7 @@ bool nrf_802154_core_cca_cfg_update(void)
 
     if (result)
     {
-        if (nrf_802154_rsch_timeslot_is_granted())
+        if (timeslot_is_granted())
         {
             cca_configuration_update();
         }

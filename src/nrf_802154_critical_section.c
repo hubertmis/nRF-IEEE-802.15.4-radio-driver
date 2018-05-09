@@ -61,7 +61,7 @@ static volatile int8_t  m_nested_critical_section_allowed_priority;  ///< Indica
  */
 static void radio_critical_section_enter(void)
 {
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (nrf_802154_rsch_precondition_is_satisfied())
     {
         NVIC_DisableIRQ(RADIO_IRQn);
         __DSB();
@@ -76,7 +76,7 @@ static void radio_critical_section_enter(void)
  */
 static void radio_critical_section_exit(void)
 {
-    if (nrf_802154_rsch_timeslot_is_granted())
+    if (nrf_802154_rsch_precondition_is_satisfied())
     {
         NVIC_EnableIRQ(RADIO_IRQn);
     }
