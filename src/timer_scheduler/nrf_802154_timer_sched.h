@@ -103,6 +103,13 @@ void nrf_802154_timer_sched_deinit(void);
 uint32_t nrf_802154_timer_sched_time_get(void);
 
 /**
+ * @brief Get granularity of the timer that runs the timer scheduler.
+ *
+ * @return Granularity of the timer in microseconds [us].
+ */
+uint32_t nrf_802154_timer_sched_granularity_get(void);
+
+/**
  * @brief Check if given time is in future.
  *
  * @param[in]  now  Current time. @sa nrf_802154_timer_sched_time_get()

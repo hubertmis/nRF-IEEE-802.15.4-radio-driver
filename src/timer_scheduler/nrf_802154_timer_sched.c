@@ -279,6 +279,11 @@ uint32_t nrf_802154_timer_sched_time_get(void)
     return nrf_802154_timer_time_get();
 }
 
+uint32_t nrf_802154_timer_sched_granularity_get(void)
+{
+    return nrf_802154_timer_granularity_get();
+}
+
 bool nrf_802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0, uint32_t dt)
 {
     uint32_t target_time = t0 + dt;
