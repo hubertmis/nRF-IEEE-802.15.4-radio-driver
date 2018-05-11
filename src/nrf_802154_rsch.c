@@ -311,10 +311,22 @@ static void delayed_timeslot_prec_request(void * p_context)
 void nrf_802154_rsch_init(void)
 {
     nrf_raal_init();
+
+    m_mutex                         = 0;
+    m_last_notified_approved        = false;
+    m_in_cont_mode                  = false;
+    m_delayed_timeslot_is_scheduled = false;
+
+    for (uint32_t i = 0; i < RSCH_PREC_CNT; i++)
+    {
+        m_prec_states[i] = RSCH_PREC_STATE_IDLE;
+    }
 }
 
 void nrf_802154_rsch_uninit(void)
 {
+    nrf_802154_timer_sched_remove(&m_timer);
+
     nrf_raal_uninit();
 }
 
