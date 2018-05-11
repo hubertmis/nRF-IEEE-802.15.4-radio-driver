@@ -121,6 +121,7 @@
                     "cmock\\mock_nrf_802154_procedures_duration.c",
                     "cmock\\mock_nrf_802154_request.c",
                     "cmock\\mock_nrf_802154_revision.c",
+                    "cmock\\mock_nrf_802154_rsch.c",
                     "cmock\\mock_nrf_802154_rssi.c",
                     "cmock\\mock_nrf_802154_rx_buffer.c"
                 ],

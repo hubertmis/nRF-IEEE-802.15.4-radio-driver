@@ -44,9 +44,9 @@
 #include "mock_nrf_802154_priority_drop.h"
 #include "mock_nrf_802154_procedures_duration.h"
 #include "mock_nrf_802154_revision.h"
+#include "mock_nrf_802154_rsch.h"
 #include "mock_nrf_802154_rx_buffer.h"
 #include "mock_nrf_fem_control_api.h"
-#include "mock_nrf_raal_api.h"
 #include "mock_nrf_radio.h"
 #include "mock_nrf_timer.h"
 #include "mock_nrf_egu.h"
@@ -157,7 +157,8 @@ static void verify_receive_begin_finds_free_buffer(void)
 
 static void verify_complete_receive_begin(void)
 {
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK       |
@@ -195,7 +196,7 @@ void test_cca_begin_ShallDoNothingIfNotEnoughTime(void)
 {
     uint16_t duration = rand();
     nrf_802154_cca_duration_get_ExpectAndReturn(duration);
-    nrf_raal_timeslot_request_ExpectAndReturn(duration, false);
+    nrf_802154_rsch_timeslot_request_ExpectAndReturn(duration, false);
 
     cca_init(true);
 }
@@ -207,7 +208,7 @@ static void verify_timeslot_request_test(void)
     uint16_t duration = rand();
 
     nrf_802154_cca_duration_get_ExpectAndReturn(duration);
-    nrf_raal_timeslot_request_ExpectAndReturn(duration, true);
+    nrf_802154_rsch_timeslot_request_ExpectAndReturn(duration, true);
 }
 
 static void verify_cca_begin_periph_setup(void)
@@ -328,7 +329,7 @@ static void verify_cca_terminate_periph_reset(bool in_timeslot)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
     
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(in_timeslot);
+    m_rsch_timeslot_is_granted = in_timeslot;
 
     if (in_timeslot)
     {

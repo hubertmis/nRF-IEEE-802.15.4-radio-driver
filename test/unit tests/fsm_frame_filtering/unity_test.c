@@ -45,12 +45,12 @@
 #include "mock_nrf_802154_priority_drop.h"
 #include "mock_nrf_802154_procedures_duration.h"
 #include "mock_nrf_802154_revision.h"
+#include "mock_nrf_802154_rsch.h"
 #include "mock_nrf_802154_rssi.h"
 #include "mock_nrf_802154_rx_buffer.h"
 #include "mock_nrf_egu.h"
 #include "mock_nrf_fem_control_api.h"
 #include "mock_nrf_ppi.h"
-#include "mock_nrf_raal_api.h"
 #include "mock_nrf_radio.h"
 #include "mock_nrf_timer.h"
 
@@ -202,7 +202,7 @@ static void mock_rx_terminate(void)
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
 
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_BCMATCH_MASK  |
                                  NRF_RADIO_INT_CRCERROR_MASK |
@@ -223,7 +223,7 @@ static void mock_rx_ack_terminate(void)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
 
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_END_MASK);
     nrf_radio_shorts_set_Expect(SHORTS_IDLE);
@@ -249,7 +249,7 @@ static void mock_tx_terminate(void)
     nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
 
     nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_PHYEND_MASK  |
@@ -267,7 +267,7 @@ static void mock_receive_begin(bool free_buffer, uint32_t shorts)
     uint32_t lna_target_time;
     uint32_t pa_target_time;
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
 
     int8_t power = rand();
     nrf_802154_pib_tx_power_get_ExpectAndReturn(power);
@@ -504,7 +504,7 @@ void test_OnBcmatchEventStateRxHeader_ShallRequestTimeslotAndSetTimeslotRequeste
     nrf_radio_bcc_get_ExpectAndReturn(expected_bcc);
 
     nrf_802154_rx_duration_get_ExpectAndReturn(TEST_FRAME_SIZE, true, TEST_FRAME_DURATION);
-    nrf_raal_timeslot_request_ExpectAndReturn(TEST_FRAME_DURATION, true);
+    nrf_802154_rsch_timeslot_request_ExpectAndReturn(TEST_FRAME_DURATION, true);
 
     nrf_802154_filter_frame_part_IgnoreAndReturn(true);
     nrf_802154_filter_frame_part_ReturnThruPtr_p_num_bytes(&expected_size);
@@ -525,7 +525,7 @@ void test_OnBcmatchEventStateRxHeader_TransactionShallBeAbortedIfTimeslotRequest
     nrf_radio_bcc_get_ExpectAndReturn(expected_bcc);
 
     nrf_802154_rx_duration_get_ExpectAndReturn(TEST_FRAME_SIZE, true, TEST_FRAME_DURATION);
-    nrf_raal_timeslot_request_ExpectAndReturn(TEST_FRAME_DURATION, false);
+    nrf_802154_rsch_timeslot_request_ExpectAndReturn(TEST_FRAME_DURATION, false);
 
     mock_irq_deinit();
     mock_nrf_radio_reset();
@@ -683,7 +683,7 @@ void test_OnBcmatchEventStateRx_TimeslotShouldBeRequested(void)
     nrf_radio_event_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCERROR, false);
 
     nrf_802154_rx_duration_get_ExpectAndReturn(m_test_rx_buffer.psdu[0], false, duration);
-    nrf_raal_timeslot_request_ExpectAndReturn(duration, true);
+    nrf_802154_rsch_timeslot_request_ExpectAndReturn(duration, true);
 
     nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_FRAME);
     nrf_802154_filter_frame_part_IgnoreArg_p_num_bytes();
@@ -704,7 +704,7 @@ void test_OnBcmatchEventStateRx_ShallResetRadioIfTimeslotNotGranted(void)
     nrf_radio_event_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCERROR, false);
 
     nrf_802154_rx_duration_get_ExpectAndReturn(m_test_rx_buffer.psdu[0], false, duration);
-    nrf_raal_timeslot_request_ExpectAndReturn(duration, false);
+    nrf_802154_rsch_timeslot_request_ExpectAndReturn(duration, false);
 
     nrf_radio_power_set_Expect(false);
     nrf_radio_power_set_Expect(true);

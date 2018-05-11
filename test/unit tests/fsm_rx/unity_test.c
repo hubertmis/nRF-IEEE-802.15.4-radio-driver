@@ -44,10 +44,10 @@
 #include "mock_nrf_802154_priority_drop.h"
 #include "mock_nrf_802154_procedures_duration.h"
 #include "mock_nrf_802154_revision.h"
+#include "mock_nrf_802154_rsch.h"
 #include "mock_nrf_802154_rssi.h"
 #include "mock_nrf_802154_rx_buffer.h"
 #include "mock_nrf_fem_control_api.h"
-#include "mock_nrf_raal_api.h"
 #include "mock_nrf_radio.h"
 #include "mock_nrf_timer.h"
 #include "mock_nrf_egu.h"
@@ -239,10 +239,11 @@ static void verify_receive_begin_finds_free_buffer(void)
 
 void test_receive_begin_ShallNotStartIfTimeslotIsNotGranted(void)
 {
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(false);
+
+    m_rsch_timeslot_is_granted = false;
     rx_init(false);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(false);
+    m_rsch_timeslot_is_granted = false;
     rx_init(true);
 }
 
@@ -250,7 +251,8 @@ void test_recevie_begin_ShallSetCorrectShortsAndPpisIfBufferIsOccupied(void)
 {
     mark_buffer_occupied();
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -265,7 +267,8 @@ void test_receive_begin_ShallSetCorrectShortsAndPpisIfBufferIsAvailable(void)
 {
     mark_buffer_free();
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_setting_packet_ptr();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
@@ -283,7 +286,8 @@ void test_receive_begin_ShallTriggerDisableIfRequestedByArgument(void)
 {
     mark_buffer_occupied();
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -300,7 +304,8 @@ void test_receive_begin_ShallNotTriggerDisableIfRampDownIsInProgress(void)
 {
     mark_buffer_occupied();
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -317,7 +322,8 @@ void test_receive_begin_ShallNotTriggerDisableIfEguEventWasTriggered(void)
 {
     mark_buffer_occupied();
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -335,7 +341,8 @@ void test_receive_begin_ShallTriggerDisableIfEguEventWasNotTriggered(void)
 {
     mark_buffer_occupied();
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -356,7 +363,8 @@ void test_receive_begin_ShallSearchNewBufferIfCurrentlyNoneAvailable(void)
 {
     mark_buffer_occupied();
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -373,7 +381,8 @@ void test_receive_begin_ShallSetNewBufferIfFound(void)
 {
     mark_buffer_occupied();
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -399,7 +408,8 @@ void test_receive_begin_ShallTriggerStartIfNewBufferFoundAndShortDidNotWork(void
 {
     mark_buffer_occupied();
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
+
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -443,7 +453,7 @@ static inline void rx_terminate_periph_reset_verify(bool timeslot_granted)
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(timeslot_granted);
+    m_rsch_timeslot_is_granted = timeslot_granted;
 
     if (timeslot_granted)
     {
@@ -712,7 +722,7 @@ void test_crcok_handler_ShallNotifyReceivedFrameAndStartRxIfTransmitterDidNotRam
 
     rx_terminate_periph_reset_verify(true);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
     verify_setting_tx_power();
     verify_receive_begin_setup(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                                NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -1122,7 +1132,7 @@ void test_tx_ack_terminate_ShallNotModifyRadioRegistersOutOfTimeslot(void)
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(false);
+    m_rsch_timeslot_is_granted = false;
 
     tx_ack_terminate();
 }
@@ -1144,7 +1154,7 @@ void test_tx_ack_terminate_ShallResetShortsAndPpisAndTriggerTasksToStopHardware(
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
 
     nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_PHYEND_MASK | NRF_RADIO_INT_ADDRESS_MASK);
@@ -1170,7 +1180,7 @@ void test_tx_ack_terminate_ShallResetEndEventIfPhyendIsNotSupported(void)
                                     NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
                                     NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
 
-    nrf_raal_timeslot_is_granted_ExpectAndReturn(true);
+    m_rsch_timeslot_is_granted = true;
 
     nrf_802154_revision_has_phyend_event_ExpectAndReturn(false);
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_END_MASK | NRF_RADIO_INT_ADDRESS_MASK);
