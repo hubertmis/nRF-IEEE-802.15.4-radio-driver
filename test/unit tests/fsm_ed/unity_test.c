@@ -194,12 +194,7 @@ void nrf_802154_tx_ack_started(void){}
 
 void test_ed_begin_ShallDoNothingIfOutOfTimeslot(void)
 {
-    nrf_802154_rsch_timeslot_us_left_get_ExpectAndReturn(0);
-
     m_rsch_timeslot_is_granted = false;
-
-    nrf_fem_control_ppi_disable_Expect(NRF_FEM_CONTROL_LNA_PIN);
-    nrf_fem_control_pin_clear_Expect();
 
     ed_init(true);
 }

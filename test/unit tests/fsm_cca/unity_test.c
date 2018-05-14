@@ -169,7 +169,7 @@ static void verify_complete_receive_begin(void)
 
 void setUp(void)
 {
-
+    m_rsch_timeslot_is_granted = true;
 }
 
 void tearDown(void)

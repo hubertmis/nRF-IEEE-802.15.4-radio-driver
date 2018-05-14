@@ -1454,7 +1454,7 @@ static bool tx_init(const uint8_t * p_data, bool cca, bool disabled_was_triggere
 {
     uint32_t ints_to_enable = 0;
 
-    if (!nrf_802154_rsch_timeslot_request(
+    if (!timeslot_is_granted() || !nrf_802154_rsch_timeslot_request(
             nrf_802154_tx_duration_get(p_data[0], cca, ack_is_requested(p_data))))
     {
         return false;
@@ -1511,7 +1511,7 @@ static bool tx_init(const uint8_t * p_data, bool cca, bool disabled_was_triggere
 /** Initialize ED operation */
 static void ed_init(bool disabled_was_triggered)
 {
-    if (!ed_iter_setup(m_ed_time_left))
+    if (!timeslot_is_granted() || !ed_iter_setup(m_ed_time_left))
     {
         // Just wait for next timeslot if there is not enough time in this one.
         return;
@@ -1542,7 +1542,7 @@ static void ed_init(bool disabled_was_triggered)
 /** Initialize CCA operation. */
 static void cca_init(bool disabled_was_triggered)
 {
-    if (!nrf_802154_rsch_timeslot_request(nrf_802154_cca_duration_get()))
+    if (!timeslot_is_granted() || !nrf_802154_rsch_timeslot_request(nrf_802154_cca_duration_get()))
     {
         return;
     }

@@ -265,7 +265,7 @@ static void verify_complete_ack_is_matched(void)
 
 void setUp(void)
 {
-
+    m_rsch_timeslot_is_granted = true;
 }
 
 void tearDown(void)
