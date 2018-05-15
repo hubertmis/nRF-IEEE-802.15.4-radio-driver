@@ -1711,11 +1711,11 @@ static void rsch_ended_handler(void)
     nrf_radio_reset();
     nrf_fem_control_pin_clear();
 
+    m_rsch_timeslot_is_granted = false;
+
     result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RSCH, false);
     assert(result);
     (void)result;
-
-    m_rsch_timeslot_is_granted = false;
 
     switch (m_state)
     {
