@@ -109,6 +109,12 @@ extern "C" {
 #define FUNCTION_RSCH_NOTIFY_REVOKED           0x0414UL
 #define FUNCTION_RSCH_NOTIFY_IF_PENDING        0x0415UL
 
+#define FUNCTION_CSMA_ABORT                    0x0500UL
+#define FUNCTION_CSMA_TX_FAILED                0x0501UL
+#define FUNCTION_CSMA_TX_STARTED               0x0502UL
+#define FUNCTION_CSMA_CHANNEL_BUSY             0x0503UL
+#define FUNCTION_CSMA_FRAME_TRANSMIT           0x0504UL
+
 #define PIN_DBG_RADIO_EVT_END                  11
 #define PIN_DBG_RADIO_EVT_DISABLED             12
 #define PIN_DBG_RADIO_EVT_READY                13

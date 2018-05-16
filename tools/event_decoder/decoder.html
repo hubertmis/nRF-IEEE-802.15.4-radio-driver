@@ -221,7 +221,13 @@
             {id: "RSCH_PEND_REVOKED", val: 0x0412, from: "RSCH", to: "RSCH", text: "nrf_802154_rsch_pend_revoked()"},
             {id: "RSCH_NOTIFY_GRANTED", val: 0x0413, from: "RSCH", to: "RSCH", text: "nrf_802154_rsch_notify_granted()"},
             {id: "RSCH_NOTIFY_REVOKED", val: 0x0414, from: "RSCH", to: "RSCH", text: "nrf_802154_rsch_notify_revoked()"},
-            {id: "RSCH_NOTIFY_IF_PENDING", val: 0x0415, from: "RSCH", to: "RSCH", text: "nrf_802154_rsch_notify_if_pending()"}
+            {id: "RSCH_NOTIFY_IF_PENDING", val: 0x0415, from: "RSCH", to: "RSCH", text: "nrf_802154_rsch_notify_if_pending()"},
+
+            {id: "CSMA_ABORT", val: 0x0500, from: "DRIVER", to: "CSMACA", text: "nrf_802154_csma_ca_abort()"},
+            {id: "CSMA_TX_FAILED", val: 0x0501, from: "DRIVER", to: "CSMACA", text: "nrf_802154_csma_ca_tx_failed_hook()"},
+            {id: "CSMA_TX_STARTED", val: 0x0502, from: "DRIVER", to: "CSMACA", text: "nrf_802154_csma_ca_tx_started_hook()"},
+            {id: "CSMA_CHANNEL_BUSY", val: 0x0503, from: "CSMACA", to: "CSMACA", text: "channel_busy()"},
+            {id: "CSMA_FRAME_TRANSMIT", val: 0x0504, from: "CSMACA", to: "CSMACA", text: "frame_transmit()"},
         ];
 
         var debugDecoder = function(debug_json, debug_ptr)
@@ -323,6 +329,8 @@
         debugDecoder.prototype.draw = function()
         {
             this.addLine("Participant APP");
+            this.addLine("Participant CSMACA");
+            this.addLine("Participant TSCH");
             this.addLine("Participant DRIVER");
             this.addLine("Participant RSCH")
             this.addLine("Participant RAAL");
