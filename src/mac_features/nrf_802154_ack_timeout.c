@@ -65,10 +65,14 @@ static void timeout_timer_fired(void * p_context)
 
     if (m_procedure_is_active)
     {
-        if (!nrf_802154_request_receive(NRF_802154_TERM_802154,
-                                        REQ_ORIG_ACK_TIMEOUT,
-                                        notify_tx_error,
-                                        false))
+        if (nrf_802154_request_receive(NRF_802154_TERM_802154,
+                                       REQ_ORIG_ACK_TIMEOUT,
+                                       notify_tx_error,
+                                       false))
+        {
+            m_procedure_is_active = false;
+        }
+        else
         {
             timeout_timer_retry();
         }
@@ -119,14 +123,26 @@ bool nrf_802154_ack_timeout_tx_started_hook(const uint8_t * p_frame)
 
 bool nrf_802154_ack_timeout_abort(nrf_802154_term_t term_lvl, req_originator_t req_orig)
 {
-    (void)term_lvl;
+    bool result;
 
-    if (req_orig != REQ_ORIG_ACK_TIMEOUT)
+    if (!m_procedure_is_active || req_orig == REQ_ORIG_ACK_TIMEOUT)
     {
+        // Ignore if procedure is not running or self-request.
+        result = true;
+    }
+    else if (term_lvl >= NRF_802154_TERM_802154)
+    {
+        // Stop procedure only if termination level is high enough.
         timeout_timer_stop();
+
+        result = true;
+    }
+    else
+    {
+        result = false;
     }
 
-    return true;
+    return result;
 }
 
 void nrf_802154_ack_timeout_transmitted_hook(const uint8_t * p_frame)
