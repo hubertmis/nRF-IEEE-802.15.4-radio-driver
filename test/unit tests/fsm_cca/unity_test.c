@@ -335,6 +335,7 @@ static void verify_cca_terminate_periph_reset(bool in_timeslot)
     {
         nrf_radio_int_disable_Expect(NRF_RADIO_INT_CCAIDLE_MASK | NRF_RADIO_INT_CCABUSY_MASK);
         nrf_radio_shorts_set_Expect(0);
+        nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_CCASTOP);
         nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
     }
 }

@@ -682,6 +682,7 @@ static void verify_tx_terminate_periph_reset(bool in_timeslot)
                                      NRF_RADIO_INT_PHYEND_MASK  |
                                      NRF_RADIO_INT_ADDRESS_MASK);
         nrf_radio_shorts_set_Expect(0);
+        nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_CCASTOP);
         nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
     }
 }
@@ -723,6 +724,7 @@ void test_tx_terminate_ShallDisableEndEventIfPhyendIsNotAvailable(void)
                                  NRF_RADIO_INT_END_MASK  |
                                  NRF_RADIO_INT_ADDRESS_MASK);
     nrf_radio_shorts_set_Expect(0);
+    nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_CCASTOP);
     nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
 
     tx_terminate();

@@ -344,6 +344,7 @@ static void verify_ed_terminate_periph_reset(bool is_in_timeslot)
     {
         nrf_radio_int_disable_Expect(NRF_RADIO_INT_EDEND_MASK);
         nrf_radio_shorts_set_Expect(0);
+        nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_EDSTOP);
         nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
     }
 }

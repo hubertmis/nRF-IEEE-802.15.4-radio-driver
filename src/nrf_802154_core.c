@@ -1020,6 +1020,7 @@ static void tx_terminate(void)
 
         nrf_radio_int_disable(ints_to_disable);
         nrf_radio_shorts_set(SHORTS_IDLE);
+        nrf_radio_task_trigger(NRF_RADIO_TASK_CCASTOP);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
 }
@@ -1060,6 +1061,7 @@ static void ed_terminate(void)
     {
         nrf_radio_int_disable(NRF_RADIO_INT_EDEND_MASK);
         nrf_radio_shorts_set(SHORTS_IDLE);
+        nrf_radio_task_trigger(NRF_RADIO_TASK_EDSTOP);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
 }
@@ -1079,6 +1081,7 @@ static void cca_terminate(void)
     {
         nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
         nrf_radio_shorts_set(SHORTS_IDLE);
+        nrf_radio_task_trigger(NRF_RADIO_TASK_CCASTOP);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
 }
