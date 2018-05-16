@@ -258,7 +258,7 @@ bool nrf_802154_receive(void)
     bool result;
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RECEIVE);
 
-    result = nrf_802154_request_receive(NRF_802154_TERM_802154, REQ_ORIG_HIGHER_LAYER, NULL);
+    result = nrf_802154_request_receive(NRF_802154_TERM_802154, REQ_ORIG_HIGHER_LAYER, NULL, true);
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RECEIVE);
     return result;

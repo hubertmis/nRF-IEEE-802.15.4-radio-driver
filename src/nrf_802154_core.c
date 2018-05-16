@@ -312,12 +312,19 @@ static void transmitted_frame_notify(uint8_t * p_ack, int8_t power, int8_t lqi)
 /** Notify MAC layer that transmission procedure failed. */
 static void transmit_failed_notify(const uint8_t * p_data, nrf_802154_tx_error_t error)
 {
-    nrf_802154_critical_section_nesting_allow();
-
     if (nrf_802154_core_hooks_tx_failed(p_data, error))
     {
         nrf_802154_notify_transmit_failed(p_data, error);
     }
+}
+
+/** Allow nesting critical sections and notify MAC layer that transmission procedure failed. */
+static void transmit_failed_notify_and_nesting_allow(const uint8_t       * p_data,
+                                                     nrf_802154_tx_error_t error)
+{
+    nrf_802154_critical_section_nesting_allow();
+
+    transmit_failed_notify(p_data, error);
 
     nrf_802154_critical_section_nesting_deny();
 }
@@ -1157,11 +1164,8 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                 {
                     tx_ack_terminate();
 
-                    if (notify_abort)
-                    {
-                        mp_current_rx_buffer->free = false;
-                        received_frame_notify(mp_current_rx_buffer->psdu);
-                    }
+                    mp_current_rx_buffer->free = false;
+                    received_frame_notify(mp_current_rx_buffer->psdu);
                 }
                 else
                 {
@@ -1178,7 +1182,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 
                     if (notify_abort)
                     {
-                        nrf_802154_notify_transmit_failed(mp_tx_data, NRF_802154_TX_ERROR_ABORTED);
+                        transmit_failed_notify(mp_tx_data, NRF_802154_TX_ERROR_ABORTED);
                     }
                 }
                 else
@@ -1195,7 +1199,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 
                     if (notify_abort)
                     {
-                        nrf_802154_notify_transmit_failed(mp_tx_data, NRF_802154_TX_ERROR_ABORTED);
+                        transmit_failed_notify(mp_tx_data, NRF_802154_TX_ERROR_ABORTED);
                     }
                 }
                 else
@@ -1747,7 +1751,7 @@ static void rsch_ended_handler(void)
         case RADIO_STATE_TX:
         case RADIO_STATE_RX_ACK:
             state_set(RADIO_STATE_RX);
-            transmit_failed_notify(mp_tx_data, NRF_802154_TX_ERROR_TIMESLOT_ENDED);
+            transmit_failed_notify_and_nesting_allow(mp_tx_data, NRF_802154_TX_ERROR_TIMESLOT_ENDED);
             break;
 
         case RADIO_STATE_ED:
@@ -2397,7 +2401,7 @@ static void irq_end_state_rx_ack(void)
     }
     else
     {
-        transmit_failed_notify(mp_tx_data, NRF_802154_TX_ERROR_INVALID_ACK);
+        transmit_failed_notify_and_nesting_allow(mp_tx_data, NRF_802154_TX_ERROR_INVALID_ACK);
     }
 }
 
@@ -2424,7 +2428,7 @@ static void irq_ccabusy_state_tx_frame(void)
     state_set(RADIO_STATE_RX);
     rx_init(true);
 
-    transmit_failed_notify(mp_tx_data, NRF_802154_TX_ERROR_BUSY_CHANNEL);
+    transmit_failed_notify_and_nesting_allow(mp_tx_data, NRF_802154_TX_ERROR_BUSY_CHANNEL);
 }
 
 static void irq_ccabusy_state_cca(void)
@@ -2766,7 +2770,8 @@ bool nrf_802154_core_sleep(nrf_802154_term_t term_lvl)
 
 bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
                              req_originator_t               req_orig,
-                             nrf_802154_notification_func_t notify_function)
+                             nrf_802154_notification_func_t notify_function,
+                             bool                           notify_abort)
 {
     bool result = nrf_802154_critical_section_enter();
 
@@ -2774,7 +2779,7 @@ bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
     {
         if ((m_state != RADIO_STATE_RX) && (m_state != RADIO_STATE_TX_ACK))
         {
-            result = current_operation_terminate(term_lvl, req_orig, notify_function == NULL);
+            result = current_operation_terminate(term_lvl, req_orig, notify_abort);
 
             if (result)
             {
@@ -2811,7 +2816,7 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
 
     if (result)
     {
-        result = current_operation_terminate(term_lvl, req_orig, notify_function == NULL);
+        result = current_operation_terminate(term_lvl, req_orig, true);
 
         if (result)
         {

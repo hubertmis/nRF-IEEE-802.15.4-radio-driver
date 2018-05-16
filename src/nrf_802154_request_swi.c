@@ -101,13 +101,15 @@ bool nrf_802154_request_sleep(nrf_802154_term_t term_lvl)
 
 bool nrf_802154_request_receive(nrf_802154_term_t              term_lvl,
                                 req_originator_t               req_orig,
-                                nrf_802154_notification_func_t notify_function)
+                                nrf_802154_notification_func_t notify_function,
+                                bool                           notify_abort)
 {
     REQUEST_FUNCTION(nrf_802154_core_receive,
                      nrf_802154_swi_receive,
                      term_lvl,
                      req_orig,
-                     notify_function)
+                     notify_function,
+                     notify_abort)
 }
 
 bool nrf_802154_request_transmit(nrf_802154_term_t              term_lvl,

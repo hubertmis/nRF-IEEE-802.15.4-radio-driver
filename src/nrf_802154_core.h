@@ -118,15 +118,16 @@ bool nrf_802154_core_sleep(nrf_802154_term_t term_lvl);
  *
  * @param[in]  term_lvl         Termination level of this request. Selects procedures to abort.
  * @param[in]  req_orig         Module that originates this request.
- * @param[in]  notify_function  Function called to notify status of this procedure instead of
- *                              default notification. If NULL default notification is used.
+ * @param[in]  notify_function  Function called to notify status of this procedure. May be NULL.
+ * @param[in]  notify_abort     If abort notification should be triggered.
  *
  * @retval  true   Entering RECEIVE state succeeded.
  * @retval  false  Entering RECEIVE state failed (driver is performing other procedure).
  */
 bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
                              req_originator_t               req_orig,
-                             nrf_802154_notification_func_t notify_function);
+                             nrf_802154_notification_func_t notify_function,
+                             bool                           notify_abort);
 
 /**
  * @brief Request transition to TRANSMIT state.
@@ -138,8 +139,7 @@ bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
  * @param[in]  req_orig         Module that originates this request.
  * @param[in]  p_data           Pointer to a frame to transmit.
  * @param[in]  cca              If the driver should perform CCA procedure before transmission.
- * @param[in]  notify_function  Function called to notify status of this procedure instead of
- *                              default notification. If NULL default notification is used.
+ * @param[in]  notify_function  Function called to notify status of this procedure. May be NULL.
  *
  * @retval  true   Entering TRANSMIT state succeeded.
  * @retval  false  Entering TRANSMIT state failed (driver is performing other procedure).
