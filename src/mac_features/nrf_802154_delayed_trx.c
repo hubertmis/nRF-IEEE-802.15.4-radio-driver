@@ -122,8 +122,8 @@ bool nrf_802154_delayed_trx_transmit(const uint8_t * p_data,
 
         if (!result)
         {
-            tx_stop();
             notify_tx_timeslot_denied(result);
+            tx_stop();
         }
     }
 
