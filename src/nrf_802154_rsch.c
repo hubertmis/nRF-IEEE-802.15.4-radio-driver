@@ -274,6 +274,8 @@ static void delayed_timeslot_start(void * p_context)
 {
     (void)p_context;
 
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RSCH_TIMER_DELAYED_START);
+
     m_delayed_timeslot_is_scheduled = false;
 
     if (all_prec_are_approved())
@@ -284,6 +286,8 @@ static void delayed_timeslot_start(void * p_context)
     {
         nrf_802154_rsch_delayed_timeslot_failed();
     }
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_TIMER_DELAYED_START);
 }
 
 /** Timer callback used to request preconditions for delayed timeslot.
@@ -294,6 +298,8 @@ static void delayed_timeslot_prec_request(void * p_context)
 {
     (void)p_context;
 
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RSCH_TIMER_DELAYED_PREC);
+
     all_prec_request();
 
     m_timer.t0        = m_delayed_timeslot_t0;
@@ -302,6 +308,8 @@ static void delayed_timeslot_prec_request(void * p_context)
     m_timer.p_context = NULL;
 
     nrf_802154_timer_sched_add(&m_timer, true);
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_TIMER_DELAYED_PREC);
 }
 
 /***************************************************************************************************
@@ -370,6 +378,8 @@ bool nrf_802154_rsch_timeslot_request(uint32_t length_us)
 
 bool nrf_802154_rsch_delayed_timeslot_request(uint32_t t0, uint32_t dt, uint32_t length)
 {
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RSCH_DELAYED_TIMESLOT_REQ);
+
     uint32_t now    = nrf_802154_timer_sched_time_get();
     uint32_t req_dt = dt - PREC_RAMP_UP_TIME;
     bool     result;
@@ -411,6 +421,8 @@ bool nrf_802154_rsch_delayed_timeslot_request(uint32_t t0, uint32_t dt, uint32_t
     {
         result = false;
     }
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_DELAYED_TIMESLOT_REQ);
 
     return result;
 }

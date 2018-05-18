@@ -47,6 +47,7 @@
 #include <stdint.h>
 
 #include <nrf.h>
+#include "nrf_802154_debug.h"
 #include "platform/timer/nrf_802154_timer.h"
 
 #if defined(__ICCARM__)
@@ -296,6 +297,8 @@ bool nrf_802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0, uint32_
 
 void nrf_802154_timer_sched_add(nrf_802154_timer_t * p_timer, bool round_up)
 {
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TSCH_ADD);
+
     assert(p_timer != NULL);
     assert(p_timer->callback != NULL);
 
@@ -361,6 +364,8 @@ void nrf_802154_timer_sched_add(nrf_802154_timer_t * p_timer, bool round_up)
     {
         handle_timer();
     }
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TSCH_ADD);
 }
 
 void nrf_802154_timer_sched_remove(nrf_802154_timer_t * p_timer)
@@ -398,6 +403,7 @@ bool nrf_802154_timer_sched_is_running(nrf_802154_timer_t * p_timer)
 
 void nrf_802154_timer_fired(void)
 {
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TSCH_FIRED);
 
     if (mutex_trylock(&m_fired_mutex))
     {
@@ -416,4 +422,6 @@ void nrf_802154_timer_fired(void)
     }
 
     handle_timer();
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TSCH_FIRED);
 }

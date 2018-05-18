@@ -222,12 +222,18 @@
             {id: "RSCH_NOTIFY_GRANTED", val: 0x0413, from: "RSCH", to: "RSCH", text: "nrf_802154_rsch_notify_granted()"},
             {id: "RSCH_NOTIFY_REVOKED", val: 0x0414, from: "RSCH", to: "RSCH", text: "nrf_802154_rsch_notify_revoked()"},
             {id: "RSCH_NOTIFY_IF_PENDING", val: 0x0415, from: "RSCH", to: "RSCH", text: "nrf_802154_rsch_notify_if_pending()"},
+            {id: "RSCH_DELAYED_TIMESLOT_REQ", val: 0x0416, from: "DRIVER", to: "RSCH", text: "nrf_802154_rsch_delayed_timeslot_request()"},
+            {id: "RSCH_TIMER_DELAYED_PREC", val: 0x0417, from: "TSCH", to: "RSCH", text: "delayed_timeslot_prec_request()"},
+            {id: "RSCH_TIMER_DELAYED_START", val: 0x0418, from: "TSCH", to: "RSCH", text: "delayed_timeslot_start()"},
 
             {id: "CSMA_ABORT", val: 0x0500, from: "DRIVER", to: "CSMACA", text: "nrf_802154_csma_ca_abort()"},
             {id: "CSMA_TX_FAILED", val: 0x0501, from: "DRIVER", to: "CSMACA", text: "nrf_802154_csma_ca_tx_failed_hook()"},
             {id: "CSMA_TX_STARTED", val: 0x0502, from: "DRIVER", to: "CSMACA", text: "nrf_802154_csma_ca_tx_started_hook()"},
             {id: "CSMA_CHANNEL_BUSY", val: 0x0503, from: "CSMACA", to: "CSMACA", text: "channel_busy()"},
             {id: "CSMA_FRAME_TRANSMIT", val: 0x0504, from: "CSMACA", to: "CSMACA", text: "frame_transmit()"},
+
+            {id: "TSCH_ADD", val: 0x0600, from: "TSCH", to: "TSCH", text: "nrf_802154_timer_sched_add()"},
+            {id: "TSCH_FIRED", val: 0x0601, from: "TSCH", to: "TSCH", text: "nrf_802154_timer_fired()"},
         ];
 
         var debugDecoder = function(debug_json, debug_ptr)
