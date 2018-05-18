@@ -53,7 +53,8 @@
     _Pragma("diag_suppress=Pe167")
 #endif
 
-static volatile uint8_t              m_mutex;              ///< Mutex for starting the timer.
+static volatile uint8_t              m_timer_mutex;        ///< Mutex for starting the timer.
+static volatile uint8_t              m_fired_mutex;        ///< Mutex for the timer firing procedure.
 static volatile uint8_t              m_queue_changed_cntr; ///< Information that scheduler queue was modified.
 static volatile nrf_802154_timer_t * mp_head;              ///< Head of the running timers list.
 
@@ -62,18 +63,18 @@ static volatile nrf_802154_timer_t * mp_head;              ///< Head of the runn
  *  @retval  true   Mutex was acquired.
  *  @retval  false  Mutex could not be acquired.
  */
-static inline bool mutex_trylock(void)
+static inline bool mutex_trylock(volatile uint8_t * p_mutex)
 {
     do
     {
-        volatile uint8_t mutex_value = __LDREXB(&m_mutex);
+        volatile uint8_t mutex_value = __LDREXB(p_mutex);
 
         if (mutex_value)
         {
             __CLREX();
             return false;
         }
-    } while (__STREXB(1, &m_mutex));
+    } while (__STREXB(1, p_mutex));
 
     __DMB();
 
@@ -81,10 +82,10 @@ static inline bool mutex_trylock(void)
 }
 
 /** @brief Release mutex. */
-static inline void mutex_unlock(void)
+static inline void mutex_unlock(volatile uint8_t * p_mutex)
 {
     __DMB();
-    m_mutex = 0;
+    *p_mutex = 0;
 }
 
 /** @brief Increment queue counter value to detect changes in the queue. */
@@ -142,7 +143,7 @@ static inline void handle_timer(void)
         queue_cntr = m_queue_changed_cntr;
         p_head     = mp_head;
 
-        if (mutex_trylock())
+        if (mutex_trylock(&m_timer_mutex))
         {
             if (p_head == NULL)
             {
@@ -161,7 +162,7 @@ static inline void handle_timer(void)
                 }
             }
 
-            mutex_unlock();
+            mutex_unlock(&m_timer_mutex);
         }
     } while (queue_cntr != m_queue_changed_cntr);
 }
@@ -263,7 +264,8 @@ static bool timer_remove(nrf_802154_timer_t * p_timer)
 void nrf_802154_timer_sched_init(void)
 {
     mp_head              = NULL;
-    m_mutex              = 0;
+    m_timer_mutex        = 0;
+    m_fired_mutex        = 0;
     m_queue_changed_cntr = 0;
 }
 
@@ -396,19 +398,22 @@ bool nrf_802154_timer_sched_is_running(nrf_802154_timer_t * p_timer)
 
 void nrf_802154_timer_fired(void)
 {
-    nrf_802154_timer_t        * p_timer   = (nrf_802154_timer_t *) mp_head;
-    nrf_802154_timer_callback_t callback  = p_timer->callback;
-    void                      * p_context = p_timer->p_context;
 
-    if ((p_timer != NULL) && (callback != NULL))
+    if (mutex_trylock(&m_fired_mutex))
     {
-        bool timer_shall_be_handled = timer_remove(p_timer);
+        nrf_802154_timer_t        * p_timer   = (nrf_802154_timer_t *) mp_head;
+        nrf_802154_timer_callback_t callback  = p_timer->callback;
+        void                      * p_context = p_timer->p_context;
 
-        callback(p_context);
-
-        if (timer_shall_be_handled)
+        if ((p_timer != NULL) && (callback != NULL))
         {
-            handle_timer();
+            (void)timer_remove(p_timer);
+
+            callback(p_context);
         }
+
+        mutex_unlock(&m_fired_mutex);
     }
+
+    handle_timer();
 }
