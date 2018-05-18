@@ -252,11 +252,14 @@ static bool timer_remove(nrf_802154_timer_t * p_timer)
     // lower pritority context in case it was going to be used.
     if (p_cur != NULL)
     {
+        uint32_t temp;
+
         do
         {
             // This assignment is used to prevent compiler from removing exclusive load during optimization (IAR).
-            p_next = (nrf_802154_timer_t *)__LDREXW((uint32_t *)&p_cur->p_next);
-        } while (__STREXW((uint32_t)NULL, (uint32_t *)&p_cur->p_next));
+            temp = __LDREXW((uint32_t *)&p_cur->p_next);
+            assert((void *)temp != p_cur);
+        } while (__STREXW(temp, (uint32_t *)&p_cur->p_next));
     }
 
     return (timer_start || timer_stop);
@@ -327,6 +330,8 @@ void nrf_802154_timer_sched_add(nrf_802154_timer_t * p_timer, bool round_up)
         {
             nrf_802154_timer_t * p_cur = (nrf_802154_timer_t *)__LDREXW((uint32_t *)pp_item);
 
+            assert(p_cur != p_timer);
+
             if (p_cur == NULL)
             {
                 // No HEAD or insert at the end.
@@ -350,6 +355,7 @@ void nrf_802154_timer_sched_add(nrf_802154_timer_t * p_timer, bool round_up)
             continue;
         }
 
+        assert(p_next != p_timer);
         p_timer->p_next = p_next;
 
         if (!__STREXW((uint32_t)p_timer, (uint32_t *)pp_item))
@@ -407,15 +413,19 @@ void nrf_802154_timer_fired(void)
 
     if (mutex_trylock(&m_fired_mutex))
     {
-        nrf_802154_timer_t        * p_timer   = (nrf_802154_timer_t *) mp_head;
-        nrf_802154_timer_callback_t callback  = p_timer->callback;
-        void                      * p_context = p_timer->p_context;
+        nrf_802154_timer_t * p_timer   = (nrf_802154_timer_t *) mp_head;
 
-        if ((p_timer != NULL) && (callback != NULL))
+        if (p_timer != NULL)
         {
+            nrf_802154_timer_callback_t callback  = p_timer->callback;
+            void                      * p_context = p_timer->p_context;
+
             (void)timer_remove(p_timer);
 
-            callback(p_context);
+            if (callback != NULL)
+            {
+                callback(p_context);
+            }
         }
 
         mutex_unlock(&m_fired_mutex);
