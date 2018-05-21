@@ -2670,6 +2670,7 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
                               req_originator_t               req_orig,
                               const uint8_t                * p_data,
                               bool                           cca,
+                              bool                           immediate,
                               nrf_802154_notification_func_t notify_function)
 {
     bool result = nrf_802154_critical_section_enter();
@@ -2685,6 +2686,11 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
 
             mp_tx_data = p_data;
             result     = tx_init(p_data, cca, true);
+
+            if (!immediate)
+            {
+                result = true;
+            }
         }
 
         if (result)

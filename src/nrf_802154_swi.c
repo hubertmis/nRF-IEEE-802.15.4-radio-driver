@@ -188,6 +188,7 @@ typedef struct
             req_originator_t               req_orig;     ///< Request originator.
             const uint8_t                * p_data;       ///< Pointer to PSDU to transmit.
             bool                           cca;          ///< If CCA was requested prior to transmission.
+            bool                           immediate;    ///< If TX procedure must be performed immediately.
             bool                         * p_result;     ///< Transmit request result.
         } transmit;                                      ///< Transmit request details.
 
@@ -569,6 +570,7 @@ void nrf_802154_swi_transmit(nrf_802154_term_t              term_lvl,
                              req_originator_t               req_orig,
                              const uint8_t                * p_data,
                              bool                           cca,
+                             bool                           immediate,
                              nrf_802154_notification_func_t notify_function,
                              bool                         * p_result)
 {
@@ -579,6 +581,7 @@ void nrf_802154_swi_transmit(nrf_802154_term_t              term_lvl,
     p_slot->data.transmit.req_orig   = req_orig;
     p_slot->data.transmit.p_data     = p_data;
     p_slot->data.transmit.cca        = cca;
+    p_slot->data.transmit.immediate  = immediate;
     p_slot->data.transmit.notif_func = notify_function;
     p_slot->data.transmit.p_result   = p_result;
 
@@ -768,6 +771,7 @@ void SWI_IRQHandler(void)
                                                      p_slot->data.transmit.req_orig,
                                                      p_slot->data.transmit.p_data,
                                                      p_slot->data.transmit.cca,
+                                                     p_slot->data.transmit.immediate,
                                                      p_slot->data.transmit.notif_func);
                     break;
 

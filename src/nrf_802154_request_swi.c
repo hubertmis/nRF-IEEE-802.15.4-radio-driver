@@ -116,6 +116,7 @@ bool nrf_802154_request_transmit(nrf_802154_term_t              term_lvl,
                                  req_originator_t               req_orig,
                                  const uint8_t                * p_data,
                                  bool                           cca,
+                                 bool                           immediate,
                                  nrf_802154_notification_func_t notify_function)
 {
     REQUEST_FUNCTION(nrf_802154_core_transmit,
@@ -124,6 +125,7 @@ bool nrf_802154_request_transmit(nrf_802154_term_t              term_lvl,
                      req_orig,
                      p_data,
                      cca,
+                     immediate,
                      notify_function)
 }
 

@@ -164,6 +164,9 @@ void nrf_802154_swi_receive(nrf_802154_term_t              term_lvl,
  * @param[in]   req_orig         Module that originates this request.
  * @param[in]   p_data           Pointer to PSDU of the frame to transmit.
  * @param[in]   cca              If the driver should perform CCA procedure before transmission.
+ * @param[in]   immediate        If true, the driver schedules transmission immediately or never;
+ *                               if false transmission may be postponed until tx preconditions are
+ *                               met.
  * @param[in]   notify_function  Function called to notify status of this procedure instead of
  *                               default notification. If NULL default notification is used.
  * @param[out]  p_result         Result of entering transmit state.
@@ -172,6 +175,7 @@ void nrf_802154_swi_transmit(nrf_802154_term_t              term_lvl,
                              req_originator_t               req_orig,
                              const uint8_t                * p_data,
                              bool                           cca,
+                             bool                           immediate,
                              nrf_802154_notification_func_t notify_function,
                              bool                         * p_result);
 

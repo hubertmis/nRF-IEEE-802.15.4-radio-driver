@@ -145,6 +145,7 @@ void nrf_802154_rsch_delayed_timeslot_started(void)
                                              REQ_ORIG_DELAYED_TRX,
                                              mp_tx_psdu,
                                              m_tx_cca,
+                                             true,
                                              notify_tx_timeslot_denied);
         (void)result;
     }

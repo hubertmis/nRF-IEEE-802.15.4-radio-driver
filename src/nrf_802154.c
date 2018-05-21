@@ -274,6 +274,7 @@ bool nrf_802154_transmit_raw(const uint8_t * p_data, bool cca)
                                          REQ_ORIG_HIGHER_LAYER,
                                          p_data,
                                          cca,
+                                         false,
                                          NULL);
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TRANSMIT);
