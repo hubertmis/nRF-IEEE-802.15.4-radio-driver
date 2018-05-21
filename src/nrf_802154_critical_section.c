@@ -54,6 +54,100 @@
 static volatile uint8_t m_nested_critical_section_counter;           ///< Counter of nested critical sections
 static volatile int8_t  m_nested_critical_section_allowed_priority;  ///< Indicator if nested critical sections are currently allowed
 
+typedef enum
+{
+    RSCH_EVT_NONE,
+    RSCH_EVT_STARTED,
+    RSCH_EVT_ENDED,
+} rsch_evt_t;
+
+static volatile uint8_t m_rsch_pending_evt;  ///< Indicator of pending RSCH event.
+
+
+/***************************************************************************************************
+ * @section RSCH pending events management
+ **************************************************************************************************/
+
+static void rsch_pending_evt_set(rsch_evt_t evt)
+{
+    rsch_evt_t curr_evt;
+    rsch_evt_t new_evt;
+    uint8_t    evt_value;
+
+    do
+    {
+        evt_value = __LDREXB(&m_rsch_pending_evt);
+        curr_evt  = (rsch_evt_t)evt_value;
+
+        switch (curr_evt)
+        {
+        case RSCH_EVT_NONE:
+            new_evt = evt;
+            break;
+
+        case RSCH_EVT_ENDED:
+            assert(evt == RSCH_EVT_STARTED);
+            new_evt = RSCH_EVT_NONE;
+            break;
+
+        case RSCH_EVT_STARTED:
+            assert(evt == RSCH_EVT_ENDED);
+            new_evt = RSCH_EVT_NONE;
+            break;
+
+        default:
+            assert(false);
+        }
+
+        evt_value = (uint8_t)new_evt;
+    } while (__STREXB(evt_value, &m_rsch_pending_evt));
+}
+
+static rsch_evt_t rsch_pending_evt_clear(void)
+{
+    rsch_evt_t evt;
+    uint8_t    evt_value;
+
+    do
+    {
+        evt_value = __LDREXB(&m_rsch_pending_evt);
+        evt       = (rsch_evt_t)evt_value;
+
+        evt_value = RSCH_EVT_NONE;
+    } while (__STREXB(evt_value, &m_rsch_pending_evt));
+
+    return evt;
+}
+
+static bool rsch_pending_evt_is_none(void)
+{
+    return (rsch_evt_t)m_rsch_pending_evt == RSCH_EVT_NONE;
+}
+
+static void rsch_evt_process(rsch_evt_t evt)
+{
+    switch (evt)
+    {
+        case RSCH_EVT_NONE:
+            break;
+
+        case RSCH_EVT_STARTED:
+            nrf_802154_critical_section_rsch_prec_approved();
+            break;
+
+        case RSCH_EVT_ENDED:
+            nrf_802154_critical_section_rsch_prec_denied();
+            break;
+
+        default:
+            assert(false);
+    }
+}
+
+/***************************************************************************************************
+ * @section Critical sections management
+ **************************************************************************************************/
+
 /** @brief Enter critical section for RADIO peripheral
  *
  * @note RADIO peripheral registers (and NVIC) are modified only when timeslot is granted for the
@@ -110,8 +204,6 @@ static bool critical_section_enter(bool forced)
     bool    result = true;
     uint8_t cnt;
 
-    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_CRIT_SECT_ENTER);
-
     do
     {
         cnt = __LDREXB(&m_nested_critical_section_counter);
@@ -129,9 +221,56 @@ static bool critical_section_enter(bool forced)
     }
     while (__STREXB(cnt + 1, &m_nested_critical_section_counter));
 
-    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_CRIT_SECT_ENTER);
     return result;
 }
+
+static void critical_section_exit(void)
+{
+    uint8_t     cnt;
+    static bool exiting_crit_sect;
+    rsch_evt_t  rsch_evt= rsch_pending_evt_clear();
+    bool        result;
+
+    do
+    {
+        do
+        {
+            cnt = __LDREXB(&m_nested_critical_section_counter);
+
+            assert(cnt > 0);
+
+            if (cnt == 1)
+            {
+                assert(!exiting_crit_sect);
+                (void)exiting_crit_sect;
+                exiting_crit_sect = true;
+
+                rsch_evt_process(rsch_evt);
+                radio_critical_section_exit();
+
+                exiting_crit_sect = false;
+            }
+        }
+        while (__STREXB(cnt - 1, &m_nested_critical_section_counter));
+
+        if (cnt == 1)
+        {
+            rsch_evt = rsch_pending_evt_clear();
+
+            if (rsch_evt != RSCH_EVT_NONE)
+            {
+                result = critical_section_enter(false);
+                assert(result);
+                (void)result;
+            }
+        }
+    }
+    while ((cnt == 1) && m_nested_critical_section_counter);
+}
+
+/***************************************************************************************************
+ * @section API functions
+ **************************************************************************************************/
 
 void nrf_802154_critical_section_init(void)
 {
@@ -141,41 +280,35 @@ void nrf_802154_critical_section_init(void)
 
 bool nrf_802154_critical_section_enter(void)
 {
-    return critical_section_enter(false);
+    bool result;
+
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_CRIT_SECT_ENTER);
+
+    result = critical_section_enter(false);
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_CRIT_SECT_ENTER);
+
+    return result;
 }
 
 void nrf_802154_critical_section_forcefully_enter(void)
 {
-    bool critical_section_entered = critical_section_enter(true);
+    bool critical_section_entered;
+
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_CRIT_SECT_ENTER);
+
+    critical_section_entered = critical_section_enter(true);
     assert(critical_section_entered);
     (void)critical_section_entered;
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_CRIT_SECT_ENTER);
 }
 
 void nrf_802154_critical_section_exit(void)
 {
-    uint8_t     cnt;
-    static bool exiting_crit_sect;
-
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_CRIT_SECT_EXIT);
 
-    do
-    {
-        cnt = __LDREXB(&m_nested_critical_section_counter);
-
-        assert(cnt > 0);
-
-        if (cnt == 1)
-        {
-            assert(!exiting_crit_sect);
-            (void)exiting_crit_sect;
-            exiting_crit_sect = true;
-
-            radio_critical_section_exit();
-
-            exiting_crit_sect = false;
-        }
-    }
-    while (__STREXB(cnt - 1, &m_nested_critical_section_counter));
+    critical_section_exit();
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_CRIT_SECT_EXIT);
 }
@@ -219,5 +352,37 @@ uint32_t nrf_802154_critical_section_active_vector_priority_get(void)
     active_priority = NVIC_GetPriority(irq_number);
 
     return active_priority;
+}
+
+/***************************************************************************************************
+ * @section RSCH callbacks
+ **************************************************************************************************/
+
+void nrf_802154_rsch_prec_approved(void)
+{
+    if (critical_section_enter(false) && rsch_pending_evt_is_none())
+    {
+        nrf_802154_critical_section_rsch_prec_approved();
+
+        critical_section_exit();
+    }
+    else
+    {
+        rsch_pending_evt_set(RSCH_EVT_STARTED);
+    }
+}
+
+void nrf_802154_rsch_prec_denied(void)
+{
+    if (critical_section_enter(false) && rsch_pending_evt_is_none())
+    {
+        nrf_802154_critical_section_rsch_prec_denied();
+
+        critical_section_exit();
+    }
+    else
+    {
+        rsch_pending_evt_set(RSCH_EVT_ENDED);
+    }
 }
 

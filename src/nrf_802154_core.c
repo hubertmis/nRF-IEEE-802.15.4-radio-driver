@@ -191,15 +191,6 @@ typedef struct
 } nrf_802154_flags_t;
 static nrf_802154_flags_t m_flags;  ///< Flags used to store current driver state.
 
-typedef enum
-{
-    RSCH_EVT_NONE,
-    RSCH_EVT_STARTED,
-    RSCH_EVT_ENDED,
-} rsch_evt_t;
-
-static volatile uint8_t m_rsch_pending_evt;  ///< Indicator of pending RSCH event.
-
 static volatile bool m_rsch_timeslot_is_granted;  ///< State of the RSCH timeslot.
 
 /***************************************************************************************************
@@ -1606,68 +1597,15 @@ static void continuous_carrier_init(bool disabled_was_triggered)
 }
 
 
+
 /***************************************************************************************************
- * @section RSCH pending events management
+ * @section Radio Scheduler notification handlers
  **************************************************************************************************/
 
-static void rsch_evt_set(rsch_evt_t evt)
+void nrf_802154_critical_section_rsch_prec_approved(void)
 {
-    rsch_evt_t curr_evt;
-    rsch_evt_t new_evt;
-    uint8_t    evt_value;
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
 
-    do
-    {
-        evt_value = __LDREXB(&m_rsch_pending_evt);
-        curr_evt  = (rsch_evt_t)evt_value;
-
-        switch (curr_evt)
-        {
-        case RSCH_EVT_NONE:
-            new_evt = evt;
-            break;
-
-        case RSCH_EVT_ENDED:
-            assert(evt == RSCH_EVT_STARTED);
-            new_evt = RSCH_EVT_NONE;
-            break;
-
-        case RSCH_EVT_STARTED:
-            assert(evt == RSCH_EVT_ENDED);
-            new_evt = RSCH_EVT_NONE;
-            break;
-
-        default:
-            assert(false);
-        }
-
-        evt_value = (uint8_t)new_evt;
-    } while (__STREXB(evt_value, &m_rsch_pending_evt));
-}
-
-static rsch_evt_t rsch_evt_clear(void)
-{
-    rsch_evt_t evt;
-    uint8_t    evt_value;
-
-    do
-    {
-        evt_value = __LDREXB(&m_rsch_pending_evt);
-        evt       = (rsch_evt_t)evt_value;
-
-        evt_value = RSCH_EVT_NONE;
-    } while (__STREXB(evt_value, &m_rsch_pending_evt));
-
-    return evt;
-}
-
-static bool rsch_evt_is_none(void)
-{
-    return (rsch_evt_t)m_rsch_pending_evt == RSCH_EVT_NONE;
-}
-
-static void rsch_started_handler(void)
-{
     nrf_radio_reset();
     nrf_radio_init();
     irq_init();
@@ -1713,11 +1651,15 @@ static void rsch_started_handler(void)
         default:
             assert(false);
     }
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_STARTED);
 }
 
-static void rsch_ended_handler(void)
+void nrf_802154_critical_section_rsch_prec_denied(void)
 {
     bool result;
+
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_ENDED);
 
     irq_deinit();
     nrf_radio_reset();
@@ -1770,96 +1712,6 @@ static void rsch_ended_handler(void)
 
         default:
             assert(false);
-    }
-}
-
-static void rsch_pending_evt_process(void)
-{
-    rsch_evt_t evt = rsch_evt_clear();
-
-    switch (evt)
-    {
-        case RSCH_EVT_NONE:
-            break;
-
-        case RSCH_EVT_STARTED:
-            rsch_started_handler();
-            break;
-
-        case RSCH_EVT_ENDED:
-            rsch_ended_handler();
-            break;
-
-        default:
-            assert(false);
-    }
-}
-
-static void critical_section_exit(void)
-{
-    bool result;
-
-    if (nrf_802154_critical_section_is_nested())
-    {
-        nrf_802154_critical_section_exit();
-    }
-    else
-    {
-        do
-        {
-            rsch_pending_evt_process();
-
-            nrf_802154_critical_section_exit();
-
-            if (rsch_evt_is_none())
-            {
-                break;
-            }
-
-            result = nrf_802154_critical_section_enter();
-
-            assert(result);
-            (void)result;
-        } while (true);
-    }
-}
-
-
-/***************************************************************************************************
- * @section Radio Scheduler notification handlers
- **************************************************************************************************/
-
-void nrf_802154_rsch_prec_approved(void)
-{
-    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
-
-    if (nrf_802154_critical_section_enter() && rsch_evt_is_none())
-    {
-        rsch_started_handler();
-
-        nrf_802154_critical_section_exit();
-    }
-    else
-    {
-        rsch_evt_set(RSCH_EVT_STARTED);
-    }
-
-    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_STARTED);
-}
-
-void nrf_802154_rsch_prec_denied(void)
-{
-    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_ENDED);
-
-    if (nrf_802154_critical_section_enter() && rsch_evt_is_none())
-    {
-        rsch_ended_handler();
-
-        nrf_802154_critical_section_exit();
-    }
-    else
-    {
-        rsch_evt_set(RSCH_EVT_ENDED);
     }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_ENDED);
@@ -2770,7 +2622,7 @@ bool nrf_802154_core_sleep(nrf_802154_term_t term_lvl)
             }
         }
 
-        critical_section_exit();
+        nrf_802154_critical_section_exit();
     }
 
     return result;
@@ -2801,7 +2653,7 @@ bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
             }
         }
 
-        critical_section_exit();
+        nrf_802154_critical_section_exit();
     }
     else
     {
@@ -2845,7 +2697,7 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
             notify_function(result);
         }
 
-        critical_section_exit();
+        nrf_802154_critical_section_exit();
     }
     else
     {
@@ -2874,7 +2726,7 @@ bool nrf_802154_core_energy_detection(nrf_802154_term_t term_lvl, uint32_t time_
             ed_init(true);
         }
 
-        critical_section_exit();
+        nrf_802154_critical_section_exit();
     }
 
     return result;
@@ -2894,7 +2746,7 @@ bool nrf_802154_core_cca(nrf_802154_term_t term_lvl)
             cca_init(true);
         }
 
-        critical_section_exit();
+        nrf_802154_critical_section_exit();
     }
 
     return result;
@@ -2914,7 +2766,7 @@ bool nrf_802154_core_continuous_carrier(nrf_802154_term_t term_lvl)
             continuous_carrier_init(true);
         }
 
-        critical_section_exit();
+        nrf_802154_critical_section_exit();
     }
 
     return result;
@@ -2969,7 +2821,7 @@ bool nrf_802154_core_notify_buffer_free(uint8_t * p_data)
             }
         }
 
-        critical_section_exit();
+        nrf_802154_critical_section_exit();
     }
 
     return result;
@@ -3030,7 +2882,7 @@ bool nrf_802154_core_channel_update(void)
                 break;
         }
 
-        critical_section_exit();
+        nrf_802154_critical_section_exit();
     }
 
     return result;
@@ -3047,7 +2899,7 @@ bool nrf_802154_core_cca_cfg_update(void)
             cca_configuration_update();
         }
 
-        critical_section_exit();
+        nrf_802154_critical_section_exit();
     }
 
     return result;
