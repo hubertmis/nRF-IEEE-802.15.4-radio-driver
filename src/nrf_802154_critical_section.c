@@ -217,6 +217,7 @@ static bool critical_section_enter(bool forced)
             break;
         }
 
+        nrf_802154_timer_critical_section_enter();
         radio_critical_section_enter();
     }
     while (__STREXB(cnt + 1, &m_nested_critical_section_counter));
@@ -228,7 +229,7 @@ static void critical_section_exit(void)
 {
     uint8_t     cnt;
     static bool exiting_crit_sect;
-    rsch_evt_t  rsch_evt= rsch_pending_evt_clear();
+    rsch_evt_t  rsch_evt = rsch_pending_evt_clear();
     bool        result;
 
     do
@@ -247,6 +248,7 @@ static void critical_section_exit(void)
 
                 rsch_evt_process(rsch_evt);
                 radio_critical_section_exit();
+                nrf_802154_timer_critical_section_exit();
 
                 exiting_crit_sect = false;
             }
@@ -317,6 +319,7 @@ void nrf_802154_critical_section_nesting_allow(void)
 {
     assert(m_nested_critical_section_allowed_priority ==
             NESTED_CRITICAL_SECTION_ALLOWED_PRIORITY_NONE);
+    assert(m_nested_critical_section_counter >= 1);
 
     m_nested_critical_section_allowed_priority = active_priority_convert(
             nrf_802154_critical_section_active_vector_priority_get());
@@ -325,6 +328,7 @@ void nrf_802154_critical_section_nesting_allow(void)
 void nrf_802154_critical_section_nesting_deny(void)
 {
     assert(m_nested_critical_section_allowed_priority >= 0);
+    assert(m_nested_critical_section_counter >= 1);
 
     m_nested_critical_section_allowed_priority = NESTED_CRITICAL_SECTION_ALLOWED_PRIORITY_NONE;
 }

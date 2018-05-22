@@ -44,15 +44,13 @@
 #include "nrf_802154_request.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
-#define NUM_TIMERS      2       ///< Number of timers used to make sure that no timer is added from its own handler.
-#define RETRY_DELAY     500     ///< Procedure is delayed by this time if cannot be performed at the moment.
-#define MAX_RETRY_DELAY 100000  ///< Maximal allowed delay of procedure retry.
+#define RETRY_DELAY     500      ///< Procedure is delayed by this time if cannot be performed at the moment.
+#define MAX_RETRY_DELAY 1000000  ///< Maximal allowed delay of procedure retry.
 
-static void timeout_timer_retry(nrf_802154_timer_t * p_prev_timer);
+static void timeout_timer_retry(void);
 
 static uint32_t           m_timeout = NRF_802154_ACK_TIMEOUT_DEFAULT_TIMEOUT;  ///< ACK timeout in us.
-static nrf_802154_timer_t m_timers[NUM_TIMERS];                                ///< Timer used to notify when we are waiting too long for ACK.
-static volatile uint8_t   m_timer_idx;
+static nrf_802154_timer_t m_timer;                                             ///< Timer used to notify when we are waiting too long for ACK.
 static volatile bool      m_procedure_is_active;
 static const uint8_t    * mp_frame;
 
@@ -66,6 +64,8 @@ static void notify_tx_error(bool result)
 
 static void timeout_timer_fired(void * p_context)
 {
+    (void)p_context;
+
     if (m_procedure_is_active)
     {
         if (nrf_802154_request_receive(NRF_802154_TERM_802154,
@@ -77,69 +77,40 @@ static void timeout_timer_fired(void * p_context)
         }
         else
         {
-            timeout_timer_retry(p_context);
+            timeout_timer_retry();
         }
     }
 }
 
-static uint8_t next_timer_idx(void)
+static void timeout_timer_retry(void)
 {
-    uint8_t next_idx = m_timer_idx + 1;
+    m_timer.dt += RETRY_DELAY;
+    assert(m_timer.dt <= MAX_RETRY_DELAY);
 
-    if (next_idx >= NUM_TIMERS)
-    {
-        next_idx = 0;
-    }
-
-    return next_idx;
-}
-
-static void next_timer_start(uint32_t t0, uint32_t dt)
-{
-    nrf_802154_timer_t * p_timer  = &m_timers[m_timer_idx];
-    uint8_t              next_idx = next_timer_idx();
-
-    if (next_idx >= NUM_TIMERS)
-    {
-        next_idx = 0;
-    }
-
-    p_timer->callback  = timeout_timer_fired;
-    p_timer->p_context = p_timer;
-    p_timer->t0        = t0;
-    p_timer->dt        = dt;
-
-    assert(!nrf_802154_timer_sched_is_running(p_timer));
-    assert(!nrf_802154_timer_sched_is_running(p_timer->p_context));
-    assert(next_idx == next_timer_idx());
-
-    m_timer_idx = next_idx;
-
-    nrf_802154_timer_sched_add(p_timer, true);
-}
-
-static void timeout_timer_retry(nrf_802154_timer_t * p_prev_timer)
-{
-    uint32_t dt = p_prev_timer->dt + RETRY_DELAY;
-
-    assert(dt <= MAX_RETRY_DELAY);
-    next_timer_start(p_prev_timer->t0, dt);
+    nrf_802154_timer_sched_add(&m_timer, true);
 }
 
 static void timeout_timer_start(void)
 {
+    m_timer.callback  = timeout_timer_fired;
+    m_timer.p_context = NULL;
+    m_timer.t0        = nrf_802154_timer_sched_time_get();
+    m_timer.dt        = m_timeout;
+
     m_procedure_is_active = true;
-    next_timer_start(nrf_802154_timer_sched_time_get(), m_timeout);
+
+    nrf_802154_timer_sched_add(&m_timer, true);
 }
 
 static void timeout_timer_stop(void)
 {
     m_procedure_is_active = false;
 
-    for (uint8_t i = 0; i < NUM_TIMERS; i++)
-    {
-        nrf_802154_timer_sched_remove(&m_timers[i]);
-    }
+    // To make sure `timeout_timer_fired()` detects that procedure is being stopped if it preempts
+    // this function.
+    __DMB();
+
+    nrf_802154_timer_sched_remove(&m_timer);
 }
 
 void nrf_802154_ack_timeout_time_set(uint32_t time)

@@ -112,21 +112,19 @@ static void frame_transmit(void * p_context)
 {
     (void)p_context;
 
-    if (!procedure_is_running())
-    {
-        return;
-    }
-
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_CSMA_FRAME_TRANSMIT);
 
-    if (!nrf_802154_request_transmit(NRF_802154_TERM_NONE,
-                                     REQ_ORIG_CSMA_CA,
-                                     mp_psdu,
-                                     true,
-                                     true,
-                                     notify_busy_channel))
+    if (procedure_is_running())
     {
-        (void)channel_busy();
+        if (!nrf_802154_request_transmit(NRF_802154_TERM_NONE,
+                                         REQ_ORIG_CSMA_CA,
+                                         mp_psdu,
+                                         true,
+                                         true,
+                                         notify_busy_channel))
+        {
+            (void)channel_busy();
+        }
     }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_CSMA_FRAME_TRANSMIT);
