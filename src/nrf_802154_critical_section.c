@@ -51,6 +51,7 @@
 
 #define NESTED_CRITICAL_SECTION_ALLOWED_PRIORITY_NONE (-1)
 
+static volatile uint8_t m_critical_section_monitor;                  ///< Monitors each critical section enter operation
 static volatile uint8_t m_nested_critical_section_counter;           ///< Counter of nested critical sections
 static volatile int8_t  m_nested_critical_section_allowed_priority;  ///< Indicator if nested critical sections are currently allowed
 
@@ -201,73 +202,91 @@ static bool nested_critical_section_is_allowed_in_this_context(void)
 
 static bool critical_section_enter(bool forced)
 {
-    bool    result = true;
+    bool    result = false;
     uint8_t cnt;
 
-    do
+    if (forced ||
+        (m_nested_critical_section_counter == 0) ||
+        nested_critical_section_is_allowed_in_this_context())
     {
-        cnt = __LDREXB(&m_nested_critical_section_counter);
-
-        assert(cnt < UINT8_MAX);
-
-        if (!forced && cnt > 0 && !nested_critical_section_is_allowed_in_this_context())
+        do
         {
-            __CLREX();
-            result = false;
-            break;
+            cnt = __LDREXB(&m_nested_critical_section_counter);
+
+            assert(cnt < UINT8_MAX);
         }
+        while (__STREXB(cnt + 1, &m_nested_critical_section_counter));
 
         nrf_802154_timer_critical_section_enter();
         radio_critical_section_enter();
+
+        m_critical_section_monitor++;
+
+        result = true;
     }
-    while (__STREXB(cnt + 1, &m_nested_critical_section_counter));
 
     return result;
 }
 
 static void critical_section_exit(void)
 {
-    uint8_t     cnt;
-    static bool exiting_crit_sect;
+    uint8_t     cnt      = m_nested_critical_section_counter;
     rsch_evt_t  rsch_evt = rsch_pending_evt_clear();
+    uint8_t     monitor;
+    uint8_t     atomic_cnt;
+    static bool exiting_crit_sect;
     bool        result;
+
+    assert(cnt > 0);
 
     do
     {
+        monitor = m_critical_section_monitor;
+
+        // If critical section is not nested exit critical section
+        if (cnt == 1)
+        {
+            assert(!exiting_crit_sect);
+            (void)exiting_crit_sect;
+            exiting_crit_sect = true;
+
+            rsch_evt_process(rsch_evt);
+            radio_critical_section_exit();
+            nrf_802154_timer_critical_section_exit();
+
+            exiting_crit_sect = false;
+        }
+
         do
         {
-            cnt = __LDREXB(&m_nested_critical_section_counter);
-
-            assert(cnt > 0);
-
-            if (cnt == 1)
-            {
-                assert(!exiting_crit_sect);
-                (void)exiting_crit_sect;
-                exiting_crit_sect = true;
-
-                rsch_evt_process(rsch_evt);
-                radio_critical_section_exit();
-                nrf_802154_timer_critical_section_exit();
-
-                exiting_crit_sect = false;
-            }
+            atomic_cnt = __LDREXB(&m_nested_critical_section_counter);
+            assert(atomic_cnt == cnt);
+            cnt = atomic_cnt;
         }
         while (__STREXB(cnt - 1, &m_nested_critical_section_counter));
 
+        // If critical section is not nested verify if during exit procedure RSCH notified
+        // change of state or critical section was visited by higher priority IRQ meantime.
         if (cnt == 1)
         {
             rsch_evt = rsch_pending_evt_clear();
 
-            if (rsch_evt != RSCH_EVT_NONE)
+            // Check if critical section must be exited again.
+            if ((rsch_evt != RSCH_EVT_NONE) || (monitor != m_critical_section_monitor))
             {
                 result = critical_section_enter(false);
                 assert(result);
                 (void)result;
+
+                continue;
+            }
+            else
+            {
+                break;
             }
         }
     }
-    while ((cnt == 1) && m_nested_critical_section_counter);
+    while (cnt == 1);
 }
 
 /***************************************************************************************************
