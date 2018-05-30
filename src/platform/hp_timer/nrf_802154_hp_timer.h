@@ -36,6 +36,7 @@
 #ifndef NRF_802154_HP_TIMER_H_
 #define NRF_802154_HP_TIMER_H_
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -95,12 +96,14 @@ uint32_t nrf_802154_hp_timer_current_time_get(void);
 /**
  * @brief Get task used to synchronize this timer with the LP timer.
  *
- * This function configures the timer in order to detect if returned task was triggered to return
- * valid value by the @ref nrf_802154_hp_timer_sync_time_get.
- *
  * @returns  Address of the task.
  */
 uint32_t nrf_802154_hp_timer_sync_task_get(void);
+
+/**
+ * @brief Configure the timer to detect if sync task was triggered.
+ */
+void nrf_802154_hp_timer_sync_prepare(void);
 
 /**
  * @brief Get timestamp of the synchronization event.
@@ -126,22 +129,11 @@ uint32_t nrf_802154_hp_timer_timestamp_task_get(void);
 /**
  * @brief Get timestamp of last event.
  *
- * @param[out]  p_timestamp  Timestamp of last event that triggered the
- *                           @ref nrf_802154_hp_timer_timestamp_task_get task.
- *
- * @retval true   Event was triggered and @p p_timestamp contains valid value.
- * @retval false  Event was not triggered. @p p_timestamp value was not modified.
+ * @returns Timestamp of last event that triggered the @ref nrf_802154_hp_timer_timestamp_task_get
+ *          task.
  */
-bool nrf_802154_hp_timer_timestamp_get(uint32_t * p_timestamp);
+uint32_t nrf_802154_hp_timer_timestamp_get(void);
 
-/**
- * @brief Function called by the HP timer module when synchronization task is triggered.
- *
- * This function is used to notify the Timer Coordinator module that synchronization is finished.
- *
- * @TODO: Remove this function if 2 CCs are available for this module after RAAL SD refactoring.
- */
-extern void nrf_802154_hp_timer_synchronized(void);
 
 /**
  *@}

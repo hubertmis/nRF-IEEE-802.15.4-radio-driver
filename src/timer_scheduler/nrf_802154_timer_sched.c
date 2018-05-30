@@ -48,7 +48,7 @@
 
 #include <nrf.h>
 #include "nrf_802154_debug.h"
-#include "platform/timer/nrf_802154_timer.h"
+#include "platform/lp_timer/nrf_802154_lp_timer.h"
 
 #if defined(__ICCARM__)
     _Pragma("diag_suppress=Pe167")

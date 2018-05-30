@@ -58,8 +58,8 @@
 #include "nrf_802154_rx_buffer.h"
 #include "hal/nrf_radio.h"
 #include "platform/clock/nrf_802154_clock.h"
+#include "platform/lp_timer/nrf_802154_lp_timer.h"
 #include "platform/temperature/nrf_802154_temperature.h"
-#include "platform/timer/nrf_802154_timer.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
 #include "mac_features/nrf_802154_ack_timeout.h"

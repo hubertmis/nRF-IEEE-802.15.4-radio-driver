@@ -36,7 +36,7 @@
  *
  */
 
-#include "nrf_802154_timer.h"
+#include "nrf_802154_lp_timer.h"
 
 #include <assert.h>
 
