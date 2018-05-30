@@ -76,11 +76,11 @@ typedef struct nrf_802154_timer_s nrf_802154_timer_t;
  */
 struct nrf_802154_timer_s
 {
-    uint32_t                    t0;         ///< Base time of the timer [us]
-    uint32_t                    dt;         ///< Timer expiration delta from @p t0 [us]
-    nrf_802154_timer_callback_t callback;   ///< Callback function called when timer expires
-    void                      * p_context;  ///< User-defined context passed to callback function
-    nrf_802154_timer_t        * p_next;     ///< A pointer to the next running timer
+    uint32_t                       t0;         ///< Base time of the timer [us]
+    uint32_t                       dt;         ///< Timer expiration delta from @p t0 [us]
+    nrf_802154_timer_callback_t    callback;   ///< Callback function called when timer expires
+    void                         * p_context;  ///< User-defined context passed to callback function
+    nrf_802154_timer_t           * p_next;     ///< A pointer to the next running timer
 };
 
 /**

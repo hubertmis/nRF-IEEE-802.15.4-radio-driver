@@ -148,7 +148,7 @@ static inline void handle_timer(void)
         {
             if (p_head == NULL)
             {
-                nrf_802154_timer_stop();
+                nrf_802154_lp_timer_stop();
             }
             else
             {
@@ -159,7 +159,7 @@ static inline void handle_timer(void)
                 // between reading t0 and dt and not be a valid combination.
                 if (p_head == mp_head)
                 {
-                    nrf_802154_timer_start(t0, dt);
+                    nrf_802154_lp_timer_start(t0, dt);
                 }
             }
 
@@ -275,19 +275,19 @@ void nrf_802154_timer_sched_init(void)
 
 void nrf_802154_timer_sched_deinit(void)
 {
-    nrf_802154_timer_stop();
+    nrf_802154_lp_timer_stop();
 
     mp_head = NULL;
 }
 
 uint32_t nrf_802154_timer_sched_time_get(void)
 {
-    return nrf_802154_timer_time_get();
+    return nrf_802154_lp_timer_time_get();
 }
 
 uint32_t nrf_802154_timer_sched_granularity_get(void)
 {
-    return nrf_802154_timer_granularity_get();
+    return nrf_802154_lp_timer_granularity_get();
 }
 
 bool nrf_802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0, uint32_t dt)
@@ -307,7 +307,7 @@ void nrf_802154_timer_sched_add(nrf_802154_timer_t * p_timer, bool round_up)
 
     if (round_up)
     {
-        p_timer->dt += nrf_802154_timer_granularity_get() - 1;
+        p_timer->dt += nrf_802154_lp_timer_granularity_get() - 1;
     }
 
     if (timer_remove(p_timer))
@@ -407,7 +407,7 @@ bool nrf_802154_timer_sched_is_running(nrf_802154_timer_t * p_timer)
     return result;
 }
 
-void nrf_802154_timer_fired(void)
+void nrf_802154_lp_timer_fired(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TSCH_FIRED);
 

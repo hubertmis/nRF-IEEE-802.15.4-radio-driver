@@ -217,7 +217,7 @@ static bool critical_section_enter(bool forced)
         }
         while (__STREXB(cnt + 1, &m_nested_critical_section_counter));
 
-        nrf_802154_timer_critical_section_enter();
+        nrf_802154_lp_timer_critical_section_enter();
         radio_critical_section_enter();
 
         m_critical_section_monitor++;
@@ -252,7 +252,7 @@ static void critical_section_exit(void)
 
             rsch_evt_process(rsch_evt);
             radio_critical_section_exit();
-            nrf_802154_timer_critical_section_exit();
+            nrf_802154_lp_timer_critical_section_exit();
 
             exiting_crit_sect = false;
         }

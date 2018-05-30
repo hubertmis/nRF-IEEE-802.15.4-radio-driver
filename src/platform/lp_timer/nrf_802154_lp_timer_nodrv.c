@@ -260,11 +260,11 @@ static void handle_compare_match(bool skip_check)
         nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, RTC_COMPARE_EVENT_MASK);
         nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_COMPARE_INT_MASK);
 
-        nrf_802154_timer_fired();
+        nrf_802154_lp_timer_fired();
     }
 }
 
-void nrf_802154_timer_init(void)
+void nrf_802154_lp_timer_init(void)
 {
     m_offset_counter = 0;
     m_target_time    = 0;
@@ -295,7 +295,7 @@ void nrf_802154_timer_init(void)
     nrf_rtc_task_trigger(NRF_802154_RTC_INSTANCE, NRF_RTC_TASK_START);
 }
 
-void nrf_802154_timer_deinit(void)
+void nrf_802154_lp_timer_deinit(void)
 {
     nrf_rtc_task_trigger(NRF_802154_RTC_INSTANCE, NRF_RTC_TASK_STOP);
 
@@ -314,29 +314,29 @@ void nrf_802154_timer_deinit(void)
     nrf_802154_clock_lfclk_stop();
 }
 
-void nrf_802154_timer_critical_section_enter(void)
+void nrf_802154_lp_timer_critical_section_enter(void)
 {
     NVIC_DisableIRQ(NRF_802154_RTC_IRQN);
     __DSB();
     __ISB();
 }
 
-void nrf_802154_timer_critical_section_exit(void)
+void nrf_802154_lp_timer_critical_section_exit(void)
 {
     NVIC_EnableIRQ(NRF_802154_RTC_IRQN);
 }
 
-uint32_t nrf_802154_timer_time_get(void)
+uint32_t nrf_802154_lp_timer_time_get(void)
 {
     return (uint32_t)time_get();
 }
 
-uint32_t nrf_802154_timer_granularity_get(void)
+uint32_t nrf_802154_lp_timer_granularity_get(void)
 {
     return US_PER_TICK;
 }
 
-void nrf_802154_timer_start(uint32_t t0, uint32_t dt)
+void nrf_802154_lp_timer_start(uint32_t t0, uint32_t dt)
 {
     uint64_t now;
     uint32_t target_counter;
@@ -370,12 +370,12 @@ void nrf_802154_timer_start(uint32_t t0, uint32_t dt)
     }
 }
 
-bool nrf_802154_timer_is_running(void)
+bool nrf_802154_lp_timer_is_running(void)
 {
     return nrf_rtc_int_is_enabled(NRF_802154_RTC_INSTANCE, RTC_COMPARE_INT_MASK);
 }
 
-void nrf_802154_timer_stop(void)
+void nrf_802154_lp_timer_stop(void)
 {
     nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, RTC_COMPARE_EVENT_MASK);
     nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_COMPARE_INT_MASK);

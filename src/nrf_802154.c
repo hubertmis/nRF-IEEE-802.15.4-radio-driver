@@ -179,14 +179,14 @@ void nrf_802154_init(void)
     nrf_802154_rsch_init();
     nrf_802154_rx_buffer_init();
     nrf_802154_temperature_init();
-    nrf_802154_timer_init();
+    nrf_802154_lp_timer_init();
     nrf_802154_timer_sched_init();
 }
 
 void nrf_802154_deinit(void)
 {
     nrf_802154_timer_sched_deinit();
-    nrf_802154_timer_deinit();
+    nrf_802154_lp_timer_deinit();
     nrf_802154_temperature_deinit();
     nrf_802154_rsch_uninit();
     nrf_802154_clock_deinit();
