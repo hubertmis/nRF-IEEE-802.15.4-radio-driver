@@ -145,9 +145,57 @@ void nrf_802154_lp_timer_stop(void);
 bool nrf_802154_lp_timer_is_running(void);
 
 /**
+ * @brief Start one-shot synchronization timer that expires at nearest possible timepoint.
+ * 
+ * On timer expiration @ref nrf_802154_lp_timer_synchronized function will be called and
+ * event returned by @ref nrf_802154_lp_timer_sync_event_get will be triggered.
+ * 
+ * @note @ref nrf_802154_lp_timer_synchronized may be called multiple times.
+ */
+void nrf_802154_lp_timer_sync_start_now(void);
+
+/**
+ * @brief Start one-shot synchronization timer that expires at specified time.
+ * 
+ * Start one-shot synchronization timer that will expire @p dt microseconds after @p t0 time.
+ * 
+ * On timer expiration @ref nrf_802154_lp_timer_synchronized function will be called and
+ * event returned by @ref nrf_802154_lp_timer_sync_event_get will be triggered.
+ * 
+ * @param[in]  t0  Number of microseconds representing timer start time.
+ * @param[in]  dt  Time of timer expiration as time elapsed from @p t0 [us].
+ */
+void nrf_802154_lp_timer_sync_start_at(uint32_t t0, uint32_t dt);
+
+/**
+ * @brief Stop currently running synchronization timer.
+ */
+void nrf_802154_lp_timer_sync_stop(void);
+
+/**
+ * @brief Get event used to synchronize this timer with HP Timer
+ * 
+ * @return  Address of the peripheral register corresponding to the event that
+ *          should be used for timers synchronization.
+ */
+uint32_t nrf_802154_lp_timer_sync_event_get(void);
+
+/**
+ * @brief Get timestamp of the synchronization event.
+ *
+ * @return  Timestamp of the synchronization event.
+ */
+uint32_t nrf_802154_lp_timer_sync_time_get(void);
+
+/**
  * @brief Callback executed when timer expires.
  */
 extern void nrf_802154_lp_timer_fired(void);
+
+/**
+ * @brief Callback executed when synchronization timer expires.
+ */
+extern void nrf_802154_lp_timer_synchronized(void);
 
 /**
  *@}

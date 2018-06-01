@@ -69,8 +69,8 @@ void nrf_802154_timer_coord_uninit(void);
  * @brief Start the Timer Coordinator.
  * 
  * This function starts the HP timer and synchronizes it with the LP timer.
- * 
- * TODO: Started timer coordinator should resynchronize automatically in constant interval.
+ *
+ * Started Timer Coordinator resynchronizes automatically in constant interval.
  */
 void nrf_802154_timer_coord_start(void);
 
