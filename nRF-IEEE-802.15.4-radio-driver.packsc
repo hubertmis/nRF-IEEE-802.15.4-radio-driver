@@ -21,6 +21,7 @@
             "src/nrf_802154_rsch.h",
             "src/nrf_802154_rssi.h",
             "src/nrf_802154_rx_buffer.h",
+            "src/nrf_802154_timer_coord.h",
             "src/mac_features/nrf_802154_filter.h"
         ],
         "_replacements": [
@@ -129,7 +130,8 @@
                     "cmock\\mock_nrf_802154_revision.c",
                     "cmock\\mock_nrf_802154_rsch.c",
                     "cmock\\mock_nrf_802154_rssi.c",
-                    "cmock\\mock_nrf_802154_rx_buffer.c"
+                    "cmock\\mock_nrf_802154_rx_buffer.c",
+                    "cmock\\mock_nrf_802154_timer_coord.c"
                 ],
                 "_includes": [
                     "3|cmock"

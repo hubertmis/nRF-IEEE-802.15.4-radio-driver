@@ -55,6 +55,7 @@
 #include "nrf_802154_rsch.h"
 #include "nrf_802154_rssi.h"
 #include "nrf_802154_rx_buffer.h"
+#include "nrf_802154_timer_coord.h"
 #include "nrf_802154_types.h"
 #include "fem/nrf_fem_control_api.h"
 #include "hal/nrf_egu.h"
@@ -876,6 +877,10 @@ static void rx_restart(bool set_shorts)
     nrf_egu_event_clear(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
     nrf_ppi_channel_enable(PPI_DISABLED_EGU);
 
+    // Prepare the timer coordinator to get a precise timestamp of the CRCOK event.
+    nrf_802154_timer_coord_timestamp_prepare(
+            (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCOK));
+
     if (!ppi_egu_worked())
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
@@ -1258,6 +1263,7 @@ static void sleep_init(void)
 {
     nrf_802154_priority_drop_timeslot_exit();
     m_rsch_timeslot_is_granted = false;
+    nrf_802154_timer_coord_stop();
 }
 
 /** Initialize Falling Asleep operation. */
@@ -1427,6 +1433,10 @@ static void rx_init(bool disabled_was_triggered)
     nrf_ppi_channel_enable(PPI_CRCERROR_COUNTER_CLEAR);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
     nrf_ppi_channel_enable(PPI_DISABLED_EGU);
+
+    // Configure the timer coordinator to get a timestamp of the CRCOK event.
+    nrf_802154_timer_coord_timestamp_prepare(
+            (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCOK));
 
     // Start procedure if necessary
     if (!disabled_was_triggered || !ppi_egu_worked())
@@ -1615,6 +1625,7 @@ void nrf_802154_critical_section_rsch_prec_approved(void)
     if (m_state != RADIO_STATE_SLEEP)
     {
         m_rsch_timeslot_is_granted = true;
+        nrf_802154_timer_coord_start();
     }
 
     switch (m_state)
@@ -1666,6 +1677,7 @@ void nrf_802154_critical_section_rsch_prec_denied(void)
     nrf_fem_control_pin_clear();
 
     m_rsch_timeslot_is_granted = false;
+    nrf_802154_timer_coord_stop();
 
     result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RSCH, false);
     assert(result);
@@ -2120,6 +2132,10 @@ static void irq_phyend_state_tx_ack(void)
     // Enable PPIs on DISABLED event and clear event to detect if PPI worked
     nrf_egu_event_clear(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
     nrf_ppi_channel_enable(PPI_DISABLED_EGU);
+
+    // Prepare the timer coordinator to get a precise timestamp of the CRCOK event.
+    nrf_802154_timer_coord_timestamp_prepare(
+            (uint32_t)nrf_radio_event_address_get(NRF_RADIO_EVENT_CRCOK));
 
     if (!ppi_egu_worked())
     {

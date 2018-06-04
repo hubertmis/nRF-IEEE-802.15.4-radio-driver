@@ -52,6 +52,11 @@ extern "C" {
 #endif
 
 /**
+ * @brief Timestamp value indicating that the timestamp is inaccurate.
+ */
+#define NRF_802154_NO_TIMESTAMP 0
+
+/**
  * @brief Initialize the 802.15.4 driver.
  *
  * Initialize the RADIO peripheral to Sleep state.
@@ -516,11 +521,9 @@ extern void nrf_802154_received(uint8_t * p_data, uint8_t length, int8_t power, 
  * This functions works like @ref nrf_802154_received_raw and adds a timestamp to the parameter
  * list.
  *
- * @note @p timestamp may be inaccurate due to software latency (IRQ handling).
- * @note @p timestamp granularity depends on the granularity of the timer driver in the
- *       platform/timer directory.
- * @note Including the timestamp for received frames uses resources like CPU time and memory. If the
- *       timestamp is not required, use @ref nrf_802154_received_raw instead.
+ * @note The received frame usually contains a timestamp. However, due to a race condition,
+ *       the timestamp may be invalid. This erroneous situation is indicated by
+ *       the @ref NRF_802154_NO_TIMESTAMP value of the @p time parameter.
  *
  * @param[in]  p_data  Pointer to the buffer containing received data (PHR + PSDU). First byte in
  *                     the buffer is length of the frame (PHR). The following bytes contain the
@@ -528,7 +531,8 @@ extern void nrf_802154_received(uint8_t * p_data, uint8_t length, int8_t power, 
  *                     verified by the hardware and may be modified by the hardware.
  * @param[in]  power   RSSI of received frame.
  * @param[in]  lqi     LQI of received frame.
- * @param[in]  time    Timestamp taken when the last symbol of the frame was received (in us).
+ * @param[in]  time    Timestamp taken when the last symbol of the frame was received (in us)
+ *                     or @ref NRF_802154_NO_TIMESTAMP if the timestamp is invalid.
  */
 extern void nrf_802154_received_timestamp_raw(uint8_t * p_data,
                                               int8_t    power,
@@ -542,18 +546,17 @@ extern void nrf_802154_received_timestamp_raw(uint8_t * p_data,
  *
  * This functions works like @ref nrf_802154_received and adds a timestamp to the parameter list.
  *
- * @note @p timestamp may be inaccurate due to software latency (IRQ handling).
- * @note @p timestamp granularity depends on the granularity of the timer driver in the
- *       platform/timer directory.
- * @note Including the timestamp for received frames uses resources like CPU time and memory. If the
- *       timestamp is not required, use @ref nrf_802154_received instead.
+ * @note The received frame usually contains timestamp. However, due to a race condition,
+ *       the timestamp may be invalid. This erroneous situation is indicated by
+ *       the @ref NRF_802154_NO_TIMESTAMP value of the @p time parameter.
  *
  * @param[in]  p_data  Pointer to the buffer containing the payload of the received frame (PSDU
  *                     without FCS).
  * @param[in]  length  Length of received payload.
  * @param[in]  power   RSSI of received frame.
  * @param[in]  lqi     LQI of received frame.
- * @param[in]  time    Timestamp taken when the last symbol of the frame was received (in us).
+ * @param[in]  time    Timestamp taken when the last symbol of the frame was received (in us)
+ *                     or @ref NRF_802154_NO_TIMESTAMP if the timestamp is invalid.
  */
 extern void nrf_802154_received_timestamp(uint8_t * p_data,
                                           uint8_t   length,

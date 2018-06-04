@@ -47,6 +47,7 @@
 #include "mock_nrf_802154_rsch.h"
 #include "mock_nrf_802154_rssi.h"
 #include "mock_nrf_802154_rx_buffer.h"
+#include "mock_nrf_802154_timer_coord.h"
 #include "mock_nrf_fem_control_api.h"
 #include "mock_nrf_radio.h"
 #include "mock_nrf_timer.h"
@@ -230,6 +231,10 @@ static void verify_receive_begin_setup(uint32_t shorts)
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
     nrf_ppi_channel_enable_Expect(PPI_EGU_TIMER_START);
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
+
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
 }
 
 static void verify_receive_begin_finds_free_buffer(void)
@@ -739,6 +744,8 @@ void test_crcok_handler_ShallNotifyReceivedFrameAndStartRxIfTransmitterDidNotRam
 
 static void crcok_noack_periph_reset_verify(void)
 {
+    uint32_t event_addr;
+
     nrf_ppi_channel_disable_Expect(PPI_DISABLED_EGU);
 
     nrf_radio_shorts_set_Expect(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
@@ -754,6 +761,11 @@ static void crcok_noack_periph_reset_verify(void)
 
     nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
+
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
+
 }
 
 void test_crcok_handler_ShallResetReceiverAndNotifyIfAckNotRequested(void)
@@ -909,6 +921,10 @@ static void verify_phyend_tx_ack_periph_reset(void)
     nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
 
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
+
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
 }
 
 void test_phyend_handler_ShallResetPeripheralsForRxStateAndNotfiThatFrameWasReceived(void)
@@ -947,6 +963,10 @@ void test_phyend_handler_ShallResetPeripheralsForRxStateAndNotfiThatFrameWasRece
     nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
 
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
+
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
 
     // Detect if EGU worked or is going to work.
     nrf_radio_state_get_ExpectAndReturn(NRF_RADIO_STATE_TX_DISABLE);
@@ -996,6 +1016,10 @@ void test_phyend_handler_ShallResetEndEventIfPhyendIsNotSupported(void)
     nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
 
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
+
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
 
     // Detect if EGU worked or is going to work.
     nrf_radio_state_get_ExpectAndReturn(NRF_RADIO_STATE_TX_DISABLE);
@@ -1192,6 +1216,8 @@ void test_tx_ack_terminate_ShallResetEndEventIfPhyendIsNotSupported(void)
 
 void test_irq_crcerror_state_rx_ShallReserRadioForRxAndNotifyReceiveFailed(void)
 {
+    uint32_t event_addr;
+
     nrf_ppi_channel_disable_Expect(PPI_DISABLED_EGU);
 
     nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
@@ -1203,6 +1229,10 @@ void test_irq_crcerror_state_rx_ShallReserRadioForRxAndNotifyReceiveFailed(void)
 
     nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
+
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
 
     nrf_radio_state_get_ExpectAndReturn(NRF_RADIO_STATE_RX_DISABLE);
 

@@ -46,6 +46,7 @@
 #include "mock_nrf_802154_revision.h"
 #include "mock_nrf_802154_rsch.h"
 #include "mock_nrf_802154_rx_buffer.h"
+#include "mock_nrf_802154_timer_coord.h"
 #include "mock_nrf_fem_control_api.h"
 #include "mock_nrf_radio.h"
 #include "mock_nrf_timer.h"
@@ -148,6 +149,10 @@ static void verify_receive_begin_setup(uint32_t shorts)
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
     nrf_ppi_channel_enable_Expect(PPI_EGU_TIMER_START);
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
+
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
 }
 
 static void verify_receive_begin_finds_free_buffer(void)

@@ -48,6 +48,7 @@
 #include "mock_nrf_802154_rsch.h"
 #include "mock_nrf_802154_rssi.h"
 #include "mock_nrf_802154_rx_buffer.h"
+#include "mock_nrf_802154_timer_coord.h"
 #include "mock_nrf_egu.h"
 #include "mock_nrf_fem_control_api.h"
 #include "mock_nrf_ppi.h"
@@ -340,6 +341,10 @@ static void mock_receive_begin(bool free_buffer, uint32_t shorts)
     nrf_ppi_channel_enable_Expect(PPI_EGU_TIMER_START);
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
 
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
+
     mock_ppi_egu_worked(true);
 
     if (!free_buffer)
@@ -390,6 +395,8 @@ static void mock_ack_requested_rx(void)
 
 static void mock_ack_not_requested_rx(void)
 {
+    uint32_t event_addr;
+
     nrf_ppi_channel_disable_Expect(PPI_DISABLED_EGU);
 
     nrf_radio_shorts_set_Expect(NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
@@ -405,6 +412,10 @@ static void mock_ack_not_requested_rx(void)
 
     nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
+
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
 
     nrf_radio_state_get_ExpectAndReturn(NRF_RADIO_STATE_DISABLED);
     nrf_egu_event_check_ExpectAndReturn(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT, false);
@@ -932,6 +943,8 @@ void test_OnBcmatchEventStateRx_ShallClearPsduBeingReceivedFlagOnFailedFiltering
 
 void test_OnCrcErrorEventStateRx_ShallClearPsduBeingReceivedFlag(void)
 {
+    uint32_t event_addr;
+
     m_flags.psdu_being_received = true;
 
     nrf_ppi_channel_disable_Expect(PPI_DISABLED_EGU);
@@ -945,6 +958,10 @@ void test_OnCrcErrorEventStateRx_ShallClearPsduBeingReceivedFlag(void)
 
     nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
+
+    event_addr = rand();
+    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCOK, (uint32_t *)event_addr);
+    nrf_802154_timer_coord_timestamp_prepare_Expect(event_addr);
 
     nrf_radio_state_get_ExpectAndReturn(NRF_RADIO_STATE_RX_DISABLE);
 
