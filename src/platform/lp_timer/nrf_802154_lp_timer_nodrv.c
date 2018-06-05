@@ -61,16 +61,41 @@
 #define US_PER_S                        1000000ULL
 #define US_PER_TICK                     CEIL_DIV(US_PER_S, RTC_FREQUENCY)
 #define US_PER_OVERFLOW                 (512UL * US_PER_S)                  ///< Time that has passed between overflow events. On full RTC speed, it occurs every 512 s.
+#define MIN_RTC_COMPARE_EVENT_DT        (2 * US_PER_TICK)                     ///< Minimum time delta from now before RTC compare event is guaranteed to fire.
+
 
 #define FREQUENCY_US_PER_S_GDD_BITS     6                                   ///< Number of bits to shift RTC_FREQUENCY and US_PER_S to achieve division by greatest common divisor.
 
 #define CEIL_DIV(A, B)                  (((A) + (B) - 1) / (B))
 
-static volatile uint32_t m_offset_counter;  ///< Counter of RTC overflows, incremented by 2 on each OVERFLOW event.
-static volatile uint8_t  m_mutex;           ///< Mutex for write access to @ref m_offset_counter.
-static volatile bool     m_clock_ready;     ///< Information that LFCLK is ready.
-static uint64_t          m_target_time;     ///< Timer fire time [us].
-static uint32_t          m_sync_time;       ///< Synchronization time [us].
+// Struct holding information about compare channel.
+typedef struct
+{
+    uint32_t        channel;    ///< Channel number
+    uint32_t        int_mask;   ///< Interrupt mask
+    nrf_rtc_event_t event;      ///< Event
+    uint32_t        event_mask; ///< Event mask
+} compare_channel_descriptor_t;
+
+// Enum holding all used compare channels.
+typedef enum {LP_TIMER_CHANNEL, SYNC_CHANNEL, CHANNEL_CNT} compare_channel_t;
+
+// Descriptors of all used compare channels.
+static const compare_channel_descriptor_t m_cmp_ch[CHANNEL_CNT] = {{RTC_LP_TIMER_COMPARE_CHANNEL,
+                                                                    RTC_LP_TIMER_COMPARE_INT_MASK,
+                                                                    RTC_LP_TIMER_COMPARE_EVENT,
+                                                                    RTC_LP_TIMER_COMPARE_EVENT_MASK},
+                                                                   {RTC_SYNC_COMPARE_CHANNEL,
+                                                                    RTC_SYNC_COMPARE_INT_MASK,
+                                                                    RTC_SYNC_COMPARE_EVENT,
+                                                                    RTC_SYNC_COMPARE_EVENT_MASK}};
+
+static uint64_t m_target_times[CHANNEL_CNT]; ///< Target time of given channel [us].
+
+
+static volatile uint32_t m_offset_counter; ///< Counter of RTC overflows, incremented by 2 on each OVERFLOW event.
+static volatile uint8_t  m_mutex;          ///< Mutex for write access to @ref m_offset_counter.
+static volatile bool     m_clock_ready;    ///< Information that LFCLK is ready.
 
 static uint32_t overflow_counter_get(void);
 
@@ -121,7 +146,7 @@ static inline void mutex_release(void)
  */
 static inline bool shall_strike(uint64_t now)
 {
-    return now >= m_target_time;
+    return now >= m_target_times[LP_TIMER_CHANNEL];
 }
 
 /** @brief Convert time in [us] to RTC ticks.
@@ -184,7 +209,7 @@ static uint64_t time_get(void)
  */
 static inline uint64_t rtc_protected_time_get(void)
 {
-    return time_get() + 2 * US_PER_TICK;
+    return time_get() + MIN_RTC_COMPARE_EVENT_DT;
 }
 
 /** @brief Get current overflow counter and handle OVERFLOW event if present.
@@ -257,24 +282,71 @@ static uint32_t overflow_counter_get(void)
 /** @brief Handle COMPARE event. */
 static void handle_compare_match(bool skip_check)
 {
-    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT);
+    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event);
 
     // In case the target time was larger than single overflow,
     // we should only strike the timer on final compare event.
     if (skip_check || shall_strike(time_get()))
     {
-        nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT_MASK);
-        nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_INT_MASK);
+        nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event_mask);
+        nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].int_mask);
 
         nrf_802154_lp_timer_fired();
     }
 }
 
+/**
+ * @brief Convert t0 and dt to 64 bit time.
+ *
+ * @note This function takes into account possible overflow of first 32 bits in current time.
+ *
+ * @return  Converted time in [us].
+ */
+static uint64_t convert_to_64bit_time(uint32_t t0, uint32_t dt)
+{
+    uint64_t now;
+
+    now = time_get();
+
+    // Check if 32 LSB of `now` overflowed between getting t0 and loading `now` value.
+    if ((uint32_t)now < t0)
+    {
+        now -= 0x0000000100000000;
+    }
+
+    return (now & 0xffffffff00000000) + t0 + dt;
+}
+
+/**
+ * @brief Start one-shot timer that expires at specified time on desired channel.
+ *
+ * Start one-shot timer that will expire @p dt microseconds after @p t0 time on channel @p channel.
+ *
+ * @param[in]  channel  Comapre channel on which timer will be started.
+ * @param[in]  t0       Number of microseconds representing timer start time.
+ * @param[in]  dt       Time of timer expiration as time elapsed from @p t0 [us].
+ */
+static void timer_start_at(compare_channel_t channel, uint32_t t0, uint32_t dt)
+{
+    uint32_t target_counter;
+    uint64_t target_time;
+
+    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[channel].int_mask);
+    nrf_rtc_event_enable(NRF_802154_RTC_INSTANCE, m_cmp_ch[channel].event_mask);
+
+    target_time    = convert_to_64bit_time(t0, dt);
+    target_counter = time_to_ticks(target_time);
+
+    m_target_times[channel] = target_time;
+
+    nrf_rtc_cc_set(NRF_802154_RTC_INSTANCE, m_cmp_ch[channel].channel, target_counter);
+}
+
 void nrf_802154_lp_timer_init(void)
 {
-    m_offset_counter = 0;
-    m_target_time    = 0;
-    m_clock_ready    = false;
+    m_offset_counter                 = 0;
+    m_target_times[LP_TIMER_CHANNEL] = 0;
+    m_clock_ready                    = false;
 
     // Setup low frequency clock.
     nrf_802154_clock_lfclk_start();
@@ -293,9 +365,9 @@ void nrf_802154_lp_timer_init(void)
     nrf_rtc_event_enable(NRF_802154_RTC_INSTANCE, RTC_EVTEN_OVRFLW_Msk);
     nrf_rtc_int_enable(NRF_802154_RTC_INSTANCE, NRF_RTC_INT_OVERFLOW_MASK);
 
-    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_INT_MASK);
-    nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT_MASK);
-    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT);
+    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].int_mask);
+    nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event_mask);
+    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event);
 
     // Start RTC timer.
     nrf_rtc_task_trigger(NRF_802154_RTC_INSTANCE, NRF_RTC_TASK_START);
@@ -305,13 +377,15 @@ void nrf_802154_lp_timer_deinit(void)
 {
     nrf_rtc_task_trigger(NRF_802154_RTC_INSTANCE, NRF_RTC_TASK_STOP);
 
-    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_INT_MASK);
-    nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT_MASK);
-    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT);
+    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].int_mask);
+    nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event_mask);
+    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event);
 
     nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, NRF_RTC_INT_OVERFLOW_MASK);
     nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, RTC_EVTEN_OVRFLW_Msk);
     nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, NRF_RTC_EVENT_OVERFLOW);
+
+    nrf_802154_lp_timer_sync_stop();
 
     NVIC_DisableIRQ(NRF_802154_RTC_IRQN);
     NVIC_ClearPendingIRQ(NRF_802154_RTC_IRQN);
@@ -345,24 +419,8 @@ uint32_t nrf_802154_lp_timer_granularity_get(void)
 void nrf_802154_lp_timer_start(uint32_t t0, uint32_t dt)
 {
     uint64_t now;
-    uint32_t target_counter;
 
-    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_INT_MASK);
-    nrf_rtc_event_enable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT_MASK);
-
-    now = time_get();
-
-    // Check if 32 LSB of `now` overflowed between getting t0 and loading `now` value.
-    if ((uint32_t)now < t0)
-    {
-        now -= 0x0000000100000000;
-    }
-
-    m_target_time = (now & 0xffffffff00000000) + t0 + dt;
-
-    target_counter = time_to_ticks(m_target_time);
-
-    nrf_rtc_cc_set(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_CHANNEL, target_counter);
+    timer_start_at(LP_TIMER_CHANNEL, t0, dt);
 
     now = rtc_protected_time_get();
 
@@ -372,71 +430,52 @@ void nrf_802154_lp_timer_start(uint32_t t0, uint32_t dt)
     }
     else
     {
-        nrf_rtc_int_enable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_INT_MASK);
+        nrf_rtc_int_enable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].int_mask);
     }
 }
 
 bool nrf_802154_lp_timer_is_running(void)
 {
-    return nrf_rtc_int_is_enabled(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_INT_MASK);
+    return nrf_rtc_int_is_enabled(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].int_mask);
 }
 
 void nrf_802154_lp_timer_stop(void)
 {
-    nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT_MASK);
-    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_INT_MASK);
-    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT);
+    nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event_mask);
+    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].int_mask);
+    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event);
 }
 
 void nrf_802154_lp_timer_sync_start_now(void)
 {
     do
     {
-        nrf_802154_lp_timer_sync_start_at(time_get(), 2 * US_PER_TICK);
+        nrf_802154_lp_timer_sync_start_at(time_get(), MIN_RTC_COMPARE_EVENT_DT);
     } while (nrf_802154_lp_timer_sync_time_get() != (uint32_t)rtc_protected_time_get());
 }
 
 void nrf_802154_lp_timer_sync_start_at(uint32_t t0, uint32_t dt)
 {
-    uint64_t now;
-    uint64_t sync_time;
-    uint32_t target_counter;
+    timer_start_at(SYNC_CHANNEL, t0, dt);
 
-    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_INT_MASK);
-    nrf_rtc_event_enable(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_EVENT_MASK);
-
-    now = time_get();
-
-    // Check if 32 LSB of `now` overflowed between getting t0 and loading `now` value.
-    if ((uint32_t)now < t0)
-    {
-        now -= 0x0000000100000000;
-    }
-
-    sync_time      = (now & 0xffffffff00000000) + t0 + dt;
-    target_counter = time_to_ticks(sync_time);
-    m_sync_time    = (uint32_t)sync_time;
-
-    nrf_rtc_cc_set(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_CHANNEL, target_counter);
-
-    nrf_rtc_int_enable(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_INT_MASK);
+    nrf_rtc_int_enable(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].int_mask);
 }
 
 void nrf_802154_lp_timer_sync_stop(void)
 {
-    nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_EVENT_MASK);
-    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_INT_MASK);
-    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_EVENT);
+    nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].event_mask);
+    nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].int_mask);
+    nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].event);
 }
 
 uint32_t nrf_802154_lp_timer_sync_event_get(void)
 {
-    return (uint32_t)nrf_rtc_event_address_get(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_EVENT);
+    return (uint32_t)nrf_rtc_event_address_get(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].event);
 }
 
 uint32_t nrf_802154_lp_timer_sync_time_get(void)
 {
-    return m_sync_time;
+    return (uint32_t)m_target_times[SYNC_CHANNEL];
 }
 
 void nrf_802154_clock_lfclk_ready(void)
@@ -460,18 +499,18 @@ void NRF_802154_RTC_IRQ_HANDLER(void)
     }
 
     // Handle compare match.
-    if (nrf_rtc_int_is_enabled(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_INT_MASK) &&
-        nrf_rtc_event_pending(NRF_802154_RTC_INSTANCE, RTC_LP_TIMER_COMPARE_EVENT))
+    if (nrf_rtc_int_is_enabled(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].int_mask) &&
+        nrf_rtc_event_pending(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event))
     {
         handle_compare_match(false);
     }
 
-    if (nrf_rtc_int_is_enabled(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_INT_MASK) &&
-        nrf_rtc_event_pending(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_EVENT))
+    if (nrf_rtc_int_is_enabled(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].int_mask) &&
+        nrf_rtc_event_pending(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].event))
     {
-        nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_EVENT);
-        nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_EVENT_MASK);
-        nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, RTC_SYNC_COMPARE_INT_MASK);
+        nrf_rtc_event_clear(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].event);
+        nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].event_mask);
+        nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].int_mask);
         nrf_802154_lp_timer_synchronized();
     }
 }
