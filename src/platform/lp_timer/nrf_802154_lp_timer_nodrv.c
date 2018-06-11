@@ -61,10 +61,12 @@
 #define US_PER_S                        1000000ULL
 #define US_PER_TICK                     CEIL_DIV(US_PER_S, RTC_FREQUENCY)
 #define US_PER_OVERFLOW                 (512UL * US_PER_S)                  ///< Time that has passed between overflow events. On full RTC speed, it occurs every 512 s.
-#define MIN_RTC_COMPARE_EVENT_DT        (2 * US_PER_TICK)                     ///< Minimum time delta from now before RTC compare event is guaranteed to fire.
-
+#define MIN_RTC_COMPARE_EVENT_DT        (2 * US_PER_TICK)                   ///< Minimum time delta from now before RTC compare event is guaranteed to fire.
 
 #define FREQUENCY_US_PER_S_GDD_BITS     6                                   ///< Number of bits to shift RTC_FREQUENCY and US_PER_S to achieve division by greatest common divisor.
+
+#define EPOCH_32BIT_US                  (1ULL << 32)
+#define EPOCH_FROM_TIME(time)           ((time) & ((uint64_t)UINT32_MAX << 32))
 
 #define CEIL_DIV(A, B)                  (((A) + (B) - 1) / (B))
 
@@ -309,12 +311,16 @@ static uint64_t convert_to_64bit_time(uint32_t t0, uint32_t dt)
     now = time_get();
 
     // Check if 32 LSB of `now` overflowed between getting t0 and loading `now` value.
-    if ((uint32_t)now < t0)
+    if (((uint32_t)now < t0) && ((t0 - (uint32_t)now) > (UINT32_MAX / 2)))
     {
-        now -= 0x0000000100000000;
+        now -= EPOCH_32BIT_US;
+    }
+    else if (((uint32_t)now > t0) && (((uint32_t)now) - t0 > (UINT32_MAX / 2)))
+    {
+        now += EPOCH_32BIT_US;
     }
 
-    return (now & 0xffffffff00000000) + t0 + dt;
+    return (EPOCH_FROM_TIME(now)) + t0 + dt;
 }
 
 /**
