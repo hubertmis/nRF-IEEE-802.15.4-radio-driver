@@ -580,6 +580,7 @@ static nrf_radio_signal_callback_return_param_t *signal_handler(uint8_t signal_t
             else
             {
                 //  Handle margin exceeded event.
+                nrf_radio_power_set(false);
                 timer_irq_handle();
             }
         }
