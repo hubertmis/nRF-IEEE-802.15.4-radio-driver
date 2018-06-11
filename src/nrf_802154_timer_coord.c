@@ -44,7 +44,15 @@
 #include "platform/hp_timer/nrf_802154_hp_timer.h"
 #include "platform/lp_timer/nrf_802154_lp_timer.h"
 
-#define RESYNC_TIME (5 * 60 * 1000000UL)
+#define DIV_ROUND_POSITIVE(n, d) (((n) + (d)/2)/(d))
+#define DIV_ROUND_NEGATIVE(n, d) (((n) - (d)/2)/(d))
+#define DIV_ROUND(n, d) ((((n) < 0) ^ ((d) < 0)) ? DIV_ROUND_NEGATIVE(n, d) : DIV_ROUND_POSITIVE(n, d))
+
+
+#define TIME_BASE         (1UL << 22)       ///< Unit used to calculate PPTB (Point per Time Base). It is not equal million to speed up computations and increase precision.
+#define FIRST_RESYNC_TIME TIME_BASE         ///< Delay of the first resynchronization. The first resynchronization is needed to measure timers drift.
+#define RESYNC_TIME       (64 * TIME_BASE)  ///< Delay of following resynchronizations.
+#define EWMA_COEF         (8)               ///< Weight used in the EWMA algorithm.
 
 #define PPI_CH0    NRF_PPI_CHANNEL13
 #define PPI_CH1    NRF_PPI_CHANNEL14
@@ -63,11 +71,16 @@ typedef struct
 
 static common_timepoint_t m_last_sync;    ///< Common timepoint of last synchronization event.
 static volatile bool      m_synchronized; ///< If timers were synchronized since last start.
+static bool               m_drift_known;  ///< If timer drift value is known.
+static int32_t            m_drift;        ///< Drift of the HP timer relatively to the LP timer [PPTB].
 
 void nrf_802154_timer_coord_init(void)
 {
     uint32_t sync_event;
     uint32_t sync_task;
+
+    m_drift       = 0;
+    m_drift_known = 0;
 
     nrf_802154_hp_timer_init();
 
@@ -119,6 +132,7 @@ bool nrf_802154_timer_coord_timestamp_get(uint32_t * p_timestamp)
 {
     uint32_t hp_timestamp;
     uint32_t hp_delta;
+    int32_t  drift;
 
     assert(p_timestamp != NULL);
 
@@ -129,7 +143,9 @@ bool nrf_802154_timer_coord_timestamp_get(uint32_t * p_timestamp)
 
     hp_timestamp = nrf_802154_hp_timer_timestamp_get();
     hp_delta     = hp_timestamp - m_last_sync.hp_timer_time;
-    *p_timestamp = hp_delta + m_last_sync.lp_timer_time;
+    drift        = m_drift_known ?
+                   (DIV_ROUND(((int64_t)m_drift * hp_delta), ((int64_t)TIME_BASE + m_drift))) : 0;
+    *p_timestamp = m_last_sync.lp_timer_time + hp_delta - drift;
 
     return true;
 }
@@ -137,10 +153,36 @@ bool nrf_802154_timer_coord_timestamp_get(uint32_t * p_timestamp)
 void nrf_802154_lp_timer_synchronized(void)
 {
     common_timepoint_t sync_time;
+    uint32_t           lp_delta;
+    uint32_t           hp_delta;
+    int32_t            timers_diff;
+    int32_t            drift;
+    int32_t            tb_fraction_of_lp_delta;
 
     if (nrf_802154_hp_timer_sync_time_get(&sync_time.hp_timer_time))
     {
         sync_time.lp_timer_time = nrf_802154_lp_timer_sync_time_get();
+
+        // Calculate timers drift
+        if (m_synchronized)
+        {
+            lp_delta                = sync_time.lp_timer_time - m_last_sync.lp_timer_time;
+            hp_delta                = sync_time.hp_timer_time - m_last_sync.hp_timer_time;
+            tb_fraction_of_lp_delta = DIV_ROUND_POSITIVE(lp_delta, TIME_BASE);
+            timers_diff             = hp_delta - lp_delta;
+            drift                   = DIV_ROUND(timers_diff, tb_fraction_of_lp_delta); // Drift in PPTB
+
+            if (m_drift_known)
+            {
+                m_drift = DIV_ROUND((m_drift * (EWMA_COEF - 1) + drift), EWMA_COEF);
+            }
+            else
+            {
+                m_drift = drift;
+            }
+
+            m_drift_known = true;
+        }
 
         /* To avoid possible race when nrf_802154_timer_coord_timestamp_get
          * is called when m_last_sync is being assigned report that we are not synchronized
@@ -154,7 +196,8 @@ void nrf_802154_lp_timer_synchronized(void)
         m_synchronized = true;
 
         nrf_802154_hp_timer_sync_prepare();
-        nrf_802154_lp_timer_sync_start_at(m_last_sync.lp_timer_time, RESYNC_TIME);
+        nrf_802154_lp_timer_sync_start_at(m_last_sync.lp_timer_time,
+                                          m_drift_known ? RESYNC_TIME : FIRST_RESYNC_TIME);
     }
     else
     {
