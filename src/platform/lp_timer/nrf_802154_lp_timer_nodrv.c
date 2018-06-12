@@ -175,43 +175,60 @@ static inline uint64_t ticks_to_time(uint32_t ticks)
     return CEIL_DIV((US_PER_S * (uint64_t)ticks), RTC_FREQUENCY);
 }
 
-/** @brief Get current time.
+/** @brief Get current value of the RTC counter.
  *
- *  @return  Current time in [us].
+ * @return  RTC counter value [ticks].
  */
-static uint64_t time_get(void)
+static uint32_t counter_get(void)
+{
+    return nrf_rtc_counter_get(NRF_802154_RTC_INSTANCE);
+}
+
+/** @brief Get RTC counter value and matching offset that represent the current time.
+ *
+ * @param[out] p_offset   Offset of the current time.
+ * @param[out] p_counter  RTC value of the current time.
+ */
+static void offset_and_counter_get(uint32_t * p_offset, uint32_t * p_counter)
 {
     uint32_t offset_1 = overflow_counter_get();
 
     __DMB();
 
-    uint32_t rtc_value_1 = nrf_rtc_counter_get(NRF_802154_RTC_INSTANCE);
+    uint32_t rtc_value_1 = counter_get();
 
     __DMB();
 
     uint32_t offset_2 = overflow_counter_get();
 
-    __DMB();
-
-    uint32_t rtc_value_2 = nrf_rtc_counter_get(NRF_802154_RTC_INSTANCE);
-
-    if (offset_1 == offset_2)
-    {
-        return (uint64_t)offset_1 * US_PER_OVERFLOW + ticks_to_time(rtc_value_1);
-    }
-    else
-    {
-        return (uint64_t)offset_2 * US_PER_OVERFLOW + ticks_to_time(rtc_value_2);
-    }
+    *p_offset  = offset_2;
+    *p_counter = (offset_1 == offset_2) ? rtc_value_1 : counter_get();
 }
 
-/** @brief Get current time plus 2 RTC ticks to prevent RTC compare event miss.
+/** @brief Get time from given @p offset and @p counter values.
  *
- *  @return  Current time with RTC protection in [us].
+ *  @param[in] offset   Offset of time to get.
+ *  @param[in] counter  RTC value representing time to get.
+ *
+ *  @return  Time calculated from given offset and counter [us].
  */
-static inline uint64_t rtc_protected_time_get(void)
+static uint64_t time_get(uint32_t offset, uint32_t counter)
 {
-    return time_get() + MIN_RTC_COMPARE_EVENT_DT;
+    return (uint64_t)offset * US_PER_OVERFLOW + ticks_to_time(counter);
+}
+
+/** @brief Get current time.
+ *
+ *  @return  Current time in [us].
+ */
+static uint64_t curr_time_get(void)
+{
+    uint32_t offset;
+    uint32_t rtc_value;
+
+    offset_and_counter_get(&offset, &rtc_value);
+
+    return time_get(offset, rtc_value);
 }
 
 /** @brief Get current overflow counter and handle OVERFLOW event if present.
@@ -288,7 +305,7 @@ static void handle_compare_match(bool skip_check)
 
     // In case the target time was larger than single overflow,
     // we should only strike the timer on final compare event.
-    if (skip_check || shall_strike(time_get()))
+    if (skip_check || shall_strike(curr_time_get()))
     {
         nrf_rtc_event_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event_mask);
         nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].int_mask);
@@ -304,11 +321,11 @@ static void handle_compare_match(bool skip_check)
  *
  * @return  Converted time in [us].
  */
-static uint64_t convert_to_64bit_time(uint32_t t0, uint32_t dt)
+static uint64_t convert_to_64bit_time(uint32_t t0, uint32_t dt, const uint64_t * p_now)
 {
     uint64_t now;
 
-    now = time_get();
+    now = *p_now;
 
     // Check if 32 LSB of `now` overflowed between getting t0 and loading `now` value.
     if (((uint32_t)now < t0) && ((t0 - (uint32_t)now) > (UINT32_MAX / 2)))
@@ -324,15 +341,32 @@ static uint64_t convert_to_64bit_time(uint32_t t0, uint32_t dt)
 }
 
 /**
+ * @brief Round time up to multiple of the timer ticks.
+ */
+static uint64_t round_up_to_timer_ticks_multiply(uint64_t time)
+{
+    uint32_t us_per_s = US_PER_S >> FREQUENCY_US_PER_S_GDD_BITS;
+    uint32_t rtc_freq = RTC_FREQUENCY >> FREQUENCY_US_PER_S_GDD_BITS;
+
+    return (time + us_per_s / rtc_freq - 1) *
+           rtc_freq / us_per_s *
+           us_per_s / rtc_freq;
+}
+
+/**
  * @brief Start one-shot timer that expires at specified time on desired channel.
  *
  * Start one-shot timer that will expire @p dt microseconds after @p t0 time on channel @p channel.
  *
- * @param[in]  channel  Comapre channel on which timer will be started.
+ * @param[in]  channel  Compare channel on which timer will be started.
  * @param[in]  t0       Number of microseconds representing timer start time.
  * @param[in]  dt       Time of timer expiration as time elapsed from @p t0 [us].
+ * @param[in]  p_now    Pointer to data with the current time.
  */
-static void timer_start_at(compare_channel_t channel, uint32_t t0, uint32_t dt)
+static void timer_start_at(compare_channel_t channel,
+                           uint32_t          t0,
+                           uint32_t          dt,
+                           const uint64_t  * p_now)
 {
     uint32_t target_counter;
     uint64_t target_time;
@@ -340,12 +374,26 @@ static void timer_start_at(compare_channel_t channel, uint32_t t0, uint32_t dt)
     nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[channel].int_mask);
     nrf_rtc_event_enable(NRF_802154_RTC_INSTANCE, m_cmp_ch[channel].event_mask);
 
-    target_time    = convert_to_64bit_time(t0, dt);
+    target_time    = convert_to_64bit_time(t0, dt, p_now);
     target_counter = time_to_ticks(target_time);
 
-    m_target_times[channel] = target_time;
+    m_target_times[channel] = round_up_to_timer_ticks_multiply(target_time);
 
     nrf_rtc_cc_set(NRF_802154_RTC_INSTANCE, m_cmp_ch[channel].channel, target_counter);
+}
+
+/**
+ * @brief Start synchronization timer at given time.
+ *
+ * @param[in]  t0       Number of microseconds representing timer start time.
+ * @param[in]  dt       Time of timer expiration as time elapsed from @p t0 [us].
+ * @param[in]  p_now    Pointer to data with current time.
+ */
+static void timer_sync_start_at(uint32_t t0, uint32_t dt, const uint64_t * p_now)
+{
+    timer_start_at(SYNC_CHANNEL, t0, dt, p_now);
+
+    nrf_rtc_int_enable(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].int_mask);
 }
 
 void nrf_802154_lp_timer_init(void)
@@ -414,7 +462,7 @@ void nrf_802154_lp_timer_critical_section_exit(void)
 
 uint32_t nrf_802154_lp_timer_time_get(void)
 {
-    return (uint32_t)time_get();
+    return (uint32_t)curr_time_get();
 }
 
 uint32_t nrf_802154_lp_timer_granularity_get(void)
@@ -424,13 +472,21 @@ uint32_t nrf_802154_lp_timer_granularity_get(void)
 
 void nrf_802154_lp_timer_start(uint32_t t0, uint32_t dt)
 {
+    uint32_t offset;
+    uint32_t rtc_value;
     uint64_t now;
 
-    timer_start_at(LP_TIMER_CHANNEL, t0, dt);
+    offset_and_counter_get(&offset, &rtc_value);
+    now = time_get(offset, rtc_value);
 
-    now = rtc_protected_time_get();
+    timer_start_at(LP_TIMER_CHANNEL, t0, dt, &now);
 
-    if (shall_strike(now))
+    if (rtc_value != counter_get())
+    {
+        now = curr_time_get();
+    }
+
+    if (shall_strike(now + MIN_RTC_COMPARE_EVENT_DT))
     {
         handle_compare_match(true);
     }
@@ -454,17 +510,23 @@ void nrf_802154_lp_timer_stop(void)
 
 void nrf_802154_lp_timer_sync_start_now(void)
 {
+    uint32_t counter;
+    uint32_t offset;
+    uint64_t now;
+
     do
     {
-        nrf_802154_lp_timer_sync_start_at(time_get(), MIN_RTC_COMPARE_EVENT_DT);
-    } while (nrf_802154_lp_timer_sync_time_get() != (uint32_t)rtc_protected_time_get());
+        offset_and_counter_get(&offset, &counter);
+        now = time_get(offset, counter);
+        timer_sync_start_at((uint32_t)now, MIN_RTC_COMPARE_EVENT_DT, &now);
+    } while (counter_get() != counter);
 }
 
 void nrf_802154_lp_timer_sync_start_at(uint32_t t0, uint32_t dt)
 {
-    timer_start_at(SYNC_CHANNEL, t0, dt);
+    uint64_t now = curr_time_get();
 
-    nrf_rtc_int_enable(NRF_802154_RTC_INSTANCE, m_cmp_ch[SYNC_CHANNEL].int_mask);
+    timer_sync_start_at(t0, dt, &now);
 }
 
 void nrf_802154_lp_timer_sync_stop(void)
