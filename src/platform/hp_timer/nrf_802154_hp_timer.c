@@ -86,16 +86,16 @@ void nrf_802154_hp_timer_deinit(void)
 
 void nrf_802154_hp_timer_start(void)
 {
-#if !RAAL_SOFTDEVICE
+#if !RAAL_SOFTDEVICE && !RAAL_SIMULATOR
     nrf_timer_task_trigger(TIMER, NRF_TIMER_TASK_START);
-#endif // !RAAL_SOFTDEVICE
+#endif // !RAAL_SOFTDEVICE && !RAAL_SIMULATOR
 }
 
 void nrf_802154_hp_timer_stop(void)
 {
-#if !RAAL_SOFTDEVICE
+#if !RAAL_SOFTDEVICE && !RAAL_SIMULATOR
     nrf_timer_task_trigger(TIMER, NRF_TIMER_TASK_SHUTDOWN);
-#endif // !RAAL_SOFTDEVICE
+#endif // !RAAL_SOFTDEVICE && !RAAL_SIMULATOR
 }
 
 uint32_t nrf_802154_hp_timer_sync_task_get(void)
