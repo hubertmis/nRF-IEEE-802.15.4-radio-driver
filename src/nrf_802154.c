@@ -293,6 +293,7 @@ bool nrf_802154_transmit(const uint8_t * p_data, uint8_t length, bool cca)
                                          REQ_ORIG_HIGHER_LAYER,
                                          m_tx_buffer,
                                          cca,
+                                         false,
                                          NULL);
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TRANSMIT);
