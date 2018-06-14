@@ -171,11 +171,6 @@ bool nrf_raal_timeslot_request(uint32_t length_us)
     return (timer >= m_started_timestamp) && ((timer + length_us) < m_margin_timestamp);
 }
 
-bool nrf_raal_timeslot_is_granted(void)
-{
-    return m_continuous_granted;
-}
-
 uint32_t nrf_raal_timeslot_us_left_get(void)
 {
     uint32_t timer = time_get();
