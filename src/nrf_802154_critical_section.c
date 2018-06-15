@@ -231,13 +231,18 @@ static bool critical_section_enter(bool forced)
 static void critical_section_exit(void)
 {
     uint8_t     cnt      = m_nested_critical_section_counter;
-    rsch_evt_t  rsch_evt = rsch_pending_evt_clear();
+    rsch_evt_t  rsch_evt = RSCH_EVT_NONE;
     uint8_t     monitor;
     uint8_t     atomic_cnt;
     static bool exiting_crit_sect;
     bool        result;
 
     assert(cnt > 0);
+
+    if (cnt == 1)
+    {
+        rsch_evt = rsch_pending_evt_clear();
+    }
 
     do
     {
@@ -261,9 +266,8 @@ static void critical_section_exit(void)
         {
             atomic_cnt = __LDREXB(&m_nested_critical_section_counter);
             assert(atomic_cnt == cnt);
-            cnt = atomic_cnt;
         }
-        while (__STREXB(cnt - 1, &m_nested_critical_section_counter));
+        while (__STREXB(atomic_cnt - 1, &m_nested_critical_section_counter));
 
         // If critical section is not nested verify if during exit procedure RSCH notified
         // change of state or critical section was visited by higher priority IRQ meantime.
@@ -383,29 +387,39 @@ uint32_t nrf_802154_critical_section_active_vector_priority_get(void)
 
 void nrf_802154_rsch_prec_approved(void)
 {
-    if (critical_section_enter(false) && rsch_pending_evt_is_none())
+    bool crit_sect_success = critical_section_enter(false);
+
+    if (crit_sect_success && rsch_pending_evt_is_none())
     {
         nrf_802154_critical_section_rsch_prec_approved();
-
-        critical_section_exit();
     }
     else
     {
         rsch_pending_evt_set(RSCH_EVT_STARTED);
     }
+
+    if (crit_sect_success)
+    {
+        critical_section_exit();
+    }
 }
 
 void nrf_802154_rsch_prec_denied(void)
 {
-    if (critical_section_enter(false) && rsch_pending_evt_is_none())
+    bool crit_sect_success = critical_section_enter(false);
+
+    if (crit_sect_success && rsch_pending_evt_is_none())
     {
         nrf_802154_critical_section_rsch_prec_denied();
-
-        critical_section_exit();
     }
     else
     {
         rsch_pending_evt_set(RSCH_EVT_ENDED);
+    }
+
+    if (crit_sect_success)
+    {
+        critical_section_exit();
     }
 }
 
