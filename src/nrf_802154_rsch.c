@@ -231,8 +231,8 @@ static inline bool all_prec_are_requested(void)
  */
 static inline void notify_core(void)
 {
-    bool   notify_approved;
-    int8_t temp_mon;
+    bool    notify_approved;
+    uint8_t temp_mon;
 
     do
     {
