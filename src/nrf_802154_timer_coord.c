@@ -40,6 +40,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "nrf_802154_config.h"
 #include "hal/nrf_ppi.h"
 #include "platform/hp_timer/nrf_802154_hp_timer.h"
 #include "platform/lp_timer/nrf_802154_lp_timer.h"
@@ -62,6 +63,7 @@
 #define PPI_TIMESTAMP       PPI_CH1
 #define PPI_TIMESTAMP_GROUP PPI_CHGRP0
 
+#if NRF_802154_FRAME_TIMESTAMP_ENABLED
 // Structure holding common timepoint from both timers.
 typedef struct
 {
@@ -205,3 +207,43 @@ void nrf_802154_lp_timer_synchronized(void)
         nrf_802154_lp_timer_sync_start_now();
     }
 }
+
+#else // NRF_802154_FRAME_TIMESTAMP_ENABLED
+
+void nrf_802154_timer_coord_init(void)
+{
+    // Intentionally empty
+}
+
+void nrf_802154_timer_coord_uninit(void)
+{
+    // Intentionally empty
+}
+
+void nrf_802154_timer_coord_start(void)
+{
+    // Intentionally empty
+}
+
+void nrf_802154_timer_coord_stop(void)
+{
+    // Intentionally empty
+}
+
+void nrf_802154_timer_coord_timestamp_prepare(uint32_t event_addr)
+{
+    (void)event_addr;
+
+    // Intentionally empty
+}
+
+bool nrf_802154_timer_coord_timestamp_get(uint32_t * p_timestamp)
+{
+    (void)p_timestamp;
+
+    // Intentionally empty
+
+    return false;
+}
+
+#endif // NRF_802154_FRAME_TIMESTAMP_ENABLED

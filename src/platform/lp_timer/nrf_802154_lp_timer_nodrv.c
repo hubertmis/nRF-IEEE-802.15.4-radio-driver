@@ -582,3 +582,8 @@ void NRF_802154_RTC_IRQ_HANDLER(void)
         nrf_802154_lp_timer_synchronized();
     }
 }
+
+__WEAK void nrf_802154_lp_timer_synchronized(void)
+{
+    // Intentionally empty
+}

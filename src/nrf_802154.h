@@ -483,6 +483,30 @@ extern void nrf_802154_tx_ack_started(void);
  */
 extern void nrf_802154_received_raw(uint8_t * p_data, int8_t power, uint8_t lqi);
 
+/**
+ * @brief Notify that a frame was received at a given time.
+ *
+ * This functions works like @ref nrf_802154_received_raw and adds a timestamp to the parameter
+ * list.
+ *
+ * @note The received frame usually contains a timestamp. However, due to a race condition,
+ *       the timestamp may be invalid. This erroneous situation is indicated by
+ *       the @ref NRF_802154_NO_TIMESTAMP value of the @p time parameter.
+ *
+ * @param[in]  p_data  Pointer to the buffer containing received data (PHR + PSDU). First byte in
+ *                     the buffer is length of the frame (PHR). The following bytes contain the
+ *                     frame itself (PSDU). The length byte (PHR) includes FCS. FCS is already
+ *                     verified by the hardware and may be modified by the hardware.
+ * @param[in]  power   RSSI of received frame.
+ * @param[in]  lqi     LQI of received frame.
+ * @param[in]  time    Timestamp taken when the last symbol of the frame was received (in us)
+ *                     or @ref NRF_802154_NO_TIMESTAMP if the timestamp is invalid.
+ */
+extern void nrf_802154_received_timestamp_raw(uint8_t * p_data,
+                                              int8_t    power,
+                                              uint8_t   lqi,
+                                              uint32_t  time);
+
 #else // NRF_802154_USE_RAW_API
 
 /**
@@ -511,36 +535,6 @@ extern void nrf_802154_received_raw(uint8_t * p_data, int8_t power, uint8_t lqi)
  */
 extern void nrf_802154_received(uint8_t * p_data, uint8_t length, int8_t power, uint8_t lqi);
 
-#endif // !NRF_802154_USE_RAW_API
-
-#if NRF_802154_FRAME_TIMESTAMP_ENABLED
-#if NRF_802154_USE_RAW_API
-/**
- * @brief Notify that a frame was received at a given time.
- *
- * This functions works like @ref nrf_802154_received_raw and adds a timestamp to the parameter
- * list.
- *
- * @note The received frame usually contains a timestamp. However, due to a race condition,
- *       the timestamp may be invalid. This erroneous situation is indicated by
- *       the @ref NRF_802154_NO_TIMESTAMP value of the @p time parameter.
- *
- * @param[in]  p_data  Pointer to the buffer containing received data (PHR + PSDU). First byte in
- *                     the buffer is length of the frame (PHR). The following bytes contain the
- *                     frame itself (PSDU). The length byte (PHR) includes FCS. FCS is already
- *                     verified by the hardware and may be modified by the hardware.
- * @param[in]  power   RSSI of received frame.
- * @param[in]  lqi     LQI of received frame.
- * @param[in]  time    Timestamp taken when the last symbol of the frame was received (in us)
- *                     or @ref NRF_802154_NO_TIMESTAMP if the timestamp is invalid.
- */
-extern void nrf_802154_received_timestamp_raw(uint8_t * p_data,
-                                              int8_t    power,
-                                              uint8_t   lqi,
-                                              uint32_t  time);
-
-#else // NRF_802154_USE_RAW_API
-
 /**
  * @brief Notify that a frame was received at a given time.
  *
@@ -564,8 +558,7 @@ extern void nrf_802154_received_timestamp(uint8_t * p_data,
                                           uint8_t   lqi,
                                           uint32_t  time);
 
-#endif // NRF_802154_USE_RAW_API
-#endif // NRF_802154_FRAME_TIMESTAMP_ENABLED
+#endif // !NRF_802154_USE_RAW_API
 
 /**
  * @brief Notify that reception of a frame failed.
@@ -613,41 +606,6 @@ extern void nrf_802154_transmitted_raw(const uint8_t * p_frame,
                                        int8_t          power,
                                        uint8_t         lqi);
 
-#else // NRF_802154_USE_RAW_API
-
-/**
- * @brief Notify that a frame was transmitted.
- *
- * @note If ACK was requested for the transmitted frame, this function is called after a proper ACK
- *       is received. If ACK was not requested, this function is called just after transmission has
- *       ended.
- * @note The buffer pointed to by @p p_ack is not modified by the radio driver (and cannot
- *       be used to receive a frame) until @ref nrf_802154_buffer_free is
- *       called.
- * @note The buffer pointed to by @p p_ack may be modified by the function handler (and other
- *       modules) until @ref nrf_802154_buffer_free is called.
- * @note The next higher layer should handle either @ref nrf_802154_transmitted or
- *       @ref nrf_802154_transmitted_raw. It should not handle both functions.
- *
- * @param[in]  p_frame  Pointer to the buffer containing PSDU of the transmitted frame.
- * @param[in]  p_ack    Pointer to the buffer containing the received ACK payload (PHR excluding
- *                      FCS).
- *                      If ACK was not requested, @p p_ack is set to NULL.
- * @param[in]  length   Length of the received ACK payload or 0 if ACK was not requested.
- * @param[in]  power    RSSI of received frame or 0 if ACK was not requested.
- * @param[in]  lqi      LQI of received frame or 0 if ACK was not requested.
- */
-extern void nrf_802154_transmitted(const uint8_t * p_frame,
-                                   uint8_t       * p_ack,
-                                   uint8_t         length,
-                                   int8_t          power,
-                                   uint8_t         lqi);
-
-#endif // !NRF_802154_USE_RAW_API
-
-#if NRF_802154_FRAME_TIMESTAMP_ENABLED
-#if NRF_802154_USE_RAW_API
-
 /**
  * @brief Notify that a frame was transmitted.
  *
@@ -682,6 +640,34 @@ extern void nrf_802154_transmitted_timestamp_raw(const uint8_t * p_frame,
 /**
  * @brief Notify that a frame was transmitted.
  *
+ * @note If ACK was requested for the transmitted frame, this function is called after a proper ACK
+ *       is received. If ACK was not requested, this function is called just after transmission has
+ *       ended.
+ * @note The buffer pointed to by @p p_ack is not modified by the radio driver (and cannot
+ *       be used to receive a frame) until @ref nrf_802154_buffer_free is
+ *       called.
+ * @note The buffer pointed to by @p p_ack may be modified by the function handler (and other
+ *       modules) until @ref nrf_802154_buffer_free is called.
+ * @note The next higher layer should handle either @ref nrf_802154_transmitted or
+ *       @ref nrf_802154_transmitted_raw. It should not handle both functions.
+ *
+ * @param[in]  p_frame  Pointer to the buffer containing PSDU of the transmitted frame.
+ * @param[in]  p_ack    Pointer to the buffer containing the received ACK payload (PHR excluding
+ *                      FCS).
+ *                      If ACK was not requested, @p p_ack is set to NULL.
+ * @param[in]  length   Length of the received ACK payload or 0 if ACK was not requested.
+ * @param[in]  power    RSSI of received frame or 0 if ACK was not requested.
+ * @param[in]  lqi      LQI of received frame or 0 if ACK was not requested.
+ */
+extern void nrf_802154_transmitted(const uint8_t * p_frame,
+                                   uint8_t       * p_ack,
+                                   uint8_t         length,
+                                   int8_t          power,
+                                   uint8_t         lqi);
+
+/**
+ * @brief Notify that a frame was transmitted.
+ *
  * This functions works like @ref nrf_802154_transmitted and adds a timestamp to the parameter
  * list.
  *
@@ -707,8 +693,7 @@ extern void nrf_802154_transmitted_timestamp(const uint8_t * p_frame,
                                              uint8_t         lqi,
                                              uint32_t        time);
 
-#endif // NRF_802154_USE_RAW_API
-#endif // NRF_802154_FRAME_TIMESTAMP_ENABLED
+#endif // !NRF_802154_USE_RAW_API
 
 /**
  * @brief Notify that a frame was not transmitted due to busy channel.
