@@ -158,6 +158,8 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 #define TXRU_TIME  40               ///< Transmitter ramp up time [us]
 #define EVENT_LAT  23               ///< END event latency [us]
 
+#define MAX_CRIT_SECT_TIME 60  ///< Maximal time that the driver spends in single critical section.
+
 #define LQI_VALUE_FACTOR 4     ///< Factor needed to calculate LQI value based on data from RADIO peripheral
 #define LQI_MAX          0xff  ///< Maximal LQI value
 
@@ -885,6 +887,30 @@ static void rx_restart(bool set_shorts)
     {
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
     }
+}
+
+/** Check if time remaining in the timeslot is long enough to process whole critical section. */
+static bool remaining_timeslot_time_is_enough_for_crit_sect(void)
+{
+    return nrf_802154_rsch_timeslot_us_left_get() >= MAX_CRIT_SECT_TIME;
+}
+
+/** Enter critical section and verify if there is enough time to complete operations within. */
+static bool critical_section_enter(void)
+{
+    bool result = nrf_802154_critical_section_enter();
+
+    if (result)
+    {
+        if (timeslot_is_granted() && !remaining_timeslot_time_is_enough_for_crit_sect())
+        {
+            result = false;
+
+            nrf_802154_critical_section_exit();
+        }
+    }
+
+    return result;
 }
 
 /** Terminate Falling Asleep procedure. */
@@ -1616,51 +1642,54 @@ void nrf_802154_critical_section_rsch_prec_approved(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
 
-    nrf_radio_reset();
-    nrf_radio_init();
-    irq_init();
-
-    assert(nrf_radio_shorts_get() == SHORTS_IDLE);
-
-    if (m_state != RADIO_STATE_SLEEP)
+    if (remaining_timeslot_time_is_enough_for_crit_sect())
     {
-        m_rsch_timeslot_is_granted = true;
-        nrf_802154_timer_coord_start();
-    }
+        nrf_radio_reset();
+        nrf_radio_init();
+        irq_init();
 
-    switch (m_state)
-    {
-        case RADIO_STATE_SLEEP:
-            // Intentionally empty.
-            // Ignore this notification if continuous mode was not requested.
-            break;
+        assert(nrf_radio_shorts_get() == SHORTS_IDLE);
 
-        case RADIO_STATE_RX:
-            rx_init(false);
-            break;
+        if (m_state != RADIO_STATE_SLEEP)
+        {
+            m_rsch_timeslot_is_granted = true;
+            nrf_802154_timer_coord_start();
+        }
 
-        case RADIO_STATE_CCA_TX:
-            (void)tx_init(mp_tx_data, true, false);
-            break;
+        switch (m_state)
+        {
+            case RADIO_STATE_SLEEP:
+                // Intentionally empty.
+                // Ignore this notification if continuous mode was not requested.
+                break;
 
-        case RADIO_STATE_TX:
-            (void)tx_init(mp_tx_data, false, false);
-            break;
+            case RADIO_STATE_RX:
+                rx_init(false);
+                break;
 
-        case RADIO_STATE_ED:
-            ed_init(false);
-            break;
+            case RADIO_STATE_CCA_TX:
+                (void)tx_init(mp_tx_data, true, false);
+                break;
 
-        case RADIO_STATE_CCA:
-            cca_init(false);
-            break;
+            case RADIO_STATE_TX:
+                (void)tx_init(mp_tx_data, false, false);
+                break;
 
-        case RADIO_STATE_CONTINUOUS_CARRIER:
-            continuous_carrier_init(false);
-            break;
+            case RADIO_STATE_ED:
+                ed_init(false);
+                break;
 
-        default:
-            assert(false);
+            case RADIO_STATE_CCA:
+                cca_init(false);
+                break;
+
+            case RADIO_STATE_CONTINUOUS_CARRIER:
+                continuous_carrier_init(false);
+                break;
+
+            default:
+                assert(false);
+        }
     }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_STARTED);
@@ -1756,6 +1785,8 @@ static void irq_bcmatch_state_rx(void)
     num_psdu_bytes      = nrf_radio_bcc_get() / 8;
     prev_num_psdu_bytes = num_psdu_bytes;
 
+    assert(num_psdu_bytes >= PHR_SIZE + FCF_SIZE);
+
     // If CRCERROR event is set, it means that events are handled out of order due to software
     // latency. Just skip this handler in this case - frame will be dropped.
     if (nrf_radio_event_get(NRF_RADIO_EVENT_CRCERROR))
@@ -1765,8 +1796,6 @@ static void irq_bcmatch_state_rx(void)
 
     if (!m_flags.rx_timeslot_requested)
     {
-        assert(num_psdu_bytes >= PHR_SIZE + FCF_SIZE);
-
         if (nrf_802154_rsch_timeslot_request(nrf_802154_rx_duration_get(
                 mp_current_rx_buffer->psdu[0],
                 ack_is_requested(mp_current_rx_buffer->psdu))))
@@ -2623,7 +2652,7 @@ radio_state_t nrf_802154_core_state_get(void)
 
 bool nrf_802154_core_sleep(nrf_802154_term_t term_lvl)
 {
-    bool result = nrf_802154_critical_section_enter();
+    bool result = critical_section_enter();
 
     if (result)
     {
@@ -2649,7 +2678,7 @@ bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
                              nrf_802154_notification_func_t notify_function,
                              bool                           notify_abort)
 {
-    bool result = nrf_802154_critical_section_enter();
+    bool result = critical_section_enter();
 
     if (result)
     {
@@ -2689,7 +2718,7 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
                               bool                           immediate,
                               nrf_802154_notification_func_t notify_function)
 {
-    bool result = nrf_802154_critical_section_enter();
+    bool result = critical_section_enter();
 
     if (result)
     {
@@ -2734,7 +2763,7 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
 
 bool nrf_802154_core_energy_detection(nrf_802154_term_t term_lvl, uint32_t time_us)
 {
-    bool result = nrf_802154_critical_section_enter();
+    bool result = critical_section_enter();
 
     if (result)
     {
@@ -2756,7 +2785,7 @@ bool nrf_802154_core_energy_detection(nrf_802154_term_t term_lvl, uint32_t time_
 
 bool nrf_802154_core_cca(nrf_802154_term_t term_lvl)
 {
-    bool result = nrf_802154_critical_section_enter();
+    bool result = critical_section_enter();
 
     if (result)
     {
@@ -2776,7 +2805,7 @@ bool nrf_802154_core_cca(nrf_802154_term_t term_lvl)
 
 bool nrf_802154_core_continuous_carrier(nrf_802154_term_t term_lvl)
 {
-    bool result = nrf_802154_critical_section_enter();
+    bool result = critical_section_enter();
 
     if (result)
     {
@@ -2796,13 +2825,13 @@ bool nrf_802154_core_continuous_carrier(nrf_802154_term_t term_lvl)
 
 bool nrf_802154_core_notify_buffer_free(uint8_t * p_data)
 {
-    rx_buffer_t * p_buffer = (rx_buffer_t *)p_data;
-    bool          result   = nrf_802154_critical_section_enter();
+    rx_buffer_t * p_buffer     = (rx_buffer_t *)p_data;
+    bool          in_crit_sect = critical_section_enter();
 
-    if (result)
+    p_buffer->free = true;
+
+    if (in_crit_sect)
     {
-        p_buffer->free = true;
-
         if (timeslot_is_granted())
         {
             switch (m_state)
@@ -2846,12 +2875,12 @@ bool nrf_802154_core_notify_buffer_free(uint8_t * p_data)
         nrf_802154_critical_section_exit();
     }
 
-    return result;
+    return true;
 }
 
 bool nrf_802154_core_channel_update(void)
 {
-    bool result = nrf_802154_critical_section_enter();
+    bool result = critical_section_enter();
 
     if (result)
     {
@@ -2912,7 +2941,7 @@ bool nrf_802154_core_channel_update(void)
 
 bool nrf_802154_core_cca_cfg_update(void)
 {
-    bool result = nrf_802154_critical_section_enter();
+    bool result = critical_section_enter();
 
     if (result)
     {

@@ -159,8 +159,6 @@ static void radio_critical_section_enter(void)
     if (nrf_802154_rsch_prec_is_approved(RSCH_PREC_RAAL))
     {
         NVIC_DisableIRQ(RADIO_IRQn);
-        __DSB();
-        __ISB();
     }
 }
 
@@ -219,6 +217,8 @@ static bool critical_section_enter(bool forced)
 
         nrf_802154_lp_timer_critical_section_enter();
         radio_critical_section_enter();
+        __DSB();
+        __ISB();
 
         m_critical_section_monitor++;
 

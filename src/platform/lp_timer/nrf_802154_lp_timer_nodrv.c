@@ -451,8 +451,6 @@ void nrf_802154_lp_timer_deinit(void)
 void nrf_802154_lp_timer_critical_section_enter(void)
 {
     NVIC_DisableIRQ(NRF_802154_RTC_IRQN);
-    __DSB();
-    __ISB();
 }
 
 void nrf_802154_lp_timer_critical_section_exit(void)
