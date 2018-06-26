@@ -621,7 +621,7 @@ void test_OnCrcOkEventStateRx_ShallPrepareAckAndSetStateToTxAckIfFrameFilteringS
     TEST_ASSERT_EQUAL(RADIO_STATE_TX_ACK, m_state);
 }
 
-void test_OnCrcOkEventStateRx_ShallResetRadioAndNotifyRxFrameIfAckRequestedAndTimeslotNotGranted(void)
+void test_OnCrcOkEventStateRx_ShallTerminateRxAndNotifyRxFrameIfAckRequestedAndTimeslotNotGranted(void)
 {
     uint8_t  expected_updated_size = PHR_SIZE + FCF_SIZE;
     uint16_t duration              = rand();
@@ -637,8 +637,7 @@ void test_OnCrcOkEventStateRx_ShallResetRadioAndNotifyRxFrameIfAckRequestedAndTi
     nrf_802154_rx_duration_get_ExpectAndReturn(0, true, duration);
     nrf_802154_rsch_timeslot_request_ExpectAndReturn(duration, false);
 
-    nrf_radio_power_set_Expect(false);
-    nrf_radio_power_set_Expect(true);
+    mock_rx_terminate();
     mock_received_frame_notify();
 
     irq_crcok_state_rx();

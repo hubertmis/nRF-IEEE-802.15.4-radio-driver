@@ -572,8 +572,6 @@ void test_OnBcmatchEventStateRx_TransactionShallBeAbortedIfHeaderPartFilteringFa
     nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_FRAME);
     nrf_802154_filter_frame_part_IgnoreArg_p_num_bytes();
 
-    nrf_802154_pib_promiscuous_get_ExpectAndReturn(false);
-
     mock_rx_terminate();
     mock_receive_begin(true, NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
                              NRF_RADIO_SHORT_END_DISABLE_MASK |
@@ -621,7 +619,7 @@ void test_OnBcmatchEventStateRx_ShallSetStateToRxFrameIfHeaderPartFilteringFails
     nrf_radio_bcc_get_ExpectAndReturn(expected_bcc);
     nrf_radio_event_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCERROR, false);
 
-    nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_FRAME);
+    nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_DEST_ADDR);
     nrf_802154_filter_frame_part_IgnoreArg_p_num_bytes();
 
     nrf_802154_pib_promiscuous_get_ExpectAndReturn(true);
@@ -694,13 +692,13 @@ void test_OnBcmatchEventStateRx_TimeslotShouldBeRequested(void)
     nrf_radio_bcc_get_ExpectAndReturn(expected_bcc);
     nrf_radio_event_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCERROR, false);
 
-    nrf_802154_rx_duration_get_ExpectAndReturn(m_test_rx_buffer.psdu[0], false, duration);
-    nrf_802154_rsch_timeslot_request_ExpectAndReturn(duration, true);
-
-    nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_FRAME);
+    nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_DEST_ADDR);
     nrf_802154_filter_frame_part_IgnoreArg_p_num_bytes();
 
     nrf_802154_pib_promiscuous_get_ExpectAndReturn(true);
+
+    nrf_802154_rx_duration_get_ExpectAndReturn(m_test_rx_buffer.psdu[0], false, duration);
+    nrf_802154_rsch_timeslot_request_ExpectAndReturn(duration, true);
 
     irq_bcmatch_state_rx();
 
@@ -715,11 +713,15 @@ void test_OnBcmatchEventStateRx_ShallResetRadioIfTimeslotNotGranted(void)
     nrf_radio_bcc_get_ExpectAndReturn(expected_bcc);
     nrf_radio_event_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCERROR, false);
 
+    nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_DEST_ADDR);
+    nrf_802154_filter_frame_part_IgnoreArg_p_num_bytes();
+
+    nrf_802154_pib_promiscuous_get_ExpectAndReturn(true);
+
     nrf_802154_rx_duration_get_ExpectAndReturn(m_test_rx_buffer.psdu[0], false, duration);
     nrf_802154_rsch_timeslot_request_ExpectAndReturn(duration, false);
 
-    nrf_radio_power_set_Expect(false);
-    nrf_radio_power_set_Expect(true);
+    mock_rx_terminate();
     nrf_802154_notify_receive_failed_Expect(NRF_802154_RX_ERROR_TIMESLOT_ENDED);
 
     irq_bcmatch_state_rx();
@@ -738,7 +740,7 @@ void test_OnBcmatchEventStateRx_ShallNotRequestTimeslotIfAlreadyGranted(void)
     nrf_radio_bcc_get_ExpectAndReturn(expected_bcc);
     nrf_radio_event_get_ExpectAndReturn(NRF_RADIO_EVENT_CRCERROR, false);
 
-    nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_FRAME);
+    nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_DEST_ADDR);
     nrf_802154_filter_frame_part_IgnoreArg_p_num_bytes();
 
     nrf_802154_pib_promiscuous_get_ExpectAndReturn(true);
@@ -925,8 +927,6 @@ void test_OnBcmatchEventStateRx_ShallClearPsduBeingReceivedFlagOnFailedFiltering
 
     nrf_802154_filter_frame_part_ExpectAndReturn(m_test_rx_buffer.psdu, NULL, NRF_802154_RX_ERROR_INVALID_FRAME);
     nrf_802154_filter_frame_part_IgnoreArg_p_num_bytes();
-
-    nrf_802154_pib_promiscuous_get_ExpectAndReturn(false);
 
     mock_rx_terminate();
     mock_receive_begin(true, NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |

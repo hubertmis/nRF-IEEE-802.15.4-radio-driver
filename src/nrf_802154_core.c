@@ -641,14 +641,7 @@ static bool ed_iter_setup(uint32_t time_us)
     }
     else
     {
-        if (timeslot_is_granted())
-        {
-            irq_deinit();
-            nrf_radio_reset();
-        }
-
-        nrf_fem_control_ppi_disable(NRF_FEM_CONTROL_LNA_PIN);
-        nrf_fem_control_pin_clear();
+        // Silently wait for a new timeslot
 
         m_ed_time_left = time_us;
 
@@ -1781,6 +1774,7 @@ static void irq_bcmatch_state_rx(void)
     uint8_t               prev_num_psdu_bytes;
     uint8_t               num_psdu_bytes;
     nrf_802154_rx_error_t filter_result;
+    bool                  frame_accepted = true;
 
     num_psdu_bytes      = nrf_radio_bcc_get() / 8;
     prev_num_psdu_bytes = num_psdu_bytes;
@@ -1792,25 +1786,6 @@ static void irq_bcmatch_state_rx(void)
     if (nrf_radio_event_get(NRF_RADIO_EVENT_CRCERROR))
     {
         return;
-    }
-
-    if (!m_flags.rx_timeslot_requested)
-    {
-        if (nrf_802154_rsch_timeslot_request(nrf_802154_rx_duration_get(
-                mp_current_rx_buffer->psdu[0],
-                ack_is_requested(mp_current_rx_buffer->psdu))))
-        {
-            m_flags.rx_timeslot_requested = true;
-        }
-        else
-        {
-            irq_deinit();
-            nrf_radio_reset();
-
-            nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_TIMESLOT_ENDED);
-
-            return;
-        }
     }
 
     if (!m_flags.frame_filtered)
@@ -1829,10 +1804,13 @@ static void irq_bcmatch_state_rx(void)
                 m_flags.frame_filtered = true;
             }
         }
-        else if (!nrf_802154_pib_promiscuous_get())
+        else if ((filter_result == NRF_802154_RX_ERROR_INVALID_FRAME) ||
+                 (!nrf_802154_pib_promiscuous_get()))
         {
             rx_terminate();
             rx_init(true);
+
+            frame_accepted = false;
 
             if ((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
                 FRAME_TYPE_ACK)
@@ -1843,6 +1821,23 @@ static void irq_bcmatch_state_rx(void)
         else
         {
             // Promiscuous mode, allow incorrect frames. Nothing to do here.
+        }
+    }
+
+    if ((!m_flags.rx_timeslot_requested) && (frame_accepted))
+    {
+        if (nrf_802154_rsch_timeslot_request(nrf_802154_rx_duration_get(
+                mp_current_rx_buffer->psdu[0],
+                ack_is_requested(mp_current_rx_buffer->psdu))))
+        {
+            m_flags.rx_timeslot_requested = true;
+        }
+        else
+        {
+            // Disable receiver and wait for a new timeslot.
+            rx_terminate();
+
+            nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_TIMESLOT_ENDED);
         }
     }
 }
@@ -1896,9 +1891,9 @@ static void irq_crcok_state_rx(void)
         ack_is_requested(p_received_psdu) &&
         !nrf_802154_rsch_timeslot_request(nrf_802154_rx_duration_get(0, true)))
     {
-        // Frame is destined to this node but there is no timeslot to transmit ACK
-        irq_deinit();
-        nrf_radio_reset();
+        // Frame is destined to this node but there is no timeslot to transmit ACK.
+        // Just disable receiver and wait for a new timeslot.
+        rx_terminate();
 
         rx_flags_clear();
 

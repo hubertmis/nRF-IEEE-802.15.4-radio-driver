@@ -204,17 +204,11 @@ void test_ed_begin_ShallDoNothingIfOutOfTimeslot(void)
     ed_init(true);
 }
 
-void test_ed_begin_ShallResetRadioIfTimeslotIsTooShort(void)
+void test_ed_begin_ShallSilentlyWaitIfTimeslotIsTooShort(void)
 {
     nrf_802154_rsch_timeslot_us_left_get_ExpectAndReturn(1);
 
     m_rsch_timeslot_is_granted = true;
-
-    nrf_radio_power_set_Expect(false);
-    nrf_radio_power_set_Expect(true);
-
-    nrf_fem_control_ppi_disable_Expect(NRF_FEM_CONTROL_LNA_PIN);
-    nrf_fem_control_pin_clear_Expect();
 
     ed_init(true);
 }
@@ -418,7 +412,7 @@ void test_edend_handler_ShallStartNextIterationOfEdIfEdDidNotEnd(void)
     irq_edend_state_ed();
 }
 
-void test_edend_handler_ShallResetRadioAndWaitForNextTimeslotIfCannotStartNextIteration(void)
+void test_edend_handler_ShallWaitForNextTimeslotIfCannotStartNextIteration(void)
 {
     uint8_t result = rand();
 
@@ -428,13 +422,6 @@ void test_edend_handler_ShallResetRadioAndWaitForNextTimeslotIfCannotStartNextIt
     nrf_radio_ed_sample_get_ExpectAndReturn(result);
 
     nrf_802154_rsch_timeslot_us_left_get_ExpectAndReturn(0);
-    m_rsch_timeslot_is_granted = true;
-
-    nrf_radio_power_set_Expect(false);
-    nrf_radio_power_set_Expect(true);
-
-    nrf_fem_control_ppi_disable_Expect(NRF_FEM_CONTROL_LNA_PIN);
-    nrf_fem_control_pin_clear_Expect();
 
     nrf_fem_control_ppi_disable_Expect(NRF_FEM_CONTROL_LNA_PIN);
     nrf_fem_control_timer_reset_Expect(NRF_FEM_CONTROL_LNA_PIN, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
