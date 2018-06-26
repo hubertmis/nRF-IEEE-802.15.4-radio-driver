@@ -98,6 +98,13 @@ typedef enum
     TIMESLOT_STATE_GRANTED
 } timeslot_state_t;
 
+/**@brief Define timer actions. */
+typedef enum
+{
+    TIMER_ACTION_EXTEND,
+    TIMER_ACTION_MARGIN,
+} timer_action_t;
+
 /***************************************************************************************************
  * @section Static variables.
  **************************************************************************************************/
@@ -120,6 +127,9 @@ static volatile bool m_continuous = false;
 /**@brief Defines if RAAL is currently in a timeslot. */
 static volatile timeslot_state_t m_timeslot_state;
 
+/**@brief Current action of the timer. */
+static timer_action_t m_timer_action;
+
 /**@brief Timer value for margin. */
 static uint32_t m_margin_cc;
 
@@ -139,11 +149,12 @@ static uint32_t m_start_rtc_ticks = 0;
 /**@brief Set timer on timeslot started. */
 static void timer_start(void)
 {
+    m_timer_action = TIMER_ACTION_EXTEND;
+    m_margin_cc    = m_timeslot_length - m_config.timeslot_safe_margin;
     nrf_timer_task_trigger(RAAL_TIMER, NRF_TIMER_TASK_STOP);
     nrf_timer_task_trigger(RAAL_TIMER, NRF_TIMER_TASK_CLEAR);
     nrf_timer_bit_width_set(RAAL_TIMER, NRF_TIMER_BIT_WIDTH_32);
     nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION, 0);
-    m_margin_cc = m_timeslot_length - m_config.timeslot_safe_margin;
 
     nrf_timer_task_trigger(RAAL_TIMER, NRF_TIMER_TASK_START);
     NVIC_EnableIRQ(RAAL_TIMER_IRQn);
@@ -171,12 +182,14 @@ static inline uint32_t timer_time_get(void)
  */
 static inline bool timer_is_set_to_margin(void)
 {
-    return m_timeslot_extend_tries > 0;
+    return m_timer_action == TIMER_ACTION_MARGIN;
 }
 
 /**@brief Set timer action to the timeslot margin. */
 static inline void timer_to_margin_set(void)
 {
+    m_timer_action = TIMER_ACTION_MARGIN;
+
     nrf_timer_event_clear(RAAL_TIMER, TIMER_CC_ACTION_EVENT);
     nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION, m_margin_cc);
     nrf_timer_int_enable(RAAL_TIMER, TIMER_CC_ACTION_INT);
@@ -418,6 +431,7 @@ static void timer_irq_handle(void)
             {
                 // We have reached maximum timeslot length.
                 timer_jitter_adjust();
+                timer_to_margin_set();
 
                 m_ret_param.callback_action = NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
             }
