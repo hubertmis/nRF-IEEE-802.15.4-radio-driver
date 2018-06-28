@@ -68,6 +68,18 @@ typedef enum
 } rsch_prec_t;
 
 /**
+ * @brief Priorities of the 802.15.4 radio operations.
+ */
+typedef enum
+{
+    RSCH_PRIO_IDLE,            ///< Priority used in the sleep state. With this priority RSCH releases all preconditions.
+    RSCH_PRIO_IDLE_LISTENING,  ///< Priority used during the idle listening procedure.
+    RSCH_PRIO_RX,              ///< Priority used when a frame is being received.
+    RSCH_PRIO_DETECT,          ///< Priority used to detect channel conditions (CCA, ED).
+    RSCH_PRIO_TX,              ///< Priority used to transmit a frame.
+} rsch_prio_t;
+
+/**
  * @brief Initialize Radio Scheduler.
  *
  * @note This function shall be called once, before any other function from this module.
