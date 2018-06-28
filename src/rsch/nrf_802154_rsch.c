@@ -5,6 +5,7 @@
 #include <nrf.h>
 
 #include "nrf_802154_debug.h"
+#include "nrf_802154_priority_drop.h"
 #include "platform/clock/nrf_802154_clock.h"
 #include "raal/nrf_raal_api.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
@@ -148,7 +149,7 @@ static inline void all_prec_request(void)
 
             if (new_prio == RSCH_PRIO_IDLE)
             {
-                nrf_802154_clock_hfclk_stop();
+                nrf_802154_priority_drop_hfclk_stop();
                 prec_approved_prio_set(RSCH_PREC_HFCLK, RSCH_PRIO_IDLE);
 
                 nrf_raal_continuous_mode_exit();
@@ -156,6 +157,7 @@ static inline void all_prec_request(void)
             }
             else
             {
+                nrf_802154_priority_drop_hfclk_stop_terminate();
                 nrf_802154_clock_hfclk_start();
                 nrf_raal_continuous_mode_enter();
             }

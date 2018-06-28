@@ -43,9 +43,9 @@
 #include "nrf_802154.h"
 #include "nrf_802154_config.h"
 #include "nrf_802154_core.h"
-#include "nrf_802154_rsch.h"
 #include "nrf_802154_rx_buffer.h"
 #include "hal/nrf_egu.h"
+#include "platform/clock/nrf_802154_clock.h"
 
 
 /** Size of notification queue.
@@ -68,9 +68,9 @@
 #define NTF_TASK  NRF_EGU_TASK_TRIGGER0               ///< Label of notification task.
 #define NTF_EVENT NRF_EGU_EVENT_TRIGGERED0            ///< Label of notification event.
 
-#define TIMESLOT_EXIT_INT   NRF_EGU_INT_TRIGGERED1    ///< Label of timeslot exit interrupt.
-#define TIMESLOT_EXIT_TASK  NRF_EGU_TASK_TRIGGER1     ///< Label of timeslot exit task.
-#define TIMESLOT_EXIT_EVENT NRF_EGU_EVENT_TRIGGERED1  ///< Label of timeslot exit event.
+#define HFCLK_STOP_INT   NRF_EGU_INT_TRIGGERED1       ///< Label of HFClk stop interrupt.
+#define HFCLK_STOP_TASK  NRF_EGU_TASK_TRIGGER1        ///< Label of HFClk stop task.
+#define HFCLK_STOP_EVENT NRF_EGU_EVENT_TRIGGERED1     ///< Label of HFClk stop event.
 
 #define REQ_INT   NRF_EGU_INT_TRIGGERED2              ///< Label of request interrupt.
 #define REQ_TASK  NRF_EGU_TASK_TRIGGER2               ///< Label of request task.
@@ -431,7 +431,7 @@ void nrf_802154_swi_init(void)
     m_ntf_r_ptr = 0;
     m_ntf_w_ptr = 0;
 
-    nrf_egu_int_enable(SWI_EGU, NTF_INT | TIMESLOT_EXIT_INT |  REQ_INT);
+    nrf_egu_int_enable(SWI_EGU, NTF_INT | HFCLK_STOP_INT |  REQ_INT);
 
     NVIC_SetPriority(SWI_IRQn, NRF_802154_SWI_PRIORITY);
     NVIC_ClearPendingIRQ(SWI_IRQn);
@@ -527,16 +527,16 @@ void nrf_802154_swi_notify_cca_failed(nrf_802154_cca_error_t error)
     ntf_exit();
 }
 
-void nrf_802154_swi_timeslot_exit(void)
+void nrf_802154_swi_hfclk_stop(void)
 {
-    assert(!nrf_egu_event_check(SWI_EGU, TIMESLOT_EXIT_EVENT));
+    assert(!nrf_egu_event_check(SWI_EGU, HFCLK_STOP_EVENT));
 
-    nrf_egu_task_trigger(SWI_EGU, TIMESLOT_EXIT_TASK);
+    nrf_egu_task_trigger(SWI_EGU, HFCLK_STOP_TASK);
 }
 
-void nrf_802154_swi_timeslot_exit_terminate(void)
+void nrf_802154_swi_hfclk_stop_terminate(void)
 {
-    nrf_egu_event_clear(SWI_EGU, TIMESLOT_EXIT_EVENT);
+    nrf_egu_event_clear(SWI_EGU, HFCLK_STOP_EVENT);
 }
 
 void nrf_802154_swi_sleep(nrf_802154_term_t term_lvl, bool * p_result)
@@ -737,11 +737,11 @@ void SWI_IRQHandler(void)
         }
     }
 
-    if (nrf_egu_event_check(SWI_EGU, TIMESLOT_EXIT_EVENT))
+    if (nrf_egu_event_check(SWI_EGU, HFCLK_STOP_EVENT))
     {
-        nrf_802154_rsch_continuous_mode_exit();
+        nrf_802154_clock_hfclk_stop();
 
-        nrf_egu_event_clear(SWI_EGU, TIMESLOT_EXIT_EVENT);
+        nrf_egu_event_clear(SWI_EGU, HFCLK_STOP_EVENT);
     }
 
     if (nrf_egu_event_check(SWI_EGU, REQ_EVENT))

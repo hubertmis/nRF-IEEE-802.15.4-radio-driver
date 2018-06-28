@@ -49,7 +49,6 @@
 #include "nrf_802154_debug.h"
 #include "nrf_802154_notification.h"
 #include "nrf_802154_pib.h"
-#include "nrf_802154_priority_drop.h"
 #include "nrf_802154_procedures_duration.h"
 #include "nrf_802154_revision.h"
 #include "nrf_802154_rsch.h"
@@ -947,7 +946,6 @@ static void falling_asleep_terminate(void)
 /** Terminate Sleep procedure. */
 static void sleep_terminate(void)
 {
-    nrf_802154_priority_drop_timeslot_exit_terminate();
     nrf_802154_rsch_continuous_mode_enter();
 }
 
@@ -1312,7 +1310,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 /** Enter Sleep state. */
 static void sleep_init(void)
 {
-    nrf_802154_priority_drop_timeslot_exit();
+    nrf_802154_rsch_continuous_mode_exit();
     m_rsch_timeslot_is_granted = false;
     nrf_802154_timer_coord_stop();
 }
