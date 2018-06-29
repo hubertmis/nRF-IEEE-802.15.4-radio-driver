@@ -87,6 +87,9 @@ void nrf_802154_hp_timer_deinit(void)
 void nrf_802154_hp_timer_start(void)
 {
 #if !RAAL_SOFTDEVICE && !RAAL_SIMULATOR
+    nrf_timer_mode_set(TIMER, NRF_TIMER_MODE_TIMER);
+    nrf_timer_bit_width_set(TIMER, NRF_TIMER_BIT_WIDTH_32);
+    nrf_timer_frequency_set(TIMER, NRF_TIMER_FREQ_1MHz);
     nrf_timer_task_trigger(TIMER, NRF_TIMER_TASK_START);
 #endif // !RAAL_SOFTDEVICE && !RAAL_SIMULATOR
 }
