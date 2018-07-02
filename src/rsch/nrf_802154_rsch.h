@@ -72,11 +72,13 @@ typedef enum
  */
 typedef enum
 {
-    RSCH_PRIO_IDLE,            ///< Priority used in the sleep state. With this priority RSCH releases all preconditions.
-    RSCH_PRIO_IDLE_LISTENING,  ///< Priority used during the idle listening procedure.
-    RSCH_PRIO_RX,              ///< Priority used when a frame is being received.
-    RSCH_PRIO_DETECT,          ///< Priority used to detect channel conditions (CCA, ED).
-    RSCH_PRIO_TX,              ///< Priority used to transmit a frame.
+    RSCH_PRIO_IDLE,                ///< Priority used in the sleep state. With this priority RSCH releases all preconditions.
+    RSCH_PRIO_IDLE_LISTENING,      ///< Priority used during the idle listening procedure.
+    RSCH_PRIO_RX,                  ///< Priority used when a frame is being received.
+    RSCH_PRIO_DETECT,              ///< Priority used to detect channel conditions (CCA, ED).
+    RSCH_PRIO_TX,                  ///< Priority used to transmit a frame.
+
+    RSCH_PRIO_MAX = RSCH_PRIO_TX,  ///< Maximal priority available in the RSCH module.
 } rsch_prio_t;
 
 /**

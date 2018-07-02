@@ -11,18 +11,14 @@
 
 #define PREC_RAMP_UP_TIME 300  ///< Ramp-up time of preconditions [us]. 300 is worst case for HFclock
 
-typedef enum
-{
-    RSCH_PREC_STATE_IDLE,
-    RSCH_PREC_STATE_REQUESTED,
-    RSCH_PREC_STATE_APPROVED,
-} rsch_prec_state_t;
-
-static volatile uint8_t           m_mutex;                      ///< Mutex for notyfying core.
-static volatile uint8_t           m_mutex_monitor;              ///< Mutex monitor, incremented every failed mutex lock.
-static volatile bool              m_last_notified_approved;     ///< Last reported state was approved.
-static volatile rsch_prec_state_t m_prec_states[RSCH_PREC_CNT]; ///< State of all preconditions.
-static bool                       m_in_cont_mode;               ///< If RSCH operates in continuous mode.
+static volatile uint8_t     m_ntf_mutex;                      ///< Mutex for notyfying core.
+static volatile uint8_t     m_ntf_mutex_monitor;              ///< Mutex monitor, incremented every failed ntf mutex lock.
+static volatile uint8_t     m_req_mutex;                      ///< Mutex for requesting preconditions.
+static volatile uint8_t     m_req_mutex_monitor;              ///< Mutex monitor, incremented every failed req mutex lock.
+static volatile rsch_prio_t m_last_notified_prio;             ///< Last reported approved priority level.
+static volatile rsch_prio_t m_approved_prios[RSCH_PREC_CNT];  ///< Priority levels approved by each precondition.
+static rsch_prio_t          m_requested_prio;                 ///< Priority requested from all preconditions.
+static bool                 m_in_cont_mode;                   ///< If RSCH operates in continuous mode.
 
 static bool               m_delayed_timeslot_is_scheduled;  ///< If delayed timeslot is scheduled at the moment.
 static uint32_t           m_delayed_timeslot_t0;            ///< Time base of the delayed timeslot trigger time.
@@ -31,23 +27,26 @@ static nrf_802154_timer_t m_timer;                          ///< Timer used to t
 
 /** @brief Non-blocking mutex for notifying core.
  *
+ *  @param[inout]  p_mutex          Pointer to the mutex data.
+ *  @param[inout]  p_mutex_monitor  Pointer to the mutex monitor counter.
+ *
  *  @retval  true   Mutex was acquired.
  *  @retval  false  Mutex could not be acquired.
  */
-static inline bool mutex_trylock(void)
+static inline bool mutex_trylock(volatile uint8_t * p_mutex, volatile uint8_t * p_mutex_monitor)
 {
     do
     {
-        uint8_t mutex_value = __LDREXB(&m_mutex);
+        uint8_t mutex_value = __LDREXB(p_mutex);
 
         if (mutex_value)
         {
             __CLREX();
 
-            m_mutex_monitor++;
+            (*p_mutex_monitor)++;
             return false;
         }
-    } while (__STREXB(1, &m_mutex));
+    } while (__STREXB(1, p_mutex));
 
     __DMB();
 
@@ -55,10 +54,10 @@ static inline bool mutex_trylock(void)
 }
 
 /** @brief Release mutex. */
-static inline void mutex_unlock(void)
+static inline void mutex_unlock(volatile uint8_t * p_mutex)
 {
     __DMB();
-    m_mutex = 0;
+    *p_mutex = 0;
 }
 
 /** @brief Check if any precondition should be requested at the moment for delayed timeslot.
@@ -81,96 +80,89 @@ static bool any_prec_should_be_requested_for_delayed_timeslot(void)
             !nrf_802154_timer_sched_time_is_in_future(now, t0, dt));
 }
 
-/** @brief Set RSCH_PREC_STATE_APPROVED state on given precondition @p prec only if
- *         its current state is other than RSCH_PREC_STATE_IDLE.
+static rsch_prio_t required_prio_lvl_get(void)
+{
+    rsch_prio_t result;
+
+    if (any_prec_should_be_requested_for_delayed_timeslot())
+    {
+        result = RSCH_PRIO_MAX;
+    }
+    else if (m_in_cont_mode)
+    {
+        result = RSCH_PRIO_MAX;
+    }
+    else
+    {
+        result = RSCH_PRIO_IDLE;
+    }
+
+    return result;
+}
+
+/** @brief Set approved priority level @p prio on given precondition @p prec.
+ *
+ * When requested priority level equals to the @ref RSCH_PRIO_IDLE this function will approve only
+ * the @ref RSCH_PRIO_IDLE priority level and drop other approved levels silently.
  * 
  * @param[in]  prec    Precondition which state will be changed.
+ * @param[in]  prio    Approved priority level for given precondition.
  */
-static inline void prec_approve(rsch_prec_t prec)
+static inline void prec_approved_prio_set(rsch_prec_t prec, rsch_prio_t prio)
 {
-    do
+    assert(prec <= RSCH_PREC_CNT);
+
+    if ((m_requested_prio == RSCH_PRIO_IDLE) && (prio != RSCH_PRIO_IDLE))
     {
-        rsch_prec_state_t old_state = (rsch_prec_state_t) __LDREXB((uint8_t*)&m_prec_states[prec]);
+        // Ignore approved precondition - it was not requested.
+        return;
+    }
 
-        assert(old_state != RSCH_PREC_STATE_APPROVED);
+    assert((m_approved_prios[prec] != prio) || (prio == RSCH_PRIO_IDLE));
 
-        if (old_state == RSCH_PREC_STATE_IDLE)
-        {
-            __CLREX();
-            return;
-        }
-    } while (__STREXB((uint8_t)RSCH_PREC_STATE_APPROVED, (uint8_t*)&m_prec_states[prec]));
-}
-
-/** @brief Set RSCH_PREC_STATE_REQUESTED state on given precondition @p prec only if
- *         its current state is RSCH_PREC_STATE_APPROVED.
- *
- * @param[in]  prec    Precondition which state will be changed.
- */
-static inline void prec_deny(rsch_prec_t prec)
-{
-    do
-    {
-        rsch_prec_state_t old_state = (rsch_prec_state_t) __LDREXB((uint8_t*)&m_prec_states[prec]);
-
-        assert(old_state != RSCH_PREC_STATE_REQUESTED);
-
-        if (old_state != RSCH_PREC_STATE_APPROVED)
-        {
-            __CLREX();
-            return;
-        }
-    } while (__STREXB((uint8_t)RSCH_PREC_STATE_REQUESTED, (uint8_t*)&m_prec_states[prec]));
-}
-
-/** @brief Set RSCH_PREC_STATE_REQUESTED state on given precondition @p prec only if
- *         its current state is RSCH_PREC_STATE_IDLE.
- *
- * @param[in]  prec    Precondition which state will be changed.
- *
- * @retval true   Precondition changed state to requested.
- * @retval false  Precondition cannot change state to requested due to invalid state.
- */
-static inline bool prec_request(rsch_prec_t prec)
-{
-    do
-    {
-        rsch_prec_state_t old_state = (rsch_prec_state_t) __LDREXB((uint8_t*)&m_prec_states[prec]);
-
-        if (old_state != RSCH_PREC_STATE_IDLE)
-        {
-            __CLREX();
-            return false;
-        }
-    } while (__STREXB((uint8_t)RSCH_PREC_STATE_REQUESTED, (uint8_t*)&m_prec_states[prec]));
-
-    return true;
-}
-
-/** @brief Set RSCH_PREC_STATE_IDLE state on given precondition @p prec.
- * 
- * @param[in]  prec    Precondition which state will be changed.
- */
-static inline void prec_release(rsch_prec_t prec)
-{
-    assert(m_prec_states[prec] != RSCH_PREC_STATE_IDLE);
-    m_prec_states[prec] = RSCH_PREC_STATE_IDLE;
-    __CLREX();
+    m_approved_prios[prec] = prio;
 }
 
 /** @brief Request all preconditions.
  */
 static inline void all_prec_request(void)
 {
-    if (prec_request(RSCH_PREC_HFCLK))
-    {
-        nrf_802154_clock_hfclk_start();
-    }
+    rsch_prio_t prev_prio;
+    rsch_prio_t new_prio;
+    uint8_t     monitor;
 
-    if (prec_request(RSCH_PREC_RAAL))
+    do
     {
-        nrf_raal_continuous_mode_enter();
-    }
+        if (!mutex_trylock(&m_req_mutex, &m_req_mutex_monitor))
+        {
+            return;
+        }
+
+        monitor   = m_req_mutex_monitor;
+        prev_prio = m_requested_prio;
+        new_prio  = required_prio_lvl_get();
+
+        if (prev_prio != new_prio)
+        {
+            m_requested_prio = new_prio;
+
+            if (new_prio == RSCH_PRIO_IDLE)
+            {
+                nrf_802154_clock_hfclk_stop();
+                prec_approved_prio_set(RSCH_PREC_HFCLK, RSCH_PRIO_IDLE);
+
+                nrf_raal_continuous_mode_exit();
+                prec_approved_prio_set(RSCH_PREC_RAAL, RSCH_PRIO_IDLE);
+            }
+            else
+            {
+                nrf_802154_clock_hfclk_start();
+                nrf_raal_continuous_mode_enter();
+            }
+        }
+
+        mutex_unlock(&m_req_mutex);
+    } while (monitor != m_req_mutex_monitor);
 }
 
 /** @brief Release all preconditions if not needed.
@@ -180,50 +172,38 @@ static inline void all_prec_request(void)
  */
 static inline void all_prec_release(void)
 {
-    if (!m_in_cont_mode && !any_prec_should_be_requested_for_delayed_timeslot())
-    {
-        prec_release(RSCH_PREC_HFCLK);
-        nrf_802154_clock_hfclk_stop();
-
-        prec_release(RSCH_PREC_RAAL);
-        nrf_raal_continuous_mode_exit();
-    }
+    all_prec_request();
 }
 
-/** @brief Check if all preconditions are met.
+/** @brief Get currently approved priority level.
  *
- * @retval true   All preconditions are met.
- * @retval false  At least one precondition is not met.
+ * @return Maximal priority level approved by all radio preconditions.
  */
-static inline bool all_prec_are_approved(void)
+static inline rsch_prio_t approved_prio_lvl_get(void)
 {
+    rsch_prio_t result = RSCH_PRIO_MAX;
+
     for (uint32_t i = 0; i < RSCH_PREC_CNT; i++)
     {
-        if (m_prec_states[i] != RSCH_PREC_STATE_APPROVED)
+        if (m_approved_prios[i] < result)
         {
-            return false;
+            result = m_approved_prios[i];
         }
     }
 
-    return true;
+    return result;
 }
 
-/** @brief Check if all preconditions are requested or met.
+/** @brief Check if all preconditions are requested or met at given priority level or higher.
  *
- * @retval true   All preconditions are requested or met.
- * @retval false  At least one precondition is idle.
+ * @param[in]  prio  Minimal priority level requested from preconditions.
+ *
+ * @retval true   All preconditions are requested or met at given or higher level.
+ * @retval false  At least one precondition is requested at lower level than required.
  */
-static inline bool all_prec_are_requested(void)
+static inline bool requested_prio_lvl_is_at_least(rsch_prio_t prio)
 {
-    for (uint32_t i = 0; i < RSCH_PREC_CNT; i++)
-    {
-        if (m_prec_states[i] == RSCH_PREC_STATE_IDLE)
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return m_requested_prio >= prio;
 }
 
 
@@ -231,28 +211,29 @@ static inline bool all_prec_are_requested(void)
  */
 static inline void notify_core(void)
 {
-    bool    notify_approved;
-    uint8_t temp_mon;
+    rsch_prio_t approved_prio_lvl;
+    uint8_t     temp_mon;
 
     do
     {
-        if (!mutex_trylock())
+        if (!mutex_trylock(&m_ntf_mutex, &m_ntf_mutex_monitor))
         {
             return;
         }
 
-        /* It is possible that preemption is not detected (m_mutex_monitor is read after acquiring mutex).
-         * It is not a problem because we will call proper handler function requested by preempting context.
-         * Avoiding this race would generate one additional iteration without any effect.
+        /* It is possible that preemption is not detected (m_ntf_mutex_monitor is read after
+         * acquiring mutex). It is not a problem because we will call proper handler function
+         * requested by preempting context. Avoiding this race would generate one additional
+         * iteration without any effect.
          */
-        temp_mon        = m_mutex_monitor;
-        notify_approved = all_prec_are_approved();
+        temp_mon          = m_ntf_mutex_monitor;
+        approved_prio_lvl = approved_prio_lvl_get();
 
-        if (m_in_cont_mode && (m_last_notified_approved != notify_approved))
+        if (m_in_cont_mode && (m_last_notified_prio != approved_prio_lvl))
         {
-            m_last_notified_approved = notify_approved;
+            m_last_notified_prio = approved_prio_lvl;
 
-            if (notify_approved)
+            if (approved_prio_lvl > RSCH_PRIO_IDLE)
             {
                 nrf_802154_rsch_prec_approved();
             }
@@ -262,8 +243,8 @@ static inline void notify_core(void)
             }
         }
 
-        mutex_unlock();
-    } while(temp_mon != m_mutex_monitor);
+        mutex_unlock(&m_ntf_mutex);
+    } while(temp_mon != m_ntf_mutex_monitor);
 }
 
 /** Timer callback used to trigger delayed timeslot.
@@ -278,7 +259,7 @@ static void delayed_timeslot_start(void * p_context)
 
     m_delayed_timeslot_is_scheduled = false;
 
-    if (all_prec_are_approved())
+    if (approved_prio_lvl_get() > RSCH_PRIO_IDLE)
     {
         nrf_802154_rsch_delayed_timeslot_started();
     }
@@ -320,21 +301,22 @@ void nrf_802154_rsch_init(void)
 {
     nrf_raal_init();
 
-    m_mutex                         = 0;
-    m_last_notified_approved        = false;
+    m_ntf_mutex                     = 0;
+    m_req_mutex                     = 0;
+    m_last_notified_prio            = RSCH_PRIO_IDLE;
     m_in_cont_mode                  = false;
     m_delayed_timeslot_is_scheduled = false;
+    m_requested_prio                = RSCH_PRIO_IDLE;
 
     for (uint32_t i = 0; i < RSCH_PREC_CNT; i++)
     {
-        m_prec_states[i] = RSCH_PREC_STATE_IDLE;
+        m_approved_prios[i] = RSCH_PRIO_IDLE;
     }
 }
 
 void nrf_802154_rsch_uninit(void)
 {
     nrf_802154_timer_sched_remove(&m_timer);
-
     nrf_raal_uninit();
 }
 
@@ -360,7 +342,7 @@ void nrf_802154_rsch_continuous_mode_exit(void)
 
     all_prec_release();
     notify_core();
-    m_last_notified_approved = false;
+    m_last_notified_prio = RSCH_PRIO_IDLE;
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_CONTINUOUS_EXIT);
 }
@@ -368,7 +350,7 @@ void nrf_802154_rsch_continuous_mode_exit(void)
 bool nrf_802154_rsch_prec_is_approved(rsch_prec_t prec)
 {
     assert(prec < RSCH_PREC_CNT);
-    return m_prec_states[prec] == RSCH_PREC_STATE_APPROVED;
+    return m_approved_prios[prec] > RSCH_PRIO_IDLE;
 }
 
 bool nrf_802154_rsch_timeslot_request(uint32_t length_us)
@@ -404,7 +386,8 @@ bool nrf_802154_rsch_delayed_timeslot_request(uint32_t t0, uint32_t dt, uint32_t
 
         result = true;
     }
-    else if (all_prec_are_requested() && nrf_802154_timer_sched_time_is_in_future(now, t0, dt))
+    else if (requested_prio_lvl_is_at_least(RSCH_PRIO_MAX) &&
+             nrf_802154_timer_sched_time_is_in_future(now, t0, dt))
     {
         m_delayed_timeslot_is_scheduled = true;
         m_delayed_timeslot_t0           = t0;
@@ -440,8 +423,7 @@ void nrf_raal_timeslot_started(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RSCH_TIMESLOT_STARTED);
 
-    prec_approve(RSCH_PREC_RAAL);
-
+    prec_approved_prio_set(RSCH_PREC_RAAL, RSCH_PRIO_MAX);
     notify_core();
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_TIMESLOT_STARTED);
@@ -451,8 +433,7 @@ void nrf_raal_timeslot_ended(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RSCH_TIMESLOT_ENDED);
 
-    prec_deny(RSCH_PREC_RAAL);
-
+    prec_approved_prio_set(RSCH_PREC_RAAL, RSCH_PRIO_IDLE);
     notify_core();
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_TIMESLOT_ENDED);
@@ -460,7 +441,6 @@ void nrf_raal_timeslot_ended(void)
 
 void nrf_802154_clock_hfclk_ready(void)
 {
-    prec_approve(RSCH_PREC_HFCLK);
-
+    prec_approved_prio_set(RSCH_PREC_HFCLK, RSCH_PRIO_MAX);
     notify_core();
 }
