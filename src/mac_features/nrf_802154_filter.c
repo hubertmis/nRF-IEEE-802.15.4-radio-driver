@@ -162,7 +162,7 @@ static nrf_802154_rx_error_t dst_addressing_end_offset_get_2006(const uint8_t * 
             break;
 
         case DEST_ADDR_TYPE_NONE:
-            if (frame_type == FRAME_TYPE_BEACON)
+            if (nrf_802154_pib_pan_coord_get() || (frame_type == FRAME_TYPE_BEACON))
             {
                 switch (p_psdu[SRC_ADDR_TYPE_OFFSET] & SRC_ADDR_TYPE_MASK)
                 {
@@ -342,6 +342,11 @@ static bool dst_short_addr_check(const uint8_t * p_psdu)
     {
         result = true;
     }
+    else if (DEST_ADDR_TYPE_NONE == (p_psdu[DEST_ADDR_TYPE_OFFSET] & DEST_ADDR_TYPE_MASK) &&
+             nrf_802154_pib_pan_coord_get())
+    {
+        result = true;
+    }
     else
     {
         result = false;
@@ -369,6 +374,11 @@ static bool dst_extended_addr_check(const uint8_t *p_psdu)
         result = true;
     }
     else if (FRAME_TYPE_BEACON == (p_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK))
+    {
+        result = true;
+    }
+    else if (DEST_ADDR_TYPE_NONE == (p_psdu[DEST_ADDR_TYPE_OFFSET] & DEST_ADDR_TYPE_MASK) &&
+             nrf_802154_pib_pan_coord_get())
     {
         result = true;
     }

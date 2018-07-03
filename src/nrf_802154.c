@@ -486,6 +486,16 @@ bool nrf_802154_auto_ack_get(void)
     return nrf_802154_pib_auto_ack_get();
 }
 
+bool nrf_802154_pan_coord_get(void)
+{
+    return nrf_802154_pib_pan_coord_get();
+}
+
+void nrf_802154_pan_coord_set(bool enabled)
+{
+    nrf_802154_pib_pan_coord_set(enabled);
+}
+
 void nrf_802154_auto_pending_bit_set(bool enabled)
 {
     nrf_802154_ack_pending_bit_set(enabled);

@@ -895,6 +895,23 @@ void nrf_802154_auto_ack_set(bool enabled);
 bool nrf_802154_auto_ack_get(void);
 
 /**
+ * @brief Notify driver that radio is configured as the PAN coordinator.
+ *
+ * @note That information is used for packet filtering.
+ *
+ * @param[in]  enabled  If radio is configured as the PAN coordinator.
+ */
+void nrf_802154_pan_coord_set(bool enabled);
+
+/**
+ * @brief Check if radio is configured as the PAN coordinator.
+ *
+ * @retval  true   If radio is configured as the PAN coordinator.
+ * @retval  false  If radio is not configured as the PAN coordinator.
+ */
+bool nrf_802154_pan_coord_get(void);
+
+/**
  * @brief Enable or disable setting pending bit in automatically transmitted ACK frames.
  *
  * @note Setting a pending bit in automatically transmitted ACK frames is enabled by default.
