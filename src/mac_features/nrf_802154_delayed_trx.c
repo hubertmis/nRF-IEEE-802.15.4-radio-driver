@@ -118,7 +118,7 @@ bool nrf_802154_delayed_trx_transmit(const uint8_t * p_data,
                                                      cca,
                                                      p_data[ACK_REQUEST_OFFSET] & ACK_REQUEST_BIT);
 
-        result = nrf_802154_rsch_delayed_timeslot_request(t0, dt, timeslot_length);
+        result = nrf_802154_rsch_delayed_timeslot_request(t0, dt, timeslot_length, RSCH_PRIO_MAX);
 
         if (!result)
         {

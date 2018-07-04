@@ -55,95 +55,7 @@ static volatile uint8_t m_critical_section_monitor;                  ///< Monito
 static volatile uint8_t m_nested_critical_section_counter;           ///< Counter of nested critical sections
 static volatile int8_t  m_nested_critical_section_allowed_priority;  ///< Indicator if nested critical sections are currently allowed
 
-typedef enum
-{
-    RSCH_EVT_NONE,
-    RSCH_EVT_STARTED,
-    RSCH_EVT_ENDED,
-} rsch_evt_t;
 
-static volatile uint8_t m_rsch_pending_evt;  ///< Indicator of pending RSCH event.
-
-
-/***************************************************************************************************
- * @section RSCH pending events management
- **************************************************************************************************/
-
-static void rsch_pending_evt_set(rsch_evt_t evt)
-{
-    rsch_evt_t curr_evt;
-    rsch_evt_t new_evt;
-    uint8_t    evt_value;
-
-    do
-    {
-        evt_value = __LDREXB(&m_rsch_pending_evt);
-        curr_evt  = (rsch_evt_t)evt_value;
-
-        switch (curr_evt)
-        {
-        case RSCH_EVT_NONE:
-            new_evt = evt;
-            break;
-
-        case RSCH_EVT_ENDED:
-            assert(evt == RSCH_EVT_STARTED);
-            new_evt = RSCH_EVT_NONE;
-            break;
-
-        case RSCH_EVT_STARTED:
-            assert(evt == RSCH_EVT_ENDED);
-            new_evt = RSCH_EVT_NONE;
-            break;
-
-        default:
-            assert(false);
-        }
-
-        evt_value = (uint8_t)new_evt;
-    } while (__STREXB(evt_value, &m_rsch_pending_evt));
-}
-
-static rsch_evt_t rsch_pending_evt_clear(void)
-{
-    rsch_evt_t evt;
-    uint8_t    evt_value;
-
-    do
-    {
-        evt_value = __LDREXB(&m_rsch_pending_evt);
-        evt       = (rsch_evt_t)evt_value;
-
-        evt_value = RSCH_EVT_NONE;
-    } while (__STREXB(evt_value, &m_rsch_pending_evt));
-
-    return evt;
-}
-
-static bool rsch_pending_evt_is_none(void)
-{
-    return (rsch_evt_t)m_rsch_pending_evt == RSCH_EVT_NONE;
-}
-
-static void rsch_evt_process(rsch_evt_t evt)
-{
-    switch (evt)
-    {
-        case RSCH_EVT_NONE:
-            break;
-
-        case RSCH_EVT_STARTED:
-            nrf_802154_critical_section_rsch_prec_approved();
-            break;
-
-        case RSCH_EVT_ENDED:
-            nrf_802154_critical_section_rsch_prec_denied();
-            break;
-
-        default:
-            assert(false);
-    }
-}
 
 /***************************************************************************************************
  * @section Critical sections management
@@ -156,7 +68,7 @@ static void rsch_evt_process(rsch_evt_t evt)
  */
 static void radio_critical_section_enter(void)
 {
-    if (nrf_802154_rsch_prec_is_approved(RSCH_PREC_RAAL))
+    if (nrf_802154_rsch_prec_is_approved(RSCH_PREC_RAAL, RSCH_PRIO_MIN_APPROVED))
     {
         NVIC_DisableIRQ(RADIO_IRQn);
     }
@@ -169,7 +81,7 @@ static void radio_critical_section_enter(void)
  */
 static void radio_critical_section_exit(void)
 {
-    if (nrf_802154_rsch_prec_is_approved(RSCH_PREC_RAAL))
+    if (nrf_802154_rsch_prec_is_approved(RSCH_PREC_RAAL, RSCH_PRIO_MIN_APPROVED))
     {
         NVIC_EnableIRQ(RADIO_IRQn);
     }
@@ -215,6 +127,7 @@ static bool critical_section_enter(bool forced)
         }
         while (__STREXB(cnt + 1, &m_nested_critical_section_counter));
 
+        nrf_802154_critical_section_rsch_enter();
         nrf_802154_lp_timer_critical_section_enter();
         radio_critical_section_enter();
         __DSB();
@@ -230,19 +143,13 @@ static bool critical_section_enter(bool forced)
 
 static void critical_section_exit(void)
 {
-    uint8_t     cnt      = m_nested_critical_section_counter;
-    rsch_evt_t  rsch_evt = RSCH_EVT_NONE;
+    uint8_t     cnt = m_nested_critical_section_counter;
     uint8_t     monitor;
     uint8_t     atomic_cnt;
     static bool exiting_crit_sect;
     bool        result;
 
     assert(cnt > 0);
-
-    if (cnt == 1)
-    {
-        rsch_evt = rsch_pending_evt_clear();
-    }
 
     do
     {
@@ -255,7 +162,7 @@ static void critical_section_exit(void)
             (void)exiting_crit_sect;
             exiting_crit_sect = true;
 
-            rsch_evt_process(rsch_evt);
+            nrf_802154_critical_section_rsch_exit();
             radio_critical_section_exit();
             nrf_802154_lp_timer_critical_section_exit();
 
@@ -273,10 +180,9 @@ static void critical_section_exit(void)
         // change of state or critical section was visited by higher priority IRQ meantime.
         if (cnt == 1)
         {
-            rsch_evt = rsch_pending_evt_clear();
-
             // Check if critical section must be exited again.
-            if ((rsch_evt != RSCH_EVT_NONE) || (monitor != m_critical_section_monitor))
+            if (nrf_802154_critical_section_rsch_event_is_pending() ||
+                (monitor != m_critical_section_monitor))
             {
                 result = critical_section_enter(false);
                 assert(result);
@@ -379,47 +285,5 @@ uint32_t nrf_802154_critical_section_active_vector_priority_get(void)
     active_priority = NVIC_GetPriority(irq_number);
 
     return active_priority;
-}
-
-/***************************************************************************************************
- * @section RSCH callbacks
- **************************************************************************************************/
-
-void nrf_802154_rsch_prec_approved(void)
-{
-    bool crit_sect_success = critical_section_enter(false);
-
-    if (crit_sect_success && rsch_pending_evt_is_none())
-    {
-        nrf_802154_critical_section_rsch_prec_approved();
-    }
-    else
-    {
-        rsch_pending_evt_set(RSCH_EVT_STARTED);
-    }
-
-    if (crit_sect_success)
-    {
-        critical_section_exit();
-    }
-}
-
-void nrf_802154_rsch_prec_denied(void)
-{
-    bool crit_sect_success = critical_section_enter(false);
-
-    if (crit_sect_success && rsch_pending_evt_is_none())
-    {
-        nrf_802154_critical_section_rsch_prec_denied();
-    }
-    else
-    {
-        rsch_pending_evt_set(RSCH_EVT_ENDED);
-    }
-
-    if (crit_sect_success)
-    {
-        critical_section_exit();
-    }
 }
 

@@ -23,7 +23,8 @@
             "src/nrf_802154_rx_buffer.h",
             "src/nrf_802154_timer_coord.h",
             "src/mac_features/nrf_802154_filter.h",
-            "src/rsch/nrf_802154_rsch.h"
+            "src/rsch/nrf_802154_rsch.h",
+            "src/rsch/nrf_802154_rsch_crit_sect.h"
         ],
         "_replacements": [
             {
@@ -61,6 +62,7 @@
                     "src/platform/lp_timer/nrf_802154_lp_timer_nodrv.c",
                     "src/platform/temperature/nrf_802154_temperature_none.c",
                     "src/rsch/nrf_802154_rsch.c",
+                    "src/rsch/nrf_802154_rsch_crit_sect.c",
                     "src/timer_scheduler/nrf_802154_timer_sched.c",
                     "src/nrf_802154_notification_swi.c",
                     "src/nrf_802154_priority_drop_swi.c",
@@ -98,6 +100,7 @@
                     "src/platform/lp_timer/nrf_802154_lp_timer_nodrv.c",
                     "src/platform/temperature/nrf_802154_temperature_none.c",
                     "src/rsch/nrf_802154_rsch.c",
+                    "src/rsch/nrf_802154_rsch_crit_sect.c",
                     "src/timer_scheduler/nrf_802154_timer_sched.c",
                     "src/nrf_802154_notification_direct.c",
                     "src/nrf_802154_priority_drop_direct.c",
@@ -130,6 +133,7 @@
                     "cmock\\mock_nrf_802154_request.c",
                     "cmock\\mock_nrf_802154_revision.c",
                     "cmock\\mock_nrf_802154_rsch.c",
+                    "cmock\\mock_nrf_802154_rsch_crit_sect.c",
                     "cmock\\mock_nrf_802154_rssi.c",
                     "cmock\\mock_nrf_802154_rx_buffer.c",
                     "cmock\\mock_nrf_802154_timer_coord.c"

@@ -51,7 +51,6 @@
 #include "nrf_802154_pib.h"
 #include "nrf_802154_procedures_duration.h"
 #include "nrf_802154_revision.h"
-#include "nrf_802154_rsch.h"
 #include "nrf_802154_rssi.h"
 #include "nrf_802154_rx_buffer.h"
 #include "nrf_802154_timer_coord.h"
@@ -62,6 +61,8 @@
 #include "hal/nrf_radio.h"
 #include "hal/nrf_timer.h"
 #include "mac_features/nrf_802154_filter.h"
+#include "rsch/nrf_802154_rsch.h"
+#include "rsch/nrf_802154_rsch_crit_sect.h"
 
 #include "nrf_802154_core_hooks.h"
 
@@ -946,7 +947,7 @@ static void falling_asleep_terminate(void)
 /** Terminate Sleep procedure. */
 static void sleep_terminate(void)
 {
-    nrf_802154_rsch_continuous_mode_enter();
+    nrf_802154_rsch_crit_sect_prio_request(RSCH_PRIO_MAX);
 }
 
 /** Terminate RX procedure. */
@@ -1310,7 +1311,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 /** Enter Sleep state. */
 static void sleep_init(void)
 {
-    nrf_802154_rsch_continuous_mode_exit();
+    nrf_802154_rsch_crit_sect_prio_request(RSCH_PRIO_IDLE);
     m_rsch_timeslot_is_granted = false;
     nrf_802154_timer_coord_stop();
 }
@@ -1662,11 +1663,11 @@ static void continuous_carrier_init(bool disabled_was_triggered)
  * @section Radio Scheduler notification handlers
  **************************************************************************************************/
 
-void nrf_802154_critical_section_rsch_prec_approved(void)
+static void cont_prec_approved(void)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_STARTED);
 
-    if (remaining_timeslot_time_is_enough_for_crit_sect())
+    if (remaining_timeslot_time_is_enough_for_crit_sect() && !timeslot_is_granted())
     {
         nrf_radio_reset();
         nrf_radio_init();
@@ -1719,67 +1720,82 @@ void nrf_802154_critical_section_rsch_prec_approved(void)
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_STARTED);
 }
 
-void nrf_802154_critical_section_rsch_prec_denied(void)
+static void cont_prec_denied(void)
 {
     bool result;
 
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TIMESLOT_ENDED);
 
-    irq_deinit();
-    nrf_radio_reset();
-    nrf_fem_control_pin_clear();
-
-    m_rsch_timeslot_is_granted = false;
-    nrf_802154_timer_coord_stop();
-
-    result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RSCH, false);
-    assert(result);
-    (void)result;
-
-    switch (m_state)
+    if (timeslot_is_granted())
     {
-        case RADIO_STATE_SLEEP:
-            // Intentionally empty.
-            // Ignore this notification if continuous mode was not requested.
-            break;
+        irq_deinit();
+        nrf_radio_reset();
+        nrf_fem_control_pin_clear();
 
-        case RADIO_STATE_FALLING_ASLEEP:
-            state_set(RADIO_STATE_SLEEP);
-            sleep_init();
-            break;
+        m_rsch_timeslot_is_granted = false;
+        nrf_802154_timer_coord_stop();
 
-        case RADIO_STATE_RX:
-            if (psdu_is_being_received())
-            {
-                receive_failed_notify(NRF_802154_RX_ERROR_TIMESLOT_ENDED);
-            }
+        result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RSCH, false);
+        assert(result);
+        (void)result;
 
-            break;
+        switch (m_state)
+        {
+            case RADIO_STATE_SLEEP:
+                // Intentionally empty.
+                // Ignore this notification if continuous mode was not requested.
+                break;
 
-        case RADIO_STATE_TX_ACK:
-            state_set(RADIO_STATE_RX);
-            mp_current_rx_buffer->free = false;
-            received_frame_notify_and_nesting_allow(mp_current_rx_buffer->psdu);
-            break;
+            case RADIO_STATE_FALLING_ASLEEP:
+                state_set(RADIO_STATE_SLEEP);
+                sleep_init();
+                break;
 
-        case RADIO_STATE_CCA_TX:
-        case RADIO_STATE_TX:
-        case RADIO_STATE_RX_ACK:
-            state_set(RADIO_STATE_RX);
-            transmit_failed_notify_and_nesting_allow(NRF_802154_TX_ERROR_TIMESLOT_ENDED);
-            break;
+            case RADIO_STATE_RX:
+                if (psdu_is_being_received())
+                {
+                    receive_failed_notify(NRF_802154_RX_ERROR_TIMESLOT_ENDED);
+                }
 
-        case RADIO_STATE_ED:
-        case RADIO_STATE_CCA:
-        case RADIO_STATE_CONTINUOUS_CARRIER:
-            // Intentionally empty.
-            break;
+                break;
 
-        default:
-            assert(false);
+            case RADIO_STATE_TX_ACK:
+                state_set(RADIO_STATE_RX);
+                mp_current_rx_buffer->free = false;
+                received_frame_notify_and_nesting_allow(mp_current_rx_buffer->psdu);
+                break;
+
+            case RADIO_STATE_CCA_TX:
+            case RADIO_STATE_TX:
+            case RADIO_STATE_RX_ACK:
+                state_set(RADIO_STATE_RX);
+                transmit_failed_notify_and_nesting_allow(NRF_802154_TX_ERROR_TIMESLOT_ENDED);
+                break;
+
+            case RADIO_STATE_ED:
+            case RADIO_STATE_CCA:
+            case RADIO_STATE_CONTINUOUS_CARRIER:
+                // Intentionally empty.
+                break;
+
+            default:
+                assert(false);
+        }
     }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TIMESLOT_ENDED);
+}
+
+void nrf_802154_rsch_crit_sect_prio_changed(rsch_prio_t prio)
+{
+    if (prio > RSCH_PRIO_IDLE)
+    {
+        cont_prec_approved();
+    }
+    else
+    {
+        cont_prec_denied();
+    }
 }
 
 
@@ -2664,7 +2680,8 @@ void nrf_802154_core_init(void)
     const uint8_t ack_psdu[] = {0x05, ACK_HEADER_WITH_PENDING, 0x00, 0x00, 0x00, 0x00};
     memcpy(m_ack_psdu, ack_psdu, sizeof(ack_psdu));
 
-    m_state = RADIO_STATE_SLEEP;
+    m_state                    = RADIO_STATE_SLEEP;
+    m_rsch_timeslot_is_granted = false;
 
     nrf_timer_init();
 }
