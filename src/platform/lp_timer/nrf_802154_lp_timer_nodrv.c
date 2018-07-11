@@ -69,6 +69,7 @@
 #define EPOCH_FROM_TIME(time)           ((time) & ((uint64_t)UINT32_MAX << 32))
 
 #define CEIL_DIV(A, B)                  (((A) + (B) - 1) / (B))
+#define ROUND_DIV(A, B)                 (((A) + (B) / 2) / (B))
 
 // Struct holding information about compare channel.
 typedef struct
@@ -348,9 +349,9 @@ static uint64_t round_up_to_timer_ticks_multiply(uint64_t time)
     uint32_t us_per_s = US_PER_S >> FREQUENCY_US_PER_S_GDD_BITS;
     uint32_t rtc_freq = RTC_FREQUENCY >> FREQUENCY_US_PER_S_GDD_BITS;
 
-    return (time + us_per_s / rtc_freq - 1) *
-           rtc_freq / us_per_s *
-           us_per_s / rtc_freq;
+    uint64_t ticks  = CEIL_DIV((time * rtc_freq), us_per_s);
+    uint64_t result = ROUND_DIV((ticks * us_per_s), rtc_freq);
+    return result;
 }
 
 /**
