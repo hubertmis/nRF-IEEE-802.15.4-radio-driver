@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
+/* Copyright (c) 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,54 +28,40 @@
  *
  */
 
-#include "unity.h"
+/**
+ * @file
+ *   This file implements an immediate acknowledgement (Imm-Ack) generator for 802.15.4 radio driver.
+ *
+ */
 
-#include "nrf_802154_config.h"
+#include "nrf_802154_imm_ack_generator.h"
+
+#include <assert.h>
+#include <string.h>
+
+#include "nrf_802154_ack_pending_bit.h"
 #include "nrf_802154_const.h"
-#include "mock_nrf_802154.h"
-#include "mock_nrf_802154_ack_pending_bit.h"
-#include "mock_nrf_802154_core_hooks.h"
-#include "mock_nrf_802154_debug.h"
-#include "mock_nrf_802154_notification.h"
-#include "mock_nrf_802154_pib.h"
-#include "mock_nrf_802154_priority_drop.h"
-#include "mock_nrf_802154_procedures_duration.h"
-#include "mock_nrf_802154_revision.h"
-#include "mock_nrf_802154_rx_buffer.h"
-#include "mock_nrf_fem_control_api.h"
-#include "mock_nrf_raal_api.h"
-#include "mock_nrf_radio.h"
-#include "mock_nrf_timer.h"
-#include "mock_nrf_egu.h"
-#include "mock_nrf_ppi.h"
 
-#define __ISB()
-#define __LDREXB(ptr)           0
-#define __STREXB(value, ptr)    0
+#define IMM_ACK_INITIALIZER  {0x05, ACK_HEADER_WITH_PENDING, 0x00, 0x00, 0x00, 0x00}
 
-void nrf_802154_rx_started(void){}
-void nrf_802154_tx_started(const uint8_t * p_frame){}
-void nrf_802154_rx_ack_started(void){}
-void nrf_802154_tx_ack_started(const uint8_t * p_data){}
+static uint8_t m_ack_psdu[IMM_ACK_LENGTH + PHR_SIZE];
 
-#include "nrf_802154_core.c"
-
-
-/***********************************************************************************/
-/***********************************************************************************/
-/***********************************************************************************/
-
-void setUp(void)
+void nrf_802154_imm_ack_generator_init(void)
 {
-
+    const uint8_t ack_psdu[] = IMM_ACK_INITIALIZER;
+    memcpy(m_ack_psdu, ack_psdu, sizeof(ack_psdu));
 }
 
-void tearDown(void)
+const uint8_t * nrf_802154_imm_ack_generator_create(const uint8_t * p_frame)
 {
+    // Set valid sequence number in ACK frame.
+    m_ack_psdu[DSN_OFFSET] = p_frame[DSN_OFFSET];
 
-}
+    // Set pending bit in ACK frame.
+    if (!nrf_802154_ack_pending_bit_should_be_set(p_frame))
+    {
+        m_ack_psdu[FRAME_PENDING_OFFSET] = ACK_HEADER_WITHOUT_PENDING;
+    }
 
-void test_ShouldPass(void)
-{
-    TEST_ASSERT_EQUAL_UINT32(0, 0);
+    return m_ack_psdu;
 }

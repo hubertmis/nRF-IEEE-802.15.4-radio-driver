@@ -62,6 +62,7 @@
 #include "hal/nrf_timer.h"
 #include "mac_features/nrf_802154_delayed_trx.h"
 #include "mac_features/nrf_802154_filter.h"
+#include "mac_features/ack_generator/nrf_802154_ack_generator.h"
 #include "rsch/nrf_802154_rsch.h"
 #include "rsch/nrf_802154_rsch_crit_sect.h"
 
@@ -178,7 +179,7 @@ static rx_buffer_t * const mp_current_rx_buffer = &nrf_802154_rx_buffers[0];
 
 #endif
 
-static uint8_t         m_ack_psdu[IMM_ACK_LENGTH + 1]; ///< ACK frame buffer.
+static const uint8_t * mp_ack;                         ///< Pointer to Ack frame buffer.
 static const uint8_t * mp_tx_data;                     ///< Pointer to the data to transmit.
 static uint32_t        m_ed_time_left;                 ///< Remaining time of the current energy detection procedure [us].
 static uint8_t         m_ed_result;                    ///< Result of the current energy detection procedure.
@@ -474,24 +475,6 @@ static void channel_set(uint8_t channel)
 /***************************************************************************************************
  * @section ACK transmission management
  **************************************************************************************************/
-
-/// Set valid sequence number in ACK frame.
-static void ack_prepare(void)
-{
-    // Copy sequence number from received frame to ACK frame.
-    m_ack_psdu[DSN_OFFSET] = mp_current_rx_buffer->psdu[DSN_OFFSET];
-}
-
-/// Set pending bit in ACK frame.
-static void ack_pending_bit_set(void)
-{
-    m_ack_psdu[FRAME_PENDING_OFFSET] = ACK_HEADER_WITH_PENDING;
-
-    if (!nrf_802154_ack_pending_bit_should_be_set(mp_current_rx_buffer->psdu))
-    {
-        m_ack_psdu[FRAME_PENDING_OFFSET] = ACK_HEADER_WITHOUT_PENDING;
-    }
-}
 
 /** Check if ACK is requested in given frame.
  *
@@ -1828,7 +1811,7 @@ static void irq_address_state_tx_frame(void)
 
 static void irq_address_state_tx_ack(void)
 {
-    nrf_802154_tx_ack_started();
+    nrf_802154_tx_ack_started(mp_ack);
 }
 
 #if !NRF_802154_DISABLE_BCC_MATCHING
@@ -1982,15 +1965,24 @@ static void irq_crcok_state_rx(void)
 
     if (m_flags.frame_filtered || nrf_802154_pib_promiscuous_get())
     {
+        bool send_ack = false;
+
         if (m_flags.frame_filtered &&
             ack_is_requested(mp_current_rx_buffer->psdu) &&
             nrf_802154_pib_auto_ack_get())
         {
+            mp_ack = nrf_802154_ack_generator_create(mp_current_rx_buffer->psdu);
+            if (NULL != mp_ack)
+            {
+                send_ack = true;
+            }
+        }
+        
+        if (send_ack)
+        {
             bool wait_for_phyend;
 
-            // Prepare ACK
-            ack_prepare();
-            nrf_radio_packet_ptr_set(m_ack_psdu);
+            nrf_radio_packet_ptr_set(mp_ack);
 
             // Set shorts
             nrf_radio_shorts_set(SHORTS_TX_ACK);
@@ -2048,7 +2040,6 @@ static void irq_crcok_state_rx(void)
 
             if (wait_for_phyend)
             {
-                ack_pending_bit_set();
                 state_set(RADIO_STATE_TX_ACK);
 
                 // Set event handlers
@@ -2697,14 +2688,11 @@ static void irq_handler(void)
 
 void nrf_802154_core_init(void)
 {
-    const uint8_t ack_psdu[] = {0x05, ACK_HEADER_WITH_PENDING, 0x00, 0x00, 0x00, 0x00};
-
-    memcpy(m_ack_psdu, ack_psdu, sizeof(ack_psdu));
-
     m_state                    = RADIO_STATE_SLEEP;
     m_rsch_timeslot_is_granted = false;
 
     nrf_timer_init();
+    nrf_802154_ack_generator_init();
 }
 
 void nrf_802154_core_deinit(void)

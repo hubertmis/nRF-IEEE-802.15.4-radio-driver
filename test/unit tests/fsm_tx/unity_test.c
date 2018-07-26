@@ -285,7 +285,7 @@ void tearDown(void)
 void nrf_802154_rx_started(void){}
 void nrf_802154_tx_started(const uint8_t * p_frame){}
 void nrf_802154_rx_ack_started(void){}
-void nrf_802154_tx_ack_started(void){}
+void nrf_802154_tx_ack_started(const uint8_t * p_data){}
 
 /***************************************************************************************************
  * @section Transmit begin function
