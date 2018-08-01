@@ -1136,7 +1136,7 @@ static void continuous_carrier_terminate(void)
  */
 static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                                         req_originator_t  req_orig,
-                                        bool              notify_abort)
+                                        bool              notify)
 {
     bool result = nrf_802154_core_hooks_terminate(term_lvl, req_orig);
 
@@ -1165,7 +1165,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                     {
                         rx_terminate();
 
-                        if (notify_abort)
+                        if (notify)
                         {
                             nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_ABORTED);
                         }
@@ -1187,8 +1187,11 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                 {
                     tx_ack_terminate();
 
-                    mp_current_rx_buffer->free = false;
-                    received_frame_notify(mp_current_rx_buffer->psdu);
+                    if (notify)
+                    {
+                        mp_current_rx_buffer->free = false;
+                        received_frame_notify(mp_current_rx_buffer->psdu);
+                    }
                 }
                 else
                 {
@@ -1203,7 +1206,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                 {
                     tx_terminate();
 
-                    if (notify_abort)
+                    if (notify)
                     {
                         transmit_failed_notify(NRF_802154_TX_ERROR_ABORTED);
                     }
@@ -1220,7 +1223,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                 {
                     rx_ack_terminate();
 
-                    if (notify_abort)
+                    if (notify)
                     {
                         transmit_failed_notify(NRF_802154_TX_ERROR_ABORTED);
                     }
@@ -1237,7 +1240,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                 {
                     ed_terminate();
 
-                    if (notify_abort)
+                    if (notify)
                     {
                         nrf_802154_notify_energy_detection_failed(NRF_802154_ED_ERROR_ABORTED);
                     }
@@ -1254,7 +1257,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                 {
                     cca_terminate();
 
-                    if (notify_abort)
+                    if (notify)
                     {
                         nrf_802154_notify_cca_failed(NRF_802154_CCA_ERROR_ABORTED);
                     }
