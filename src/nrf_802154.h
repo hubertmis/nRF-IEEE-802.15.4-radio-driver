@@ -264,6 +264,21 @@ nrf_802154_state_t nrf_802154_state_get(void);
 bool nrf_802154_sleep(void);
 
 /**
+ * @brief Change radio state to sleep if radio is idle.
+ *
+ * Sleep state is the lowest power state. In this state, the radio cannot transmit or receive
+ * frames. It is the only state in which the driver releases the high-frequency clock and does not
+ * request timeslots from a radio arbiter.
+ *
+ * @note If another module requests it, the high-frequency clock may be enabled even in radio sleep
+ *       state.
+ *
+ * @retval  NRF_802154_SLEEP_ERROR_NONE  If the radio changes its state to low power mode.
+ * @retval  NRF_802154_SLEEP_ERROR_BUSY  If the driver could not schedule changing state.
+ */
+nrf_802154_sleep_error_t nrf_802154_sleep_if_idle(void);
+
+/**
  * @brief Change radio state to receive.
  *
  * In receive state, the radio receives frames and may automatically send ACK frames when

@@ -288,6 +288,17 @@ bool nrf_802154_sleep(void)
     return result;
 }
 
+nrf_802154_sleep_error_t nrf_802154_sleep_if_idle(void)
+{
+    nrf_802154_sleep_error_t result;
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_SLEEP);
+    
+    result = nrf_802154_request_sleep(NRF_802154_TERM_NONE) ? NRF_802154_SLEEP_ERROR_NONE : NRF_802154_SLEEP_ERROR_BUSY;
+    
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_SLEEP);
+    return result;
+}
+
 bool nrf_802154_receive(void)
 {
     bool result;
