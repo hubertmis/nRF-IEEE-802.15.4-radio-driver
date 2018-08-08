@@ -84,11 +84,7 @@
 #define TIMER_CC_CAPTURE          NRF_TIMER_CC_CHANNEL1
 #define TIMER_CC_CAPTURE_TASK     NRF_TIMER_TASK_CAPTURE1
 
-/**@brief Defines number of microseconds in one second. */
-#define US_PER_S                  1000000
-
-/**@brief Ceil division helper */
-#define DIVIDE_AND_CEIL(A, B) (((A) + (B) - 1) / (B))
+#define NRF_RADIO_MINIMUM_TIMESLOT_LENGTH_EXTENSION_TIME_TICKS NRF_802154_US_TO_RTC_TICKS(NRF_RADIO_MINIMUM_TIMESLOT_LENGTH_EXTENSION_TIME_US)
 
 /**@brief Defines states of timeslot. */
 typedef enum
@@ -130,17 +126,11 @@ static volatile timeslot_state_t m_timeslot_state;
 /**@brief Current action of the timer. */
 static timer_action_t m_timer_action;
 
-/**@brief Timer value for margin. */
-static uint32_t m_margin_cc;
-
 /**@brief Current timeslot length. */
 static uint16_t m_timeslot_length;
 
 /**@brief Number of already performed extentions tries on failed event. */
 static volatile uint16_t m_timeslot_extend_tries;
-
-/**@brief Defines RTC0 counter value on timeslot begin. */
-static uint32_t m_start_rtc_ticks = 0;
 
 /***************************************************************************************************
  * @section Operations on RAAL TIMER.
@@ -150,7 +140,6 @@ static uint32_t m_start_rtc_ticks = 0;
 static void timer_start(void)
 {
     m_timer_action = TIMER_ACTION_EXTEND;
-    m_margin_cc    = m_timeslot_length - m_config.timeslot_safe_margin;
     nrf_timer_task_trigger(RAAL_TIMER, NRF_TIMER_TASK_STOP);
     nrf_timer_task_trigger(RAAL_TIMER, NRF_TIMER_TASK_CLEAR);
     nrf_timer_bit_width_set(RAAL_TIMER, NRF_TIMER_BIT_WIDTH_32);
@@ -185,13 +174,45 @@ static inline bool timer_is_set_to_margin(void)
     return m_timer_action == TIMER_ACTION_MARGIN;
 }
 
+static inline uint32_t ticks_to_timeslot_end_get(void)
+{
+    uint32_t cc      = NRF_RTC0->CC[1];
+    uint32_t counter = NRF_RTC0->COUNTER;
+
+    // We add one tick as RTC might be just about to increment COUNTER value.
+    return (cc - (counter + 1)) & RTC_COUNTER_COUNTER_Msk;
+}
+
+static inline uint32_t safe_time_to_timeslot_end_get(void)
+{
+    uint32_t margin = m_config.timeslot_safe_margin + TIMER_TO_SIGNAL_JITTER_US;
+    uint32_t timeslot_end = NRF_802154_RTC_TICKS_TO_US(ticks_to_timeslot_end_get());
+
+    if (timeslot_end > margin)
+    {
+        return timeslot_end - margin;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+/**@brief Get timeslot margin. */
+static uint32_t timer_get_cc_margin(void)
+{
+    return timer_time_get() + safe_time_to_timeslot_end_get();
+}
+
 /**@brief Set timer action to the timeslot margin. */
 static inline void timer_to_margin_set(void)
 {
+    uint32_t margin_cc = timer_get_cc_margin();
+
     m_timer_action = TIMER_ACTION_MARGIN;
 
     nrf_timer_event_clear(RAAL_TIMER, TIMER_CC_ACTION_EVENT);
-    nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION, m_margin_cc);
+    nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION, margin_cc);
     nrf_timer_int_enable(RAAL_TIMER, TIMER_CC_ACTION_INT);
 }
 
@@ -201,73 +222,22 @@ static inline bool timer_is_margin_reached(void)
     return timer_is_set_to_margin() && nrf_timer_event_check(RAAL_TIMER, TIMER_CC_ACTION_EVENT);
 }
 
-/**@brief Calculate maximal crystal drift. */
-static inline uint32_t timer_rtc_drift_calculate(uint32_t timeslot_length)
-{
-    return DIVIDE_AND_CEIL(((uint64_t)timeslot_length * m_config.lf_clk_accuracy_ppm), US_PER_S);
-}
-
 /**@brief Set timer on extend event. */
 static void timer_on_extend_update(void)
 {
     NVIC_ClearPendingIRQ(RAAL_TIMER_IRQn);
 
-    m_margin_cc += m_timeslot_length;
-
     if (timer_is_set_to_margin())
     {
-        nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION, m_margin_cc);
+        uint32_t margin_cc = nrf_timer_cc_read(RAAL_TIMER, TIMER_CC_ACTION);
+        margin_cc += m_timeslot_length;
+        nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION, margin_cc);
     }
     else
     {
         nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION,
                            nrf_timer_cc_read(RAAL_TIMER, TIMER_CC_ACTION) + m_timeslot_length);
         nrf_timer_int_enable(RAAL_TIMER, TIMER_CC_ACTION_INT);
-    }
-}
-
-/**@brief Eliminate timers jitters. */
-static void timer_jitter_adjust(void)
-{
-    // Adjust TIMER0 and RTC0 clocks drifts.
-    uint32_t timer_ticks = timer_time_get();
-    uint64_t rtc_ticks   = NRF_RTC0->COUNTER;
-
-    if (rtc_ticks > m_start_rtc_ticks)
-    {
-        rtc_ticks -= m_start_rtc_ticks;
-    }
-    else
-    {
-        // Overflow detected.
-        rtc_ticks = RTC_COUNTER_COUNTER_Msk - m_start_rtc_ticks + rtc_ticks;
-    }
-
-    // Adjust RTC0 ticks to TIMER0 resolution. RTC0 works with 32768kHz so first
-    // multiply with 10^6 (microseconds) and divide by 32768Hz (2^15) to get microseconds.
-    rtc_ticks = DIVIDE_AND_CEIL((rtc_ticks * US_PER_S), 32768);
-
-    // Check if we are still in time.
-    uint32_t cc_margin = m_margin_cc;
-    assert(cc_margin > rtc_ticks + timer_rtc_drift_calculate(cc_margin));
-    
-    if (rtc_ticks > timer_ticks)
-    {
-        m_margin_cc = cc_margin - (rtc_ticks - timer_ticks);
-    }
-    else
-    {
-        m_margin_cc = cc_margin + (rtc_ticks - timer_ticks);
-    }
-
-    // Add safety drift time.
-    uint32_t safety_drift_time = timer_rtc_drift_calculate(2 * m_config.timeslot_length) +
-                                 TIMER_TO_SIGNAL_JITTER_US;
-    m_margin_cc -= safety_drift_time;
-
-    if (timer_is_set_to_margin())
-    {
-        nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION, m_margin_cc);
     }
 }
 
@@ -371,11 +341,6 @@ static void timeslot_next_extend(void)
         // Try to extend right after start.
         timeslot_extend(m_timeslot_length);
     }
-    else
-    {
-        // Adjust possible clock jitters and wait for safety margin.
-        timer_jitter_adjust();
-    }
 }
 
 /***************************************************************************************************
@@ -430,7 +395,6 @@ static void timer_irq_handle(void)
             else
             {
                 // We have reached maximum timeslot length.
-                timer_jitter_adjust();
                 timer_to_margin_set();
 
                 m_ret_param.callback_action = NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
@@ -483,8 +447,7 @@ static nrf_radio_signal_callback_return_param_t *signal_handler(uint8_t signal_t
 
         assert(m_timeslot_state == TIMESLOT_STATE_REQUESTED);
 
-        m_start_rtc_ticks = NRF_RTC0->COUNTER;
-        m_timeslot_state  = TIMESLOT_STATE_GRANTED;
+        m_timeslot_state = TIMESLOT_STATE_GRANTED;
 
         // Set up timer first with requested timeslot length.
         timer_start();
@@ -546,6 +509,14 @@ static nrf_radio_signal_callback_return_param_t *signal_handler(uint8_t signal_t
 
     case NRF_RADIO_CALLBACK_SIGNAL_TYPE_EXTEND_SUCCEEDED: /**< This signal indicates extend action succeeded. */
         nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RAAL_SIG_EVENT_EXTEND_SUCCESS);
+
+        if ((!timer_is_set_to_margin()) && (ticks_to_timeslot_end_get() < NRF_RADIO_MINIMUM_TIMESLOT_LENGTH_EXTENSION_TIME_TICKS))
+        {
+            timer_to_margin_set();
+
+            m_ret_param.callback_action = NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
+            break;
+        }
 
         timer_on_extend_update();
 
@@ -643,7 +614,6 @@ void nrf_raal_init(void)
     m_continuous        = false;
     m_timeslot_state    = TIMESLOT_STATE_IDLE;
 
-    m_config.lf_clk_accuracy_ppm  = NRF_RAAL_DEFAULT_LF_CLK_ACCURACY_PPM;
     m_config.timeslot_length      = NRF_RAAL_TIMESLOT_DEFAULT_LENGTH;
     m_config.timeslot_alloc_iters = NRF_RAAL_TIMESLOT_DEFAULT_ALLOC_ITERS;
     m_config.timeslot_safe_margin = NRF_RAAL_TIMESLOT_DEFAULT_SAFE_MARGIN;
@@ -714,15 +684,10 @@ bool nrf_raal_timeslot_request(uint32_t length_us)
         return false;
     }
 
-    return timer_time_get() + length_us < m_margin_cc;
+    return length_us < nrf_raal_timeslot_us_left_get();
 }
 
 uint32_t nrf_raal_timeslot_us_left_get(void)
 {
-    if (!m_continuous || !timeslot_is_granted())
-    {
-        return 0;
-    }
-
-    return m_margin_cc - timer_time_get();
+    return safe_time_to_timeslot_end_get();
 }
