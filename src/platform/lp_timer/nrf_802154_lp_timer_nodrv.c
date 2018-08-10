@@ -45,6 +45,7 @@
 
 #include "platform/clock/nrf_802154_clock.h"
 #include "nrf_802154_config.h"
+#include "nrf_802154_utils.h"
 
 #define RTC_LP_TIMER_COMPARE_CHANNEL    0
 #define RTC_LP_TIMER_COMPARE_INT_MASK   NRF_RTC_INT_COMPARE0_MASK
@@ -56,20 +57,12 @@
 #define RTC_SYNC_COMPARE_EVENT          NRF_RTC_EVENT_COMPARE_1
 #define RTC_SYNC_COMPARE_EVENT_MASK     RTC_EVTEN_COMPARE1_Msk
 
-#define RTC_FREQUENCY                   32768ULL
-
-#define US_PER_S                        1000000ULL
-#define US_PER_TICK                     CEIL_DIV(US_PER_S, RTC_FREQUENCY)
-#define US_PER_OVERFLOW                 (512UL * US_PER_S)                  ///< Time that has passed between overflow events. On full RTC speed, it occurs every 512 s.
-#define MIN_RTC_COMPARE_EVENT_DT        (2 * US_PER_TICK)                   ///< Minimum time delta from now before RTC compare event is guaranteed to fire.
-
-#define FREQUENCY_US_PER_S_GDD_BITS     6                                   ///< Number of bits to shift RTC_FREQUENCY and US_PER_S to achieve division by greatest common divisor.
+#define US_PER_OVERFLOW                 (512UL * NRF_802154_US_PER_S)  ///< Time that has passed between overflow events. On full RTC speed, it occurs every 512 s.
+#define MIN_RTC_COMPARE_EVENT_DT        (2 * NRF_802154_US_PER_TICK)   ///< Minimum time delta from now before RTC compare event is guaranteed to fire.
 
 #define EPOCH_32BIT_US                  (1ULL << 32)
 #define EPOCH_FROM_TIME(time)           ((time) & ((uint64_t)UINT32_MAX << 32))
 
-#define CEIL_DIV(A, B)                  (((A) + (B) - 1) / (B))
-#define ROUND_DIV(A, B)                 (((A) + (B) / 2) / (B))
 
 // Struct holding information about compare channel.
 typedef struct
@@ -160,9 +153,7 @@ static inline bool shall_strike(uint64_t now)
  */
 static inline uint32_t time_to_ticks(uint64_t time)
 {
-    // Divide the divider and the divident by the greatest common divisor to increase capacity of the multiplication.
-    return (uint32_t)CEIL_DIV((time * (RTC_FREQUENCY >> FREQUENCY_US_PER_S_GDD_BITS)),
-                              (US_PER_S >> FREQUENCY_US_PER_S_GDD_BITS)) & RTC_CC_COMPARE_Msk;
+    return NRF_802154_US_TO_RTC_TICKS(time);
 }
 
 /** @brief Convert RTC ticks to time in [us].
@@ -173,7 +164,7 @@ static inline uint32_t time_to_ticks(uint64_t time)
  */
 static inline uint64_t ticks_to_time(uint32_t ticks)
 {
-    return CEIL_DIV((US_PER_S * (uint64_t)ticks), RTC_FREQUENCY);
+    return NRF_802154_RTC_TICKS_TO_US(ticks);
 }
 
 /** @brief Get current value of the RTC counter.
@@ -346,11 +337,8 @@ static uint64_t convert_to_64bit_time(uint32_t t0, uint32_t dt, const uint64_t *
  */
 static uint64_t round_up_to_timer_ticks_multiply(uint64_t time)
 {
-    uint32_t us_per_s = US_PER_S >> FREQUENCY_US_PER_S_GDD_BITS;
-    uint32_t rtc_freq = RTC_FREQUENCY >> FREQUENCY_US_PER_S_GDD_BITS;
-
-    uint64_t ticks  = CEIL_DIV((time * rtc_freq), us_per_s);
-    uint64_t result = ROUND_DIV((ticks * us_per_s), rtc_freq);
+    uint32_t ticks  = time_to_ticks(time);
+    uint64_t result = ticks_to_time(ticks);
     return result;
 }
 
@@ -466,7 +454,7 @@ uint32_t nrf_802154_lp_timer_time_get(void)
 
 uint32_t nrf_802154_lp_timer_granularity_get(void)
 {
-    return US_PER_TICK;
+    return NRF_802154_US_PER_TICK;
 }
 
 void nrf_802154_lp_timer_start(uint32_t t0, uint32_t dt)
