@@ -2886,16 +2886,16 @@ bool nrf_802154_core_channel_update(void)
         {
             case RADIO_STATE_RX:
             {
-                bool result;
+                bool term_result;
 
                 if (timeslot_is_granted())
                 {
                     channel_set(nrf_802154_pib_channel_get());
                 }
 
-                result = current_operation_terminate(NRF_802154_TERM_NONE, REQ_ORIG_CORE, true);
+                term_result = current_operation_terminate(NRF_802154_TERM_NONE, REQ_ORIG_CORE, true);
 
-                if (result)
+                if (term_result)
                 {
                     rx_init(true);
                 }

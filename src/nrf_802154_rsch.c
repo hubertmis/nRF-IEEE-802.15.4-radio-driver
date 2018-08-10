@@ -378,6 +378,8 @@ bool nrf_802154_rsch_timeslot_request(uint32_t length_us)
 
 bool nrf_802154_rsch_delayed_timeslot_request(uint32_t t0, uint32_t dt, uint32_t length)
 {
+    (void)length;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RSCH_DELAYED_TIMESLOT_REQ);
 
     uint32_t now    = nrf_802154_timer_sched_time_get();
