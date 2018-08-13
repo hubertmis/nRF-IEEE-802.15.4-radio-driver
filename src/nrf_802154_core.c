@@ -191,6 +191,9 @@ typedef struct
 #if !NRF_802154_DISABLE_BCC_MATCHING
     bool psdu_being_received   :1;  ///< If PSDU is currently being received.
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
+#if NRF_802154_TX_STARTED_NOTIFY_ENABLED
+    bool tx_started            :1;  ///< If requested transmission has started.
+#endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
 } nrf_802154_flags_t;
 static nrf_802154_flags_t m_flags;  ///< Flags used to store current driver state.
 
@@ -377,6 +380,20 @@ static bool psdu_is_being_received(void)
 #else // NRF_802154_DISABLE_BCC_MATCHING
     return m_flags.psdu_being_received;
 #endif // NRF_802154_DISABLE_BCC_MATCHING
+}
+
+/** Check if requested transmission has already started.
+ *
+ * @retval true   The transmission has started.
+ * @retval false  The transmission has not started.
+ */
+static bool transmission_has_started(void)
+{
+#if NRF_802154_TX_STARTED_NOTIFY_ENABLED
+    return m_flags.tx_started;
+#else // NRF_802154_TX_STARTED_NOTIFY_ENABLED
+    return nrf_radio_event_get(NRF_RADIO_EVENT_ADDRESS);
+#endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
 }
 
 /** Check if timeslot is currently granted.
@@ -1519,9 +1536,10 @@ static bool tx_init(const uint8_t * p_data, bool cca, bool disabled_was_triggere
         ints_to_enable |= NRF_RADIO_INT_CCABUSY_MASK;
     }
 
-#if NRF_802154_TX_STARTED_NOTIFY_ENABLED
     nrf_radio_event_clear(NRF_RADIO_EVENT_ADDRESS);
+#if NRF_802154_TX_STARTED_NOTIFY_ENABLED
     ints_to_enable |= NRF_RADIO_INT_ADDRESS_MASK;
+    m_flags.tx_started = false;
 #endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
 
     nrf_radio_int_enable(ints_to_enable);
@@ -1762,6 +1780,10 @@ void nrf_802154_critical_section_rsch_prec_denied(void)
 static void irq_address_state_tx_frame(void)
 {
     transmit_started_notify();
+
+#if NRF_802154_TX_STARTED_NOTIFY_ENABLED
+    m_flags.tx_started = true;
+#endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
 }
 
 static void irq_address_state_tx_ack(void)
@@ -2194,6 +2216,13 @@ static void irq_phyend_state_tx_ack(void)
 static void irq_phyend_state_tx_frame(void)
 {
     uint32_t ints_to_disable = 0;
+
+    // Ignore PHYEND event if transmission has not started. This event may be triggered by
+    // previously terminated transmission.
+    if (!transmission_has_started())
+    {
+        return;
+    }
 
     if (ack_is_requested(mp_tx_data))
     {

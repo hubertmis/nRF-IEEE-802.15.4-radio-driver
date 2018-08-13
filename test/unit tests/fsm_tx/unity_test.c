@@ -812,8 +812,16 @@ static void verify_phyend_ack_req_periph_setup(uint32_t shorts, bool buffer_free
     nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
 }
 
+void test_phyend_handler_ShallDoNothingIfTransmissionHasNotStarted(void)
+{
+    m_flags.tx_started = false;
+
+    irq_phyend_state_tx_frame();
+}
+
 void test_phyend_handler_ShallResetToRxStateAndNotifySuccessIfAckNotRequested(void)
 {
+    m_flags.tx_started = true;
     insert_frame_with_noack_to_tx_buffer();
 
     verify_tx_terminate_periph_reset(true);
@@ -826,6 +834,7 @@ void test_phyend_handler_ShallResetToRxStateAndNotifySuccessIfAckNotRequested(vo
 
 void test_phyend_handler_ShallSetPeriphToRxAckIfRequested(void)
 {
+    m_flags.tx_started = true;
     insert_frame_with_ack_request_to_tx_buffer();
     mark_rx_buffer_free();
 
@@ -845,6 +854,7 @@ void test_phyend_handler_ShallSetPeriphToRxAckIfRequested(void)
 
 void test_phyend_handler_ShallNotTriggerDisableIfAckRequestedAndEguEventSet(void)
 {
+    m_flags.tx_started = true;
     insert_frame_with_ack_request_to_tx_buffer();
     mark_rx_buffer_free();
 
@@ -865,6 +875,7 @@ void test_phyend_handler_ShallNotTriggerDisableIfAckRequestedAndEguEventSet(void
 
 void test_phyend_handler_ShallTriggerDisableIfAckRequestedAndPpiDidNotWork(void)
 {
+    m_flags.tx_started = true;
     insert_frame_with_ack_request_to_tx_buffer();
     mark_rx_buffer_free();
 
@@ -886,6 +897,7 @@ void test_phyend_handler_ShallTriggerDisableIfAckRequestedAndPpiDidNotWork(void)
 
 void test_phyend_handler_ShallTryToFindNewBufferIfNotAvailable(void)
 {
+    m_flags.tx_started = true;
     insert_frame_with_ack_request_to_tx_buffer();
     mark_rx_buffer_occupied();
 
@@ -910,6 +922,7 @@ void test_phyend_handler_ShallUpdateShortsIfRxBufferIsFoundAfterPeriphIsSet(void
     rx_buffer_t rx_buffer;
     memset(&rx_buffer, 0, sizeof(rx_buffer));
     rx_buffer.free = true;
+    m_flags.tx_started = true;
 
     insert_frame_with_ack_request_to_tx_buffer();
     mark_rx_buffer_occupied();
@@ -940,6 +953,7 @@ void test_phyend_handler_ShallTriggerStartIfRxBufferIsFoundTooLate(void)
     rx_buffer_t rx_buffer;
     memset(&rx_buffer, 0, sizeof(rx_buffer));
     rx_buffer.free = true;
+    m_flags.tx_started = true;
 
     insert_frame_with_ack_request_to_tx_buffer();
     mark_rx_buffer_occupied();

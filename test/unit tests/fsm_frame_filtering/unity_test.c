@@ -820,6 +820,7 @@ void test_OnCrcOkEventStateRx_ShallPrepareAckAndSetStateToTxAckIfAckIsRequested(
 void test_OnPhyendEventStateTx_ShallSetupAckMatchAcceleratorToCorrectPattern(void)
 {
     ack_requested_set_tx();
+    m_flags.tx_started = true;
 
     uint8_t sequence_number = rand();
     m_test_tx_buffer[DSN_OFFSET] = sequence_number;
@@ -836,6 +837,7 @@ void test_OnPhyendEventStateTx_ShallSetupAckMatchAcceleratorToCorrectPattern(voi
 void test_OnPhyendEventStateTx_ShallNotifyFrameAndNotSetupAckMatchAcceleratorIfAckWasNotRequested(void)
 {
     ack_not_requested_set_tx();
+    m_flags.tx_started = true;
 
     mock_tx_terminate();
     mock_receive_begin(true, NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK |
