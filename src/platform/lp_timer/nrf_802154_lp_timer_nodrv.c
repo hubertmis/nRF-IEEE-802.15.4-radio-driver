@@ -151,7 +151,7 @@ static inline bool shall_strike(uint64_t now)
  *
  *  @return  Time value in RTC ticks.
  */
-static inline uint32_t time_to_ticks(uint64_t time)
+static inline uint64_t time_to_ticks(uint64_t time)
 {
     return NRF_802154_US_TO_RTC_TICKS(time);
 }
@@ -162,7 +162,7 @@ static inline uint32_t time_to_ticks(uint64_t time)
  *
  *  @return  Time value in [us].
  */
-static inline uint64_t ticks_to_time(uint32_t ticks)
+static inline uint64_t ticks_to_time(uint64_t ticks)
 {
     return NRF_802154_RTC_TICKS_TO_US(ticks);
 }
@@ -337,7 +337,7 @@ static uint64_t convert_to_64bit_time(uint32_t t0, uint32_t dt, const uint64_t *
  */
 static uint64_t round_up_to_timer_ticks_multiply(uint64_t time)
 {
-    uint32_t ticks  = time_to_ticks(time);
+    uint64_t ticks  = time_to_ticks(time);
     uint64_t result = ticks_to_time(ticks);
     return result;
 }
@@ -357,7 +357,7 @@ static void timer_start_at(compare_channel_t channel,
                            uint32_t          dt,
                            const uint64_t  * p_now)
 {
-    uint32_t target_counter;
+    uint64_t target_counter;
     uint64_t target_time;
 
     nrf_rtc_int_disable(NRF_802154_RTC_INSTANCE, m_cmp_ch[channel].int_mask);

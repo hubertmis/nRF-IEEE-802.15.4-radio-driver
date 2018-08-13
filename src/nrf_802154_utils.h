@@ -63,10 +63,10 @@
             (ticks) * (NRF_802154_US_PER_S >> NRF_802154_FREQUENCY_US_PER_S_GCD_BITS),             \
             (NRF_802154_RTC_FREQUENCY >> NRF_802154_FREQUENCY_US_PER_S_GCD_BITS))
 
-static inline uint32_t NRF_802154_US_TO_RTC_TICKS(uint64_t time)
+static inline uint64_t NRF_802154_US_TO_RTC_TICKS(uint64_t time)
 {
     uint64_t t1, u1;
-    uint32_t result;
+    uint64_t result;
 
     /* The required range for time is [0..315360000000000], and the calculation below are
        verified to work within broader range [0...2^49 ~ 17 years]
