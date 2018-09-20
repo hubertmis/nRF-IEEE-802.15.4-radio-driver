@@ -232,9 +232,6 @@
         "_headers": [
             "src/fem/nrf_fem_control_api.h"
         ],
-        "_links": [
-            "hal"
-        ],
         "_includes": [
             "src/fem"
         ],
@@ -246,6 +243,9 @@
                 "_attrs": [
                     "public"
                 ],
+                "_links": [
+                    "hal"
+                ],
                 "_files": [
                     "src/fem/nrf_fem_control.c"
                 ]
@@ -253,7 +253,10 @@
             {
                 "_attrs": [
                     "private"
-                ], 
+                ],
+                "_links": [
+                    "hal"
+                ],
                 "_files": [
                     "cmock\\mock_nrf_fem_control_api.c"
                 ], 
