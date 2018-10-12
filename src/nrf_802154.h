@@ -1066,9 +1066,8 @@ void nrf_802154_transmit_csma_ca(const uint8_t * p_data, uint8_t length);
  * 
  * A timeout is notified by @ref nrf_802154_transmit_failed.
  * 
- * @param[in]  time  Timeout in us. The timeout is started at the beginning of frame transmission
- *                   (after transmission of PHR). A default value is defined in nrf_802154_config.h
- *                   (@ref NRF_802154_ACK_TIMEOUT_DEFAULT_TIMEOUT).
+ * @param[in]  time  Timeout in us.
+ *                   A default value is defined in nrf_802154_config.h.
  */
 void nrf_802154_ack_timeout_set(uint32_t time);
 

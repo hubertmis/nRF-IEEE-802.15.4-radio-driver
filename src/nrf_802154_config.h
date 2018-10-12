@@ -451,6 +451,16 @@ extern "C" {
 #endif
 
 /**
+ * @def NRF_802154_ACK_TIMEOUT_DEFAULT_TIMEOUT
+ *
+ * Default time-out in us for the precise ACK time-out feature.
+ *
+ */
+#ifndef NRF_802154_PRECISE_ACK_TIMEOUT_DEFAULT_TIMEOUT
+#define NRF_802154_PRECISE_ACK_TIMEOUT_DEFAULT_TIMEOUT 210
+#endif
+
+/**
  * @}
  * @defgroup nrf_802154_config_transmission Transmission start notification feature configuration
  * @{
