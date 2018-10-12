@@ -177,12 +177,12 @@ static rx_buffer_t * mp_current_rx_buffer;
 static rx_buffer_t * const mp_current_rx_buffer = &nrf_802154_rx_buffers[0];
 #endif
 
-static uint8_t         m_ack_psdu[ACK_LENGTH + 1]; ///< Ack frame buffer.
-static const uint8_t * mp_tx_data;                 ///< Pointer to data to transmit.
-static uint32_t        m_ed_time_left;             ///< Remaining time of current energy detection procedure [us].
-static uint8_t         m_ed_result;                ///< Result of current energy detection procedure.
+static uint8_t         m_ack_psdu[IMM_ACK_LENGTH + 1]; ///< ACK frame buffer.
+static const uint8_t * mp_tx_data;                     ///< Pointer to the data to transmit.
+static uint32_t        m_ed_time_left;                 ///< Remaining time of the current energy detection procedure [us].
+static uint8_t         m_ed_result;                    ///< Result of the current energy detection procedure.
 
-static volatile radio_state_t m_state;             ///< State of the radio driver
+static volatile radio_state_t m_state; ///< State of the radio driver.
 
 typedef struct
 {
