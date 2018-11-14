@@ -60,8 +60,8 @@
  *
  * @param[in]  p_data   Pointer to array containing data to transmit (PHR + PSDU).
  * @param[in]  cca      If the driver should perform CCA procedure before transmission.
- * @param[in]  t0       Base of delay time.
- * @param[in]  dt       Delta of delay time from @p t0.
+ * @param[in]  t0       Base of delay time [us].
+ * @param[in]  dt       Delta of delay time from @p t0 [us].
  * @param[in]  channel  Number of channel on which the frame should be transmitted.
  */
 bool nrf_802154_delayed_trx_transmit(const uint8_t * p_data,
@@ -69,6 +69,27 @@ bool nrf_802154_delayed_trx_transmit(const uint8_t * p_data,
                                      uint32_t        t0,
                                      uint32_t        dt,
                                      uint8_t         channel);
+
+/**
+ *@}
+ **/
+
+/**
+ * @brief Request reception of a frame at given time.
+ *
+ * If the requested is accepted and a frame is received during defined time slot
+ * @ref nrf_802154_received is called. If the request is rejected due to denied timeslot request
+ * or reception timeout expired the @ref nrf_802154_receive_failed function is called.
+ *
+ * @param[in]  t0       Base of delay time [us].
+ * @param[in]  dt       Delta of delay time from @p t0 [us].
+ * @param[in]  timeout  Reception timeout (counted from @p t0 + @p dt) [us].
+ * @param[in]  channel  Number of channel on which the frame should be received.
+ */
+bool nrf_802154_delayed_trx_receive(uint32_t t0,
+                                    uint32_t dt,
+                                    uint32_t timeout,
+                                    uint8_t  channel);
 
 /**
  *@}
