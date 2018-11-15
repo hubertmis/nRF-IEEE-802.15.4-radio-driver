@@ -48,11 +48,11 @@
 #include "nrf_802154_request.h"
 #include "nrf_802154_rsch.h"
 
-#define TX_SETUP_TIME 190  ///< Time [us] needed to change channel, stop rx and setup tx procedure.
+#define TX_SETUP_TIME 190            ///< Time [us] needed to change channel, stop rx and setup tx procedure.
 
-static const uint8_t * mp_tx_psdu;    ///< Pointer to PHR + PSDU of the frame requested to transmit.
-static bool            m_tx_cca;      ///< If CCA should be performed prior to transmission.
-static uint8_t         m_tx_channel;  ///< Channel number on which transmission should be performed.
+static const uint8_t * mp_tx_psdu;   ///< Pointer to PHR + PSDU of the frame requested to transmit.
+static bool            m_tx_cca;     ///< If CCA should be performed prior to transmission.
+static uint8_t         m_tx_channel; ///< Channel number on which transmission should be performed.
 
 /**
  * Check if delayed transmission procedure is in progress.

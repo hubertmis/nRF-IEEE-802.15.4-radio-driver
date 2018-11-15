@@ -53,4 +53,3 @@ void nrf_802154_priority_drop_hfclk_stop_terminate(void)
 {
     nrf_802154_swi_hfclk_stop_terminate();
 }
-

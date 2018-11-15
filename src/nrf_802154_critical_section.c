@@ -47,15 +47,13 @@
 
 #include <nrf.h>
 
-#define CMSIS_IRQ_NUM_VECTACTIVE_DIFF 16
+#define CMSIS_IRQ_NUM_VECTACTIVE_DIFF                 16
 
 #define NESTED_CRITICAL_SECTION_ALLOWED_PRIORITY_NONE (-1)
 
-static volatile uint8_t m_critical_section_monitor;                  ///< Monitors each critical section enter operation
-static volatile uint8_t m_nested_critical_section_counter;           ///< Counter of nested critical sections
-static volatile int8_t  m_nested_critical_section_allowed_priority;  ///< Indicator if nested critical sections are currently allowed
-
-
+static volatile uint8_t m_critical_section_monitor;                 ///< Monitors each critical section enter operation
+static volatile uint8_t m_nested_critical_section_counter;          ///< Counter of nested critical sections
+static volatile int8_t  m_nested_critical_section_allowed_priority; ///< Indicator if nested critical sections are currently allowed
 
 /***************************************************************************************************
  * @section Critical sections management
@@ -106,8 +104,8 @@ static int8_t active_priority_convert(uint32_t active_priority)
 static bool nested_critical_section_is_allowed_in_this_context(void)
 {
     return m_nested_critical_section_allowed_priority ==
-            active_priority_convert(
-                    nrf_802154_critical_section_active_vector_priority_get());
+           active_priority_convert(
+        nrf_802154_critical_section_active_vector_priority_get());
 }
 
 static bool critical_section_enter(bool forced)
@@ -247,11 +245,11 @@ void nrf_802154_critical_section_exit(void)
 void nrf_802154_critical_section_nesting_allow(void)
 {
     assert(m_nested_critical_section_allowed_priority ==
-            NESTED_CRITICAL_SECTION_ALLOWED_PRIORITY_NONE);
+           NESTED_CRITICAL_SECTION_ALLOWED_PRIORITY_NONE);
     assert(m_nested_critical_section_counter >= 1);
 
     m_nested_critical_section_allowed_priority = active_priority_convert(
-            nrf_802154_critical_section_active_vector_priority_get());
+        nrf_802154_critical_section_active_vector_priority_get());
 }
 
 void nrf_802154_critical_section_nesting_deny(void)
@@ -286,4 +284,3 @@ uint32_t nrf_802154_critical_section_active_vector_priority_get(void)
 
     return active_priority;
 }
-

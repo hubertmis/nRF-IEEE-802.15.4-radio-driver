@@ -74,4 +74,3 @@ void nrf_802154_priority_drop_hfclk_stop_terminate(void);
 #endif
 
 #endif // NRF_802154_PRIORITY_DROP_H__
-

@@ -10,23 +10,23 @@
 #include "raal/nrf_raal_api.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
-#define PREC_RAMP_UP_TIME 300  ///< Ramp-up time of preconditions [us]. 300 is worst case for HFclock
+#define PREC_RAMP_UP_TIME 300                                ///< Ramp-up time of preconditions [us]. 300 is worst case for HFclock
 
-static volatile uint8_t     m_ntf_mutex;                      ///< Mutex for notyfying core.
-static volatile uint8_t     m_ntf_mutex_monitor;              ///< Mutex monitor, incremented every failed ntf mutex lock.
-static volatile uint8_t     m_req_mutex;                      ///< Mutex for requesting preconditions.
-static volatile uint8_t     m_req_mutex_monitor;              ///< Mutex monitor, incremented every failed req mutex lock.
-static volatile rsch_prio_t m_last_notified_prio;             ///< Last reported approved priority level.
-static volatile rsch_prio_t m_approved_prios[RSCH_PREC_CNT];  ///< Priority levels approved by each precondition.
-static rsch_prio_t          m_requested_prio;                 ///< Priority requested from all preconditions.
-static rsch_prio_t          m_cont_mode_prio;                 ///< Continuous mode priority level. If continuous mode is not requested equal to @ref RSCH_PRIO_IDLE.
+static volatile uint8_t     m_ntf_mutex;                     ///< Mutex for notyfying core.
+static volatile uint8_t     m_ntf_mutex_monitor;             ///< Mutex monitor, incremented every failed ntf mutex lock.
+static volatile uint8_t     m_req_mutex;                     ///< Mutex for requesting preconditions.
+static volatile uint8_t     m_req_mutex_monitor;             ///< Mutex monitor, incremented every failed req mutex lock.
+static volatile rsch_prio_t m_last_notified_prio;            ///< Last reported approved priority level.
+static volatile rsch_prio_t m_approved_prios[RSCH_PREC_CNT]; ///< Priority levels approved by each precondition.
+static rsch_prio_t          m_requested_prio;                ///< Priority requested from all preconditions.
+static rsch_prio_t          m_cont_mode_prio;                ///< Continuous mode priority level. If continuous mode is not requested equal to @ref RSCH_PRIO_IDLE.
 
 typedef struct
 {
-    rsch_prio_t        prio;   ///< Delayed timeslot priority level. If delayed timeslot is not scheduled equal to @ref RSCH_PRIO_IDLE.
-    uint32_t           t0;     ///< Time base of the delayed timeslot trigger time.
-    uint32_t           dt;     ///< Time delta of the delayed timeslot trigger time.
-    nrf_802154_timer_t timer;  ///< Timer used to trigger delayed timeslot.
+    rsch_prio_t        prio;  ///< Delayed timeslot priority level. If delayed timeslot is not scheduled equal to @ref RSCH_PRIO_IDLE.
+    uint32_t           t0;    ///< Time base of the delayed timeslot trigger time.
+    uint32_t           dt;    ///< Time delta of the delayed timeslot trigger time.
+    nrf_802154_timer_t timer; ///< Timer used to trigger delayed timeslot.
 } dly_ts_t;
 
 static dly_ts_t m_dly_ts[RSCH_DLY_TS_NUM];
@@ -52,7 +52,8 @@ static inline bool mutex_trylock(volatile uint8_t * p_mutex, volatile uint8_t * 
             (*p_mutex_monitor)++;
             return false;
         }
-    } while (__STREXB(1, p_mutex));
+    }
+    while (__STREXB(1, p_mutex));
 
     __DMB();
 
@@ -84,7 +85,7 @@ static rsch_prio_t max_prio_for_delayed_timeslot_get(void)
         dly_ts_t * p_dly_ts = &m_dly_ts[i];
         uint32_t   t0       = p_dly_ts->t0;
         uint32_t   dt       = p_dly_ts->dt - PREC_RAMP_UP_TIME -
-                nrf_802154_timer_sched_granularity_get();
+                              nrf_802154_timer_sched_granularity_get();
 
         if ((p_dly_ts->prio > result) && !nrf_802154_timer_sched_time_is_in_future(now, t0, dt))
         {
@@ -111,7 +112,7 @@ static rsch_prio_t required_prio_lvl_get(void)
  *
  * When requested priority level equals to the @ref RSCH_PRIO_IDLE this function will approve only
  * the @ref RSCH_PRIO_IDLE priority level and drop other approved levels silently.
- * 
+ *
  * @param[in]  prec    Precondition which state will be changed.
  * @param[in]  prio    Approved priority level for given precondition.
  */
@@ -170,7 +171,8 @@ static inline void all_prec_update(void)
         }
 
         mutex_unlock(&m_req_mutex);
-    } while (monitor != m_req_mutex_monitor);
+    }
+    while (monitor != m_req_mutex_monitor);
 }
 
 /** @brief Get currently approved priority level.
@@ -204,7 +206,6 @@ static inline bool requested_prio_lvl_is_at_least(rsch_prio_t prio)
     return m_requested_prio >= prio;
 }
 
-
 /** @brief Notify core if preconditions are approved or denied if current state differs from last reported.
  */
 static inline void notify_core(void)
@@ -235,7 +236,8 @@ static inline void notify_core(void)
         }
 
         mutex_unlock(&m_ntf_mutex);
-    } while(temp_mon != m_ntf_mutex_monitor);
+    }
+    while (temp_mon != m_ntf_mutex_monitor);
 }
 
 /** Timer callback used to trigger delayed timeslot.
@@ -296,11 +298,11 @@ void nrf_802154_rsch_init(void)
 {
     nrf_raal_init();
 
-    m_ntf_mutex             = 0;
-    m_req_mutex             = 0;
-    m_last_notified_prio    = RSCH_PRIO_IDLE;
-    m_cont_mode_prio        = RSCH_PRIO_IDLE;
-    m_requested_prio        = RSCH_PRIO_IDLE;
+    m_ntf_mutex          = 0;
+    m_req_mutex          = 0;
+    m_last_notified_prio = RSCH_PRIO_IDLE;
+    m_cont_mode_prio     = RSCH_PRIO_IDLE;
+    m_requested_prio     = RSCH_PRIO_IDLE;
 
     for (uint32_t i = 0; i < RSCH_DLY_TS_NUM; i++)
     {
@@ -326,7 +328,7 @@ void nrf_802154_rsch_uninit(void)
 void nrf_802154_rsch_continuous_mode_priority_set(rsch_prio_t prio)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, (prio > RSCH_PRIO_IDLE) ? FUNCTION_RSCH_CONTINUOUS_ENTER :
-                                                                FUNCTION_RSCH_CONTINUOUS_EXIT);
+                   FUNCTION_RSCH_CONTINUOUS_EXIT);
 
     m_cont_mode_prio = prio;
     __DMB();
@@ -340,7 +342,7 @@ void nrf_802154_rsch_continuous_mode_priority_set(rsch_prio_t prio)
     }
 
     nrf_802154_log(EVENT_TRACE_EXIT, (prio > RSCH_PRIO_IDLE) ? FUNCTION_RSCH_CONTINUOUS_ENTER :
-                                                                FUNCTION_RSCH_CONTINUOUS_EXIT);
+                   FUNCTION_RSCH_CONTINUOUS_EXIT);
 }
 
 bool nrf_802154_rsch_timeslot_request(uint32_t length_us)

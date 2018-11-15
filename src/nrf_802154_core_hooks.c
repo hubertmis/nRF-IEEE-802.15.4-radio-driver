@@ -46,7 +46,6 @@
 #include "nrf_802154_config.h"
 #include "nrf_802154_types.h"
 
-
 typedef bool (* abort_hook)(nrf_802154_term_t term_lvl, req_originator_t req_orig);
 typedef void (* transmitted_hook)(const uint8_t * p_frame);
 typedef bool (* tx_failed_hook)(const uint8_t * p_frame, nrf_802154_tx_error_t error);

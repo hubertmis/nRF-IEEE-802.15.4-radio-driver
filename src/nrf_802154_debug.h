@@ -42,7 +42,7 @@
 extern "C" {
 #endif
 
-#define NRF_802154_DEBUG_LOG_BUFFER_LEN 1024
+#define NRF_802154_DEBUG_LOG_BUFFER_LEN        1024
 
 #define EVENT_TRACE_ENTER                      0x0001UL
 #define EVENT_TRACE_EXIT                       0x0002UL
@@ -140,16 +140,18 @@ extern "C" {
 
 #if ENABLE_DEBUG_LOG
 extern volatile uint32_t nrf_802154_debug_log_buffer[
-        NRF_802154_DEBUG_LOG_BUFFER_LEN];
+    NRF_802154_DEBUG_LOG_BUFFER_LEN];
 extern volatile uint32_t nrf_802154_debug_log_ptr;
 
-#define nrf_802154_log(EVENT_CODE, EVENT_ARG)                                                      \
-    do {                                                                                           \
-        uint32_t ptr = nrf_802154_debug_log_ptr;                                                   \
-        nrf_802154_debug_log_buffer[ptr] = ((EVENT_CODE) | ((EVENT_ARG) << 16));                   \
-        nrf_802154_debug_log_ptr =                                                                 \
-                ptr < (NRF_802154_DEBUG_LOG_BUFFER_LEN - 1) ? ptr + 1 : 0;                         \
-    } while (0)
+#define nrf_802154_log(EVENT_CODE, EVENT_ARG)                                    \
+    do                                                                           \
+    {                                                                            \
+        uint32_t ptr = nrf_802154_debug_log_ptr;                                 \
+        nrf_802154_debug_log_buffer[ptr] = ((EVENT_CODE) | ((EVENT_ARG) << 16)); \
+        nrf_802154_debug_log_ptr         =                                       \
+            ptr < (NRF_802154_DEBUG_LOG_BUFFER_LEN - 1) ? ptr + 1 : 0;           \
+    }                                                                            \
+    while (0)
 
 #else // ENABLE_DEBUG_LOG
 
@@ -161,10 +163,14 @@ extern volatile uint32_t nrf_802154_debug_log_ptr;
 
 #define nrf_802154_pin_set(pin) NRF_P0->OUTSET = (1UL << (pin))
 #define nrf_802154_pin_clr(pin) NRF_P0->OUTCLR = (1UL << (pin))
-#define nrf_802154_pin_tgl(pin) do { volatile uint32_t ps = NRF_P0->OUT;                           \
-                                            NRF_P0->OUTSET = (~ps & (1UL << (pin)));               \
-                                            NRF_P0->OUTCLR = (ps & (1UL << (pin)));                \
-                                         } while(0);
+#define nrf_802154_pin_tgl(pin)                  \
+    do                                           \
+    {                                            \
+        volatile uint32_t ps = NRF_P0->OUT;      \
+        NRF_P0->OUTSET = (~ps & (1UL << (pin))); \
+        NRF_P0->OUTCLR = (ps & (1UL << (pin)));  \
+    }                                            \
+    while (0);
 
 #else // ENABLE_DEBUG_GPIO
 

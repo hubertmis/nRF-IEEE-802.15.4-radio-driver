@@ -97,6 +97,7 @@ static void tx_buffer_fill(const uint8_t * p_data, uint8_t length)
     m_tx_buffer[RAW_LENGTH_OFFSET] = length + FCS_SIZE;
     memcpy(&m_tx_buffer[RAW_PAYLOAD_OFFSET], p_data, length);
 }
+
 #endif // !NRF_802154_USE_RAW_API
 
 /**
@@ -129,7 +130,7 @@ static uint32_t last_rx_frame_timestamp_get(void)
     return timestamp;
 #else // NRF_802154_FRAME_TIMESTAMP_ENABLED
     return NRF_802154_NO_TIMESTAMP;
-#endif // NRF_802154_FRAME_TIMESTAMP_ENABLED
+#endif  // NRF_802154_FRAME_TIMESTAMP_ENABLED
 }
 
 void nrf_802154_channel_set(uint8_t channel)
@@ -192,6 +193,7 @@ uint8_t nrf_802154_ccaedthres_from_dbm_calculate(int8_t dbm)
 uint32_t nrf_802154_first_symbol_timestamp_get(uint32_t end_timestamp, uint8_t psdu_length)
 {
     uint32_t frame_symbols = PHY_SHR_SYMBOLS;
+
     frame_symbols += (PHR_SIZE + psdu_length) * PHY_SYMBOLS_PER_OCTET;
 
     return end_timestamp - (frame_symbols * PHY_US_PER_SYMBOL);
@@ -233,6 +235,7 @@ void nrf_802154_radio_irq_handler(void)
 {
     nrf_802154_core_irq_handler();
 }
+
 #endif // !NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
 
 #if ENABLE_FEM
@@ -245,33 +248,34 @@ void nrf_802154_fem_control_cfg_get(nrf_802154_fem_control_cfg_t * p_cfg)
 {
     nrf_fem_control_cfg_get(p_cfg);
 }
+
 #endif // ENABLE_FEM
 
 nrf_802154_state_t nrf_802154_state_get(void)
 {
     switch (nrf_802154_core_state_get())
     {
-    case RADIO_STATE_SLEEP:
-    case RADIO_STATE_FALLING_ASLEEP:
-        return NRF_802154_STATE_SLEEP;
+        case RADIO_STATE_SLEEP:
+        case RADIO_STATE_FALLING_ASLEEP:
+            return NRF_802154_STATE_SLEEP;
 
-    case RADIO_STATE_RX:
-    case RADIO_STATE_TX_ACK:
-        return NRF_802154_STATE_RECEIVE;
+        case RADIO_STATE_RX:
+        case RADIO_STATE_TX_ACK:
+            return NRF_802154_STATE_RECEIVE;
 
-    case RADIO_STATE_CCA_TX:
-    case RADIO_STATE_TX:
-    case RADIO_STATE_RX_ACK:
-        return NRF_802154_STATE_TRANSMIT;
+        case RADIO_STATE_CCA_TX:
+        case RADIO_STATE_TX:
+        case RADIO_STATE_RX_ACK:
+            return NRF_802154_STATE_TRANSMIT;
 
-    case RADIO_STATE_ED:
-        return NRF_802154_STATE_ENERGY_DETECTION;
+        case RADIO_STATE_ED:
+            return NRF_802154_STATE_ENERGY_DETECTION;
 
-    case RADIO_STATE_CCA:
-        return NRF_802154_STATE_CCA;
+        case RADIO_STATE_CCA:
+            return NRF_802154_STATE_CCA;
 
-    case RADIO_STATE_CONTINUOUS_CARRIER:
-        return NRF_802154_STATE_CONTINUOUS_CARRIER;
+        case RADIO_STATE_CONTINUOUS_CARRIER:
+            return NRF_802154_STATE_CONTINUOUS_CARRIER;
     }
 
     return NRF_802154_STATE_INVALID;
@@ -280,6 +284,7 @@ nrf_802154_state_t nrf_802154_state_get(void)
 bool nrf_802154_sleep(void)
 {
     bool result;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_SLEEP);
 
     result = nrf_802154_request_sleep(NRF_802154_TERM_802154);
@@ -291,10 +296,13 @@ bool nrf_802154_sleep(void)
 nrf_802154_sleep_error_t nrf_802154_sleep_if_idle(void)
 {
     nrf_802154_sleep_error_t result;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_SLEEP);
-    
-    result = nrf_802154_request_sleep(NRF_802154_TERM_NONE) ? NRF_802154_SLEEP_ERROR_NONE : NRF_802154_SLEEP_ERROR_BUSY;
-    
+
+    result =
+        nrf_802154_request_sleep(NRF_802154_TERM_NONE) ? NRF_802154_SLEEP_ERROR_NONE :
+        NRF_802154_SLEEP_ERROR_BUSY;
+
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_SLEEP);
     return result;
 }
@@ -302,6 +310,7 @@ nrf_802154_sleep_error_t nrf_802154_sleep_if_idle(void)
 bool nrf_802154_receive(void)
 {
     bool result;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RECEIVE);
 
     result = nrf_802154_request_receive(NRF_802154_TERM_802154, REQ_ORIG_HIGHER_LAYER, NULL, true);
@@ -314,6 +323,7 @@ bool nrf_802154_receive(void)
 bool nrf_802154_transmit_raw(const uint8_t * p_data, bool cca)
 {
     bool result;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TRANSMIT);
 
     result = nrf_802154_request_transmit(NRF_802154_TERM_NONE,
@@ -332,6 +342,7 @@ bool nrf_802154_transmit_raw(const uint8_t * p_data, bool cca)
 bool nrf_802154_transmit(const uint8_t * p_data, uint8_t length, bool cca)
 {
     bool result;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TRANSMIT);
 
     tx_buffer_fill(p_data, length);
@@ -355,6 +366,7 @@ bool nrf_802154_transmit_raw_at(const uint8_t * p_data,
                                 uint8_t         channel)
 {
     bool result;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TRANSMIT_AT);
 
     result = nrf_802154_delayed_trx_transmit(p_data, cca, t0, dt, channel);
@@ -366,6 +378,7 @@ bool nrf_802154_transmit_raw_at(const uint8_t * p_data,
 bool nrf_802154_energy_detection(uint32_t time_us)
 {
     bool result;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_ENERGY_DETECTION);
 
     result = nrf_802154_request_energy_detection(NRF_802154_TERM_NONE, time_us);
@@ -377,6 +390,7 @@ bool nrf_802154_energy_detection(uint32_t time_us)
 bool nrf_802154_cca(void)
 {
     bool result;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_CCA);
 
     result = nrf_802154_request_cca(NRF_802154_TERM_NONE);
@@ -388,6 +402,7 @@ bool nrf_802154_cca(void)
 bool nrf_802154_continuous_carrier(void)
 {
     bool result;
+
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_CONTINUOUS_CARRIER);
 
     result = nrf_802154_request_continuous_carrier(NRF_802154_TERM_NONE);
@@ -474,7 +489,7 @@ int8_t nrf_802154_rssi_last_get(void)
 
     minus_dbm = nrf_802154_rssi_sample_corrected_get(minus_dbm);
 
-    return - (int8_t)minus_dbm;
+    return -(int8_t)minus_dbm;
 }
 
 bool nrf_802154_promiscuous_get(void)
@@ -619,6 +634,7 @@ __WEAK void nrf_802154_received_timestamp(uint8_t * p_data,
 
     nrf_802154_buffer_free(p_data);
 }
+
 #endif // !NRF_802154_USE_RAW_API
 
 __WEAK void nrf_802154_receive_failed(nrf_802154_rx_error_t error)
@@ -690,8 +706,8 @@ __WEAK void nrf_802154_transmitted_timestamp(const uint8_t * p_frame,
         nrf_802154_buffer_free(p_ack);
     }
 }
-#endif // NRF_802154_USE_RAW_API
 
+#endif // NRF_802154_USE_RAW_API
 
 __WEAK void nrf_802154_transmit_failed(const uint8_t * p_frame, nrf_802154_tx_error_t error)
 {

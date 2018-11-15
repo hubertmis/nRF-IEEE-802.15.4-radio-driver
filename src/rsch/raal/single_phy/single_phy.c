@@ -71,7 +71,7 @@ void nrf_raal_continuous_mode_exit(void)
 
 bool nrf_raal_timeslot_request(uint32_t length_us)
 {
-    (void) length_us;
+    (void)length_us;
 
     assert(m_continuous);
 
@@ -82,4 +82,3 @@ uint32_t nrf_raal_timeslot_us_left_get(void)
 {
     return UINT32_MAX;
 }
-

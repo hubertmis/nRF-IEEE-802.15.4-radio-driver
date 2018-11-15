@@ -47,7 +47,7 @@
 
 #define RSCH_EVT_NONE (rsch_prio_t)UINT8_MAX
 
-static volatile uint8_t m_rsch_pending_evt;  ///< Indicator of pending RSCH event.
+static volatile uint8_t m_rsch_pending_evt; ///< Indicator of pending RSCH event.
 
 /***************************************************************************************************
  * @section RSCH pending events management
@@ -61,7 +61,8 @@ static void rsch_pending_evt_set(rsch_prio_t prio)
     {
         rsch_pending_evt = __LDREXB(&m_rsch_pending_evt);
         (void)rsch_pending_evt;
-    } while (__STREXB((uint8_t)prio, &m_rsch_pending_evt));
+    }
+    while (__STREXB((uint8_t)prio, &m_rsch_pending_evt));
 }
 
 static rsch_prio_t rsch_pending_evt_clear(void)
@@ -71,7 +72,8 @@ static rsch_prio_t rsch_pending_evt_clear(void)
     do
     {
         evt_value = __LDREXB(&m_rsch_pending_evt);
-    } while (__STREXB(RSCH_EVT_NONE, &m_rsch_pending_evt));
+    }
+    while (__STREXB(RSCH_EVT_NONE, &m_rsch_pending_evt));
 
     return (rsch_prio_t)evt_value;
 }

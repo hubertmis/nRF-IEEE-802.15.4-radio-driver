@@ -51,7 +51,7 @@
 #include "platform/lp_timer/nrf_802154_lp_timer.h"
 
 #if defined(__ICCARM__)
-    _Pragma("diag_suppress=Pe167")
+_Pragma("diag_suppress=Pe167")
 #endif
 
 static volatile uint8_t              m_timer_mutex;        ///< Mutex for starting the timer.
@@ -75,7 +75,8 @@ static inline bool mutex_trylock(volatile uint8_t * p_mutex)
             __CLREX();
             return false;
         }
-    } while (__STREXB(1, p_mutex));
+    }
+    while (__STREXB(1, p_mutex));
 
     __DMB();
 
@@ -97,7 +98,8 @@ static inline void queue_cntr_bump(void)
     do
     {
         cntr = __LDREXB(&m_queue_changed_cntr);
-    } while (__STREXB(cntr + 1, &m_queue_changed_cntr));
+    }
+    while (__STREXB(cntr + 1, &m_queue_changed_cntr));
 
     __DMB();
 }
@@ -165,7 +167,8 @@ static inline void handle_timer(void)
 
             mutex_unlock(&m_timer_mutex);
         }
-    } while (queue_cntr != m_queue_changed_cntr);
+    }
+    while (queue_cntr != m_queue_changed_cntr);
 }
 
 /**
@@ -259,7 +262,8 @@ static bool timer_remove(nrf_802154_timer_t * p_timer)
             // This assignment is used to prevent compiler from removing exclusive load during optimization (IAR).
             temp = __LDREXW((uint32_t *)&p_cur->p_next);
             assert((void *)temp != p_cur);
-        } while (__STREXW(temp, (uint32_t *)&p_cur->p_next));
+        }
+        while (__STREXW(temp, (uint32_t *)&p_cur->p_next));
     }
 
     return (timer_start || timer_stop);
@@ -316,7 +320,7 @@ void nrf_802154_timer_sched_add(nrf_802154_timer_t * p_timer, bool round_up)
     }
 
     nrf_802154_timer_t ** pp_item;
-    nrf_802154_timer_t *  p_next;
+    nrf_802154_timer_t  * p_next;
     uint8_t               queue_cntr;
 
     while (true)
@@ -402,7 +406,8 @@ bool nrf_802154_timer_sched_is_running(nrf_802154_timer_t * p_timer)
                 break;
             }
         }
-    } while (queue_cntr != m_queue_changed_cntr);
+    }
+    while (queue_cntr != m_queue_changed_cntr);
 
     return result;
 }
@@ -413,7 +418,7 @@ void nrf_802154_lp_timer_fired(void)
 
     if (mutex_trylock(&m_fired_mutex))
     {
-        nrf_802154_timer_t * p_timer   = (nrf_802154_timer_t *) mp_head;
+        nrf_802154_timer_t * p_timer = (nrf_802154_timer_t *)mp_head;
 
         if (p_timer != NULL)
         {

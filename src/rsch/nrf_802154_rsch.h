@@ -72,11 +72,11 @@ typedef enum
  */
 typedef enum
 {
-    RSCH_PRIO_IDLE,                ///< Priority used in the sleep state. With this priority RSCH releases all preconditions.
-    RSCH_PRIO_IDLE_LISTENING,      ///< Priority used during the idle listening procedure.
-    RSCH_PRIO_RX,                  ///< Priority used when a frame is being received.
-    RSCH_PRIO_DETECT,              ///< Priority used to detect channel conditions (CCA, ED).
-    RSCH_PRIO_TX,                  ///< Priority used to transmit a frame.
+    RSCH_PRIO_IDLE,                                    ///< Priority used in the sleep state. With this priority RSCH releases all preconditions.
+    RSCH_PRIO_IDLE_LISTENING,                          ///< Priority used during the idle listening procedure.
+    RSCH_PRIO_RX,                                      ///< Priority used when a frame is being received.
+    RSCH_PRIO_DETECT,                                  ///< Priority used to detect channel conditions (CCA, ED).
+    RSCH_PRIO_TX,                                      ///< Priority used to transmit a frame.
 
     RSCH_PRIO_MIN_APPROVED = RSCH_PRIO_IDLE_LISTENING, ///< Minimal priority indicating that given precondition is approved.
     RSCH_PRIO_MAX          = RSCH_PRIO_TX,             ///< Maximal priority available in the RSCH module.
@@ -87,10 +87,10 @@ typedef enum
  */
 typedef enum
 {
-    RSCH_DLY_TX,      ///< Timeslot for delayed tx operation.
-    RSCH_DLY_RX,      ///< Timeslot for delayed rx operation.
+    RSCH_DLY_TX,     ///< Timeslot for delayed tx operation.
+    RSCH_DLY_RX,     ///< Timeslot for delayed rx operation.
 
-    RSCH_DLY_TS_NUM,  ///< Number of delayed timeslots.
+    RSCH_DLY_TS_NUM, ///< Number of delayed timeslots.
 } rsch_dly_ts_id_t;
 
 /**
@@ -172,7 +172,7 @@ bool nrf_802154_rsch_delayed_timeslot_request(uint32_t         t0,
  *
  * @param[in]  prec    RSCH precondition to be checked.
  * @param[in]  prio    Minimal required priority level of given precondition.
- * 
+ *
  * @retval true   Precondition @p prec is currently granted.
  * @retval false  Precondition @p prec is not currently granted.
  */
