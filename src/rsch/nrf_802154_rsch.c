@@ -21,10 +21,15 @@ static volatile rsch_prio_t m_approved_prios[RSCH_PREC_CNT];  ///< Priority leve
 static rsch_prio_t          m_requested_prio;                 ///< Priority requested from all preconditions.
 static rsch_prio_t          m_cont_mode_prio;                 ///< Continuous mode priority level. If continuous mode is not requested equal to @ref RSCH_PRIO_IDLE.
 
-static rsch_prio_t        m_delayed_timeslot_prio;  ///< Delayed timeslot priority level. If delayed timeslot is not scheduled equal to @ref RSCH_PRIO_IDLE.
-static uint32_t           m_delayed_timeslot_t0;    ///< Time base of the delayed timeslot trigger time.
-static uint32_t           m_delayed_timeslot_dt;    ///< Time delta of the delayed timeslot trigger time.
-static nrf_802154_timer_t m_timer;                  ///< Timer used to trigger delayed timeslot.
+typedef struct
+{
+    rsch_prio_t        prio;   ///< Delayed timeslot priority level. If delayed timeslot is not scheduled equal to @ref RSCH_PRIO_IDLE.
+    uint32_t           t0;     ///< Time base of the delayed timeslot trigger time.
+    uint32_t           dt;     ///< Time delta of the delayed timeslot trigger time.
+    nrf_802154_timer_t timer;  ///< Timer used to trigger delayed timeslot.
+} dly_ts_t;
+
+static dly_ts_t m_dly_ts[RSCH_DLY_TS_NUM];
 
 /** @brief Non-blocking mutex for notifying core.
  *
@@ -61,34 +66,38 @@ static inline void mutex_unlock(volatile uint8_t * p_mutex)
     *p_mutex = 0;
 }
 
-/** @brief Check if any precondition should be requested at the moment for delayed timeslot.
+/** @brief Check maximal priority level required by any of delayed timeslots at the moment.
  *
  * To meet delayed timeslot timing requirements there is a time window in which radio
  * preconditions should be requested. This function is used to prevent releasing preconditions
  * in this time window.
  *
- * @retval true   A precondition should be requested at the moment for delayed timeslot feature.
- * @retval false  None of preconditions should be requested at the moment for delayed timeslot.
+ * @return  Maximal priority level required by delayed timeslots.
  */
-static bool any_prec_should_be_requested_for_delayed_timeslot(void)
+static rsch_prio_t max_prio_for_delayed_timeslot_get(void)
 {
-    uint32_t now = nrf_802154_timer_sched_time_get();
-    uint32_t t0  = m_delayed_timeslot_t0;
-    uint32_t dt  = m_delayed_timeslot_dt - PREC_RAMP_UP_TIME -
-            nrf_802154_timer_sched_granularity_get();
+    rsch_prio_t result = RSCH_PRIO_IDLE;
+    uint32_t    now    = nrf_802154_timer_sched_time_get();
 
-    return ((m_delayed_timeslot_prio > RSCH_PRIO_IDLE) &&
-            !nrf_802154_timer_sched_time_is_in_future(now, t0, dt));
+    for (uint32_t i = 0; i < RSCH_DLY_TS_NUM; i++)
+    {
+        dly_ts_t * p_dly_ts = &m_dly_ts[i];
+        uint32_t   t0       = p_dly_ts->t0;
+        uint32_t   dt       = p_dly_ts->dt - PREC_RAMP_UP_TIME -
+                nrf_802154_timer_sched_granularity_get();
+
+        if ((p_dly_ts->prio > result) && !nrf_802154_timer_sched_time_is_in_future(now, t0, dt))
+        {
+            result = p_dly_ts->prio;
+        }
+    }
+
+    return result;
 }
 
 static rsch_prio_t required_prio_lvl_get(void)
 {
-    rsch_prio_t result = RSCH_PRIO_IDLE;
-
-    if (any_prec_should_be_requested_for_delayed_timeslot())
-    {
-        result = m_delayed_timeslot_prio;
-    }
+    rsch_prio_t result = max_prio_for_delayed_timeslot_get();
 
     if (m_cont_mode_prio > result)
     {
@@ -231,26 +240,26 @@ static inline void notify_core(void)
 
 /** Timer callback used to trigger delayed timeslot.
  *
- * @param[in]  p_context  Unused parameter.
+ * @param[in]  p_context  Index of the delayed timeslot operation (TX or RX).
  */
 static void delayed_timeslot_start(void * p_context)
 {
-    (void)p_context;
-
-    rsch_prio_t req_prio_lvl;
+    rsch_dly_ts_id_t dly_ts_id = (rsch_dly_ts_id_t)(uint32_t)p_context;
+    dly_ts_t       * p_dly_ts  = &m_dly_ts[dly_ts_id];
+    rsch_prio_t      req_prio_lvl;
 
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RSCH_TIMER_DELAYED_START);
 
-    req_prio_lvl            = m_delayed_timeslot_prio;
-    m_delayed_timeslot_prio = RSCH_PRIO_IDLE;
+    req_prio_lvl   = p_dly_ts->prio;
+    p_dly_ts->prio = RSCH_PRIO_IDLE;
 
     if (approved_prio_lvl_get() >= req_prio_lvl)
     {
-        nrf_802154_rsch_delayed_timeslot_started();
+        nrf_802154_rsch_delayed_timeslot_started(dly_ts_id);
     }
     else
     {
-        nrf_802154_rsch_delayed_timeslot_failed();
+        nrf_802154_rsch_delayed_timeslot_failed(dly_ts_id);
     }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_TIMER_DELAYED_START);
@@ -258,22 +267,23 @@ static void delayed_timeslot_start(void * p_context)
 
 /** Timer callback used to request preconditions for delayed timeslot.
  *
- * @param[in]  p_context  Unused parameter.
+ * @param[in]  p_context  Index of the delayed timeslot operation (TX or RX).
  */
 static void delayed_timeslot_prec_request(void * p_context)
 {
-    (void)p_context;
+    rsch_dly_ts_id_t dly_ts_id = (rsch_dly_ts_id_t)(uint32_t)p_context;
+    dly_ts_t       * p_dly_ts  = &m_dly_ts[dly_ts_id];
 
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RSCH_TIMER_DELAYED_PREC);
 
     all_prec_update();
 
-    m_timer.t0        = m_delayed_timeslot_t0;
-    m_timer.dt        = m_delayed_timeslot_dt;
-    m_timer.callback  = delayed_timeslot_start;
-    m_timer.p_context = NULL;
+    p_dly_ts->timer.t0        = p_dly_ts->t0;
+    p_dly_ts->timer.dt        = p_dly_ts->dt;
+    p_dly_ts->timer.callback  = delayed_timeslot_start;
+    p_dly_ts->timer.p_context = p_context;
 
-    nrf_802154_timer_sched_add(&m_timer, true);
+    nrf_802154_timer_sched_add(&p_dly_ts->timer, true);
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_TIMER_DELAYED_PREC);
 }
@@ -290,8 +300,12 @@ void nrf_802154_rsch_init(void)
     m_req_mutex             = 0;
     m_last_notified_prio    = RSCH_PRIO_IDLE;
     m_cont_mode_prio        = RSCH_PRIO_IDLE;
-    m_delayed_timeslot_prio = RSCH_PRIO_IDLE;
     m_requested_prio        = RSCH_PRIO_IDLE;
+
+    for (uint32_t i = 0; i < RSCH_DLY_TS_NUM; i++)
+    {
+        m_dly_ts[i].prio = RSCH_PRIO_IDLE;
+    }
 
     for (uint32_t i = 0; i < RSCH_PREC_CNT; i++)
     {
@@ -301,7 +315,11 @@ void nrf_802154_rsch_init(void)
 
 void nrf_802154_rsch_uninit(void)
 {
-    nrf_802154_timer_sched_remove(&m_timer);
+    for (uint32_t i = 0; i < RSCH_DLY_TS_NUM; i++)
+    {
+        nrf_802154_timer_sched_remove(&m_dly_ts[i].timer);
+    }
+
     nrf_raal_uninit();
 }
 
@@ -330,51 +348,54 @@ bool nrf_802154_rsch_timeslot_request(uint32_t length_us)
     return nrf_raal_timeslot_request(length_us);
 }
 
-bool nrf_802154_rsch_delayed_timeslot_request(uint32_t    t0,
-                                              uint32_t    dt,
-                                              uint32_t    length,
-                                              rsch_prio_t prio)
+bool nrf_802154_rsch_delayed_timeslot_request(uint32_t         t0,
+                                              uint32_t         dt,
+                                              uint32_t         length,
+                                              rsch_prio_t      prio,
+                                              rsch_dly_ts_id_t dly_ts_id)
 {
     (void)length;
 
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RSCH_DELAYED_TIMESLOT_REQ);
+    assert(dly_ts_id < RSCH_DLY_TS_NUM);
 
-    uint32_t now    = nrf_802154_timer_sched_time_get();
-    uint32_t req_dt = dt - PREC_RAMP_UP_TIME;
-    bool     result;
+    dly_ts_t * p_dly_ts = &m_dly_ts[dly_ts_id];
+    uint32_t   now      = nrf_802154_timer_sched_time_get();
+    uint32_t   req_dt   = dt - PREC_RAMP_UP_TIME;
+    bool       result;
 
-    assert(!nrf_802154_timer_sched_is_running(&m_timer));
-    assert(m_delayed_timeslot_prio == RSCH_PRIO_IDLE);
+    assert(!nrf_802154_timer_sched_is_running(&p_dly_ts->timer));
+    assert(p_dly_ts->prio == RSCH_PRIO_IDLE);
     assert(prio != RSCH_PRIO_IDLE);
 
     if (nrf_802154_timer_sched_time_is_in_future(now, t0, req_dt))
     {
-        m_delayed_timeslot_prio = prio;
-        m_delayed_timeslot_t0   = t0;
-        m_delayed_timeslot_dt   = dt;
+        p_dly_ts->prio = prio;
+        p_dly_ts->t0   = t0;
+        p_dly_ts->dt   = dt;
 
-        m_timer.t0        = t0;
-        m_timer.dt        = req_dt;
-        m_timer.callback  = delayed_timeslot_prec_request;
-        m_timer.p_context = NULL;
+        p_dly_ts->timer.t0        = t0;
+        p_dly_ts->timer.dt        = req_dt;
+        p_dly_ts->timer.callback  = delayed_timeslot_prec_request;
+        p_dly_ts->timer.p_context = (void *)dly_ts_id;
 
-        nrf_802154_timer_sched_add(&m_timer, false);
+        nrf_802154_timer_sched_add(&p_dly_ts->timer, false);
 
         result = true;
     }
     else if (requested_prio_lvl_is_at_least(RSCH_PRIO_MAX) &&
              nrf_802154_timer_sched_time_is_in_future(now, t0, dt))
     {
-        m_delayed_timeslot_prio = prio;
-        m_delayed_timeslot_t0   = t0;
-        m_delayed_timeslot_dt   = dt;
+        p_dly_ts->prio = prio;
+        p_dly_ts->t0   = t0;
+        p_dly_ts->dt   = dt;
 
-        m_timer.t0        = t0;
-        m_timer.dt        = dt;
-        m_timer.callback  = delayed_timeslot_start;
-        m_timer.p_context = NULL;
+        p_dly_ts->timer.t0        = t0;
+        p_dly_ts->timer.dt        = dt;
+        p_dly_ts->timer.callback  = delayed_timeslot_start;
+        p_dly_ts->timer.p_context = (void *)dly_ts_id;
 
-        nrf_802154_timer_sched_add(&m_timer, true);
+        nrf_802154_timer_sched_add(&p_dly_ts->timer, true);
 
         result = true;
     }

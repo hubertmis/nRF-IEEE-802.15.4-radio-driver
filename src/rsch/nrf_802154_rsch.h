@@ -83,6 +83,17 @@ typedef enum
 } rsch_prio_t;
 
 /**
+ * @brief Enumeration of delayed timeslots ids.
+ */
+typedef enum
+{
+    RSCH_DLY_TX,      ///< Timeslot for delayed tx operation.
+    RSCH_DLY_RX,      ///< Timeslot for delayed rx operation.
+
+    RSCH_DLY_TS_NUM,  ///< Number of delayed timeslots.
+} rsch_dly_ts_id_t;
+
+/**
  * @brief Initialize Radio Scheduler.
  *
  * @note This function shall be called once, before any other function from this module.
@@ -145,14 +156,16 @@ bool nrf_802154_rsch_timeslot_request(uint32_t length_us);
  * @param[in]  dt      Time delta between @p t0 and the timestamp of the timeslot start [us].
  * @param[in]  length  Requested radio timeslot length [us].
  * @param[in]  prio    Priority level required for the delayed timeslot.
+ * @param[in]  dly_ts  Type of the requested timeslot.
  *
  * @retval true   Requested timeslot has been scheduled.
  * @retval false  Requested timeslot cannot be scheduled and will not be granted.
  */
-bool nrf_802154_rsch_delayed_timeslot_request(uint32_t    t0,
-                                              uint32_t    dt,
-                                              uint32_t    length,
-                                              rsch_prio_t prio);
+bool nrf_802154_rsch_delayed_timeslot_request(uint32_t         t0,
+                                              uint32_t         dt,
+                                              uint32_t         length,
+                                              rsch_prio_t      prio,
+                                              rsch_dly_ts_id_t dly_ts);
 
 /**
  * @brief Check if the RSCH precondition is satisfied.
@@ -186,16 +199,20 @@ extern void nrf_802154_rsch_continuous_prio_changed(rsch_prio_t prio);
 
 /**
  * @brief Notification that previously requested delayed timeslot has started just now.
+ *
+ * @param[in]  dly_ts_id  Type of the started timeslot.
  */
-extern void nrf_802154_rsch_delayed_timeslot_started(void);
+extern void nrf_802154_rsch_delayed_timeslot_started(rsch_dly_ts_id_t dly_ts_id);
 
 /**
  * @brief Notification that previously requested delayed timeslot cannot be started.
  *
  * This function may be called when any of radio activity precondition is not satisfied at the
  * time when the timeslot should start.
+ *
+ * @param[in]  dly_ts_id  Type of the failed timeslot.
  */
-extern void nrf_802154_rsch_delayed_timeslot_failed(void);
+extern void nrf_802154_rsch_delayed_timeslot_failed(rsch_dly_ts_id_t dly_ts_id);
 
 /**
  *@}

@@ -118,7 +118,11 @@ bool nrf_802154_delayed_trx_transmit(const uint8_t * p_data,
                                                      cca,
                                                      p_data[ACK_REQUEST_OFFSET] & ACK_REQUEST_BIT);
 
-        result = nrf_802154_rsch_delayed_timeslot_request(t0, dt, timeslot_length, RSCH_PRIO_MAX);
+        result = nrf_802154_rsch_delayed_timeslot_request(t0,
+                                                          dt,
+                                                          timeslot_length,
+                                                          RSCH_PRIO_MAX,
+                                                          RSCH_DLY_TX);
 
         if (!result)
         {
@@ -130,10 +134,11 @@ bool nrf_802154_delayed_trx_transmit(const uint8_t * p_data,
     return result;
 }
 
-void nrf_802154_rsch_delayed_timeslot_started(void)
+void nrf_802154_rsch_delayed_timeslot_started(rsch_dly_ts_id_t dly_ts_id)
 {
     bool result;
 
+    assert(dly_ts_id == RSCH_DLY_TX);
     assert(tx_is_in_progress());
 
     nrf_802154_pib_channel_set(m_tx_channel);
@@ -157,8 +162,9 @@ void nrf_802154_rsch_delayed_timeslot_started(void)
     tx_stop();
 }
 
-void nrf_802154_rsch_delayed_timeslot_failed(void)
+void nrf_802154_rsch_delayed_timeslot_failed(rsch_dly_ts_id_t dly_ts_id)
 {
+    assert(dly_ts_id == RSCH_DLY_TX);
     assert(tx_is_in_progress());
 
     notify_tx_timeslot_denied(false);
