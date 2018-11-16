@@ -231,6 +231,7 @@ static void timer_on_extend_update(void)
     if (timer_is_set_to_margin())
     {
         uint32_t margin_cc = nrf_timer_cc_read(RAAL_TIMER, TIMER_CC_ACTION);
+
         margin_cc += m_timeslot_length;
         nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION, margin_cc);
     }
@@ -624,6 +625,7 @@ void nrf_raal_init(void)
     m_config.timeslot_timeout     = NRF_RAAL_TIMESLOT_DEFAULT_TIMEOUT;
 
     uint32_t err_code = sd_radio_session_open(signal_handler);
+
     assert(err_code == NRF_SUCCESS);
     (void)err_code;
 
@@ -635,6 +637,7 @@ void nrf_raal_uninit(void)
     assert(m_initialized);
 
     uint32_t err_code = sd_radio_session_close();
+
     assert(err_code == NRF_SUCCESS);
     (void)err_code;
 

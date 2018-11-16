@@ -47,9 +47,8 @@
 
 #define DIV_ROUND_POSITIVE(n, d) (((n) + (d) / 2) / (d))
 #define DIV_ROUND_NEGATIVE(n, d) (((n) - (d) / 2) / (d))
-#define DIV_ROUND(n,                                                                \
-                  d)             ((((n) < 0) ^ ((d) < 0)) ? DIV_ROUND_NEGATIVE(n,   \
-                                                                               d) : \
+#define DIV_ROUND(n, d)          ((((n) < 0) ^ ((d) < 0)) ?  \
+                                  DIV_ROUND_NEGATIVE(n, d) : \
                                   DIV_ROUND_POSITIVE(n, d))
 
 #define TIME_BASE                (1UL << 22)      ///< Unit used to calculate PPTB (Point per Time Base). It is not equal million to speed up computations and increase precision.
@@ -73,6 +72,7 @@ typedef struct
     uint32_t hp_timer_time; ///< HP Timer time of common timepoint.
 } common_timepoint_t;
 
+// Static variables.
 static common_timepoint_t m_last_sync;    ///< Common timepoint of last synchronization event.
 static volatile bool      m_synchronized; ///< If timers were synchronized since last start.
 static bool               m_drift_known;  ///< If timer drift value is known.

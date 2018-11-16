@@ -57,7 +57,8 @@ extern "C" {
  * @enum nrf_radio_task_t
  * @brief RADIO tasks.
  */
-typedef enum                                                              /*lint -save -e30 -esym(628,__INTADDR__) */
+/*lint -save -e30 -esym(628,__INTADDR__) */
+typedef enum
 {
     NRF_RADIO_TASK_TXEN      = offsetof(NRF_RADIO_Type, TASKS_TXEN),      /**< Enable radio transmitter. */
     NRF_RADIO_TASK_RXEN      = offsetof(NRF_RADIO_Type, TASKS_RXEN),      /**< Enable radio receiver. */
@@ -69,13 +70,13 @@ typedef enum                                                              /*lint
     NRF_RADIO_TASK_EDSTART   = offsetof(NRF_RADIO_Type, TASKS_EDSTART),   /**< Start Energy Detection procedure. */
     NRF_RADIO_TASK_EDSTOP    = offsetof(NRF_RADIO_Type, TASKS_EDSTOP),    /**< Stop Energy Detection procedure. */
     NRF_RADIO_TASK_RSSISTART = offsetof(NRF_RADIO_Type, TASKS_RSSISTART), /**< Start the RSSI and take one single sample of received signal strength. */
-} nrf_radio_task_t;                                                       /*lint -restore */
+} nrf_radio_task_t;
 
 /**
  * @enum nrf_radio_event_t
  * @brief RADIO events.
  */
-typedef enum                                                                  /*lint -save -e30 -esym(628,__INTADDR__) */
+typedef enum
 {
     NRF_RADIO_EVENT_READY      = offsetof(NRF_RADIO_Type, EVENTS_READY),      /**< Radio has ramped up and is ready to be started. */
     NRF_RADIO_EVENT_ADDRESS    = offsetof(NRF_RADIO_Type, EVENTS_ADDRESS),    /**< Address sent or received. */
@@ -93,7 +94,8 @@ typedef enum                                                                  /*
     NRF_RADIO_EVENT_RXREADY    = offsetof(NRF_RADIO_Type, EVENTS_RXREADY),    /**< Radio has ramped up and is ready to be started RX path. */
     NRF_RADIO_EVENT_MHRMATCH   = offsetof(NRF_RADIO_Type, EVENTS_MHRMATCH),   /**< MAC Header match found. */
     NRF_RADIO_EVENT_PHYEND     = offsetof(NRF_RADIO_Type, EVENTS_PHYEND),     /**< Generated in Ble_LR125Kbit, Ble_LR500Kbit and Ieee802154_250Kbit modes when last bit is sent on air. */
-} nrf_radio_event_t;                                                          /*lint -restore */
+} nrf_radio_event_t;
+/*lint -restore */
 
 /**
  * @enum nrf_radio_int_mask_t
@@ -573,6 +575,7 @@ __STATIC_INLINE void nrf_radio_event_clear(nrf_radio_event_t radio_event)
     *((volatile uint32_t *)((uint8_t *)NRF_RADIO + radio_event)) = NRF_RADIO_EVENT_CLEAR;
 #if __CORTEX_M == 0x04
     volatile uint32_t dummy = *((volatile uint32_t *)((uint8_t *)NRF_RADIO + radio_event));
+
     (void)dummy;
 #endif
 }

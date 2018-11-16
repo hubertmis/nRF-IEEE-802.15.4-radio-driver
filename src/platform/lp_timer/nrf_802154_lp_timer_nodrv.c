@@ -398,6 +398,7 @@ void nrf_802154_lp_timer_init(void)
 
     while (!m_clock_ready)
     {
+        // Intentionally empty
     }
 
     // Setup RTC timer.

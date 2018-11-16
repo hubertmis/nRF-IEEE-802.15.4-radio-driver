@@ -147,6 +147,7 @@ extern volatile uint32_t nrf_802154_debug_log_ptr;
     do                                                                           \
     {                                                                            \
         uint32_t ptr = nrf_802154_debug_log_ptr;                                 \
+                                                                                 \
         nrf_802154_debug_log_buffer[ptr] = ((EVENT_CODE) | ((EVENT_ARG) << 16)); \
         nrf_802154_debug_log_ptr         =                                       \
             ptr < (NRF_802154_DEBUG_LOG_BUFFER_LEN - 1) ? ptr + 1 : 0;           \
@@ -167,6 +168,7 @@ extern volatile uint32_t nrf_802154_debug_log_ptr;
     do                                           \
     {                                            \
         volatile uint32_t ps = NRF_P0->OUT;      \
+                                                 \
         NRF_P0->OUTSET = (~ps & (1UL << (pin))); \
         NRF_P0->OUTCLR = (ps & (1UL << (pin)));  \
     }                                            \

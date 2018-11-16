@@ -275,6 +275,7 @@ void nrf_fem_control_timer_set(nrf_fem_control_pin_t  pin,
     if (pin_is_enabled(pin))
     {
         uint32_t target_time = nrf_fem_control_delay_get(pin);
+
         nrf_timer_shorts_enable(NRF_FEM_TIMER_INSTANCE, short_mask);
         nrf_timer_cc_write(NRF_FEM_TIMER_INSTANCE, timer_cc_channel, target_time);
     }

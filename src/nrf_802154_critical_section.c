@@ -104,8 +104,7 @@ static int8_t active_priority_convert(uint32_t active_priority)
 static bool nested_critical_section_is_allowed_in_this_context(void)
 {
     return m_nested_critical_section_allowed_priority ==
-           active_priority_convert(
-        nrf_802154_critical_section_active_vector_priority_get());
+           active_priority_convert(nrf_802154_critical_section_active_vector_priority_get());
 }
 
 static bool critical_section_enter(bool forced)

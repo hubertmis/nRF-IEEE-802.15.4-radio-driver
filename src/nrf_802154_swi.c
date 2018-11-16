@@ -95,6 +95,7 @@ typedef enum
 typedef struct
 {
     nrf_802154_ntf_type_t type; ///< Notification type.
+
     union
     {
         struct
@@ -163,6 +164,7 @@ typedef enum
 typedef struct
 {
     nrf_802154_req_type_t type; ///< Type of the request.
+
     union
     {
         struct
@@ -223,9 +225,9 @@ typedef struct
 
         struct
         {
-            bool * p_result; ///< CCA config update request result.
-        } cca_cfg_update;    ///< CCA config update request details.
-    } data;                  ///< Request data depending on it's type.
+            bool * p_result;                              ///< CCA config update request result.
+        } cca_cfg_update;                                 ///< CCA config update request details.
+    } data;                                               ///< Request data depending on it's type.
 } nrf_802154_req_data_t;
 
 static nrf_802154_ntf_data_t m_ntf_queue[NTF_QUEUE_SIZE]; ///< Notification queue.

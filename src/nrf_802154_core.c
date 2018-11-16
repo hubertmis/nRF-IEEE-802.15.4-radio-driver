@@ -76,19 +76,19 @@
 #define PPI_CH5                    NRF_PPI_CHANNEL11
 #define PPI_CH6                    NRF_PPI_CHANNEL12
 #define PPI_CHGRP0                 NRF_PPI_CHANNEL_GROUP0 ///< PPI group used to disable self-disabling PPIs
-#define PPI_CHGRP0_DIS_TASK        NRF_PPI_TASK_CHG0_DIS
+#define PPI_CHGRP0_DIS_TASK        NRF_PPI_TASK_CHG0_DIS  ///< PPI task used to disable self-disabling PPIs
 
-#define PPI_DISABLED_EGU           PPI_CH0 ///< PPI that connects RADIO DISABLED event with EGU task
-#define PPI_EGU_RAMP_UP            PPI_CH1 ///< PPI that connects EGU event with RADIO TXEN or RXEN task
-#define PPI_EGU_TIMER_START        PPI_CH2 ///< PPI that connects EGU event with TIMER START task
-#define PPI_CRCERROR_CLEAR         PPI_CH3 ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
-#define PPI_CCAIDLE_FEM            PPI_CH3 ///< PPI that connects RADIO CCAIDLE event with GPIOTE tasks used by FEM
-#define PPI_TIMER_TX_ACK           PPI_CH3 ///< PPI that connects TIMER COMPARE event with RADIO TXEN task
-#define PPI_CRCOK_DIS_PPI          PPI_CH4 ///< PPI that connects RADIO CRCOK event with task that disables PPI group
+#define PPI_DISABLED_EGU           PPI_CH0                ///< PPI that connects RADIO DISABLED event with EGU task
+#define PPI_EGU_RAMP_UP            PPI_CH1                ///< PPI that connects EGU event with RADIO TXEN or RXEN task
+#define PPI_EGU_TIMER_START        PPI_CH2                ///< PPI that connects EGU event with TIMER START task
+#define PPI_CRCERROR_CLEAR         PPI_CH3                ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
+#define PPI_CCAIDLE_FEM            PPI_CH3                ///< PPI that connects RADIO CCAIDLE event with GPIOTE tasks used by FEM
+#define PPI_TIMER_TX_ACK           PPI_CH3                ///< PPI that connects TIMER COMPARE event with RADIO TXEN task
+#define PPI_CRCOK_DIS_PPI          PPI_CH4                ///< PPI that connects RADIO CRCOK event with task that disables PPI group
 
 #if NRF_802154_DISABLE_BCC_MATCHING
-#define PPI_ADDRESS_COUNTER_COUNT  PPI_CH5 ///< PPI that connects RADIO ADDRESS event with TIMER COUNT task
-#define PPI_CRCERROR_COUNTER_CLEAR PPI_CH6 ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
+#define PPI_ADDRESS_COUNTER_COUNT  PPI_CH5                ///< PPI that connects RADIO ADDRESS event with TIMER COUNT task
+#define PPI_CRCERROR_COUNTER_CLEAR PPI_CH6                ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
 #endif  // NRF_802154_DISABLE_BCC_MATCHING
 
 /// Workaround for missing PHYEND event in older chip revision.
@@ -170,9 +170,11 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 #if NRF_802154_RX_BUFFERS > 1
 /// Pointer to currently used receive buffer.
 static rx_buffer_t * mp_current_rx_buffer;
+
 #else
 /// If there is only one buffer use const pointer to the receive buffer.
 static rx_buffer_t * const mp_current_rx_buffer = &nrf_802154_rx_buffers[0];
+
 #endif
 
 static uint8_t         m_ack_psdu[IMM_ACK_LENGTH + 1]; ///< ACK frame buffer.
@@ -186,11 +188,14 @@ typedef struct
 {
     bool frame_filtered        : 1; ///< If frame being received passed filtering operation.
     bool rx_timeslot_requested : 1; ///< If timeslot for the frame being received is already requested.
+
 #if !NRF_802154_DISABLE_BCC_MATCHING
-    bool psdu_being_received : 1;   ///< If PSDU is currently being received.
+    bool psdu_being_received   : 1; ///< If PSDU is currently being received.
+
 #endif  // !NRF_802154_DISABLE_BCC_MATCHING
 #if NRF_802154_TX_STARTED_NOTIFY_ENABLED
     bool tx_started : 1; ///< If requested transmission has started.
+
 #endif  // NRF_802154_TX_STARTED_NOTIFY_ENABLED
 } nrf_802154_flags_t;
 static nrf_802154_flags_t m_flags;               ///< Flags used to store current driver state.

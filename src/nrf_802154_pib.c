@@ -57,6 +57,7 @@ typedef struct
     uint8_t              channel     : 5;                      ///< Channel on which the node receives messages.
 } nrf_802154_pib_data_t;
 
+// Static variables.
 static nrf_802154_pib_data_t m_data; ///< Buffer containing PIB data.
 
 void nrf_802154_pib_init(void)

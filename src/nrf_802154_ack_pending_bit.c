@@ -260,12 +260,15 @@ static bool addr_index_find(const uint8_t * p_addr,
  */
 static bool addr_add(const uint8_t * p_addr, uint8_t location, bool extended)
 {
-    uint8_t * p_addr_array = extended ? (uint8_t *)m_pending_extended :
-                             (uint8_t *)m_pending_short;
-    uint8_t max_addr_array_len = extended ? NUM_PENDING_EXTENDED_ADDRESSES :
-                                 NUM_PENDING_SHORT_ADDRESSES;
-    uint8_t * p_addr_array_len = extended ? &m_num_of_pending_extended : &m_num_of_pending_short;
-    uint8_t   entry_size       = extended ? EXTENDED_ADDRESS_SIZE : SHORT_ADDRESS_SIZE;
+    uint8_t * p_addr_array;
+    uint8_t   max_addr_array_len;
+    uint8_t * p_addr_array_len;
+    uint8_t   entry_size;
+
+    p_addr_array       = extended ? (uint8_t *)m_pending_extended : (uint8_t *)m_pending_short;
+    max_addr_array_len = extended ? NUM_PENDING_EXTENDED_ADDRESSES : NUM_PENDING_SHORT_ADDRESSES;
+    p_addr_array_len   = extended ? &m_num_of_pending_extended : &m_num_of_pending_short;
+    entry_size         = extended ? EXTENDED_ADDRESS_SIZE : SHORT_ADDRESS_SIZE;
 
     if (*p_addr_array_len == max_addr_array_len)
     {
@@ -294,10 +297,13 @@ static bool addr_add(const uint8_t * p_addr, uint8_t location, bool extended)
  */
 static bool addr_remove(uint8_t location, bool extended)
 {
-    uint8_t * p_addr_array = extended ? (uint8_t *)m_pending_extended :
-                             (uint8_t *)m_pending_short;
-    uint8_t * p_addr_array_len = extended ? &m_num_of_pending_extended : &m_num_of_pending_short;
-    uint8_t   entry_size       = extended ? EXTENDED_ADDRESS_SIZE : SHORT_ADDRESS_SIZE;
+    uint8_t * p_addr_array;
+    uint8_t * p_addr_array_len;
+    uint8_t   entry_size;
+
+    p_addr_array     = extended ? (uint8_t *)m_pending_extended : (uint8_t *)m_pending_short;
+    p_addr_array_len = extended ? &m_num_of_pending_extended : &m_num_of_pending_short;
+    entry_size       = extended ? EXTENDED_ADDRESS_SIZE : SHORT_ADDRESS_SIZE;
 
     if (*p_addr_array_len == 0)
     {

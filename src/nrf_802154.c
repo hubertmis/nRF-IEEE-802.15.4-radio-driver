@@ -485,11 +485,11 @@ bool nrf_802154_buffer_free_immediately(uint8_t * p_data)
 
 int8_t nrf_802154_rssi_last_get(void)
 {
-    uint8_t minus_dbm = nrf_radio_rssi_sample_get();
+    uint8_t negative_dbm = nrf_radio_rssi_sample_get();
 
-    minus_dbm = nrf_802154_rssi_sample_corrected_get(minus_dbm);
+    negative_dbm = nrf_802154_rssi_sample_corrected_get(negative_dbm);
 
-    return -(int8_t)minus_dbm;
+    return -(int8_t)negative_dbm;
 }
 
 bool nrf_802154_promiscuous_get(void)
