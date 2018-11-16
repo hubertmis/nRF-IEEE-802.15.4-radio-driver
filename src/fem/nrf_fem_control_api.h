@@ -51,10 +51,10 @@ extern "C" {
  */
 
 /** Default Power Amplifier pin. */
-#define NRF_FEM_CONTROL_DEFAULT_PA_PIN             26
+#define NRF_FEM_CONTROL_DEFAULT_PA_PIN             15
 
 /** Default Low Noise Amplifier pin. */
-#define NRF_FEM_CONTROL_DEFAULT_LNA_PIN            27
+#define NRF_FEM_CONTROL_DEFAULT_LNA_PIN            16
 
 /** Default PPI channel for pin setting. */
 #define NRF_FEM_CONTROL_DEFAULT_SET_PPI_CHANNEL    15
