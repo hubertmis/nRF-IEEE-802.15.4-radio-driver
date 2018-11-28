@@ -54,6 +54,9 @@ _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"")
 _Pragma("GCC diagnostic ignored \"-Wpedantic\"")
 #endif
 
+#include <ble.h>
+#include <nrf_mbr.h>
+#include <nrf_sdm.h>
 #include <nrf_soc.h>
 
 #if defined(__GNUC__)
@@ -64,6 +67,18 @@ _Pragma("GCC diagnostic pop")
  * @section Defines and typedefs.
  **************************************************************************************************/
 
+/*
+ * @brief Defines the minimum version of the SoftDevice that supports configuration of BLE advertising
+ *        role scheduling.
+ *
+ *        The first SoftDevice that supports this option is S140 6.1.1 (60001001). The full version
+ *        number for the SoftDevice binary is a decimal number in the form Mmmmbbb, where:
+ *           - M is major version (one or more digits)
+ *           - mmm is minor version (three digits)
+ *           - bbb is bugfix version (three digits).
+ */
+#define BLE_ADV_SCHED_CFG_SUPPORT_MIN_SD_VERSION     (6001001)
+
 /**@brief Enable Request and End on timeslot safety interrupt. */
 #define ENABLE_REQUEST_AND_END_ON_TIMESLOT_END       0
 
@@ -73,7 +88,7 @@ _Pragma("GCC diagnostic pop")
 /**@brief RAAL Timer interrupt number. */
 #define RAAL_TIMER_IRQn                              TIMER0_IRQn
 
-/**@brief Maximum jitter relative to the start time of START and TIMER0 (safety margin) events . */
+/**@brief Maximum jitter relative to the start time of START and TIMER0 (safety margin) events. */
 #define TIMER_TO_SIGNAL_JITTER_US                    NRF_RADIO_START_JITTER_US + 6
 
 /**@brief Timer compare channel definitions. */
@@ -628,6 +643,22 @@ void nrf_raal_init(void)
 
     assert(err_code == NRF_SUCCESS);
     (void)err_code;
+
+#if (SD_VERSION >= BLE_ADV_SCHED_CFG_SUPPORT_MIN_SD_VERSION)
+    // Ensure that correct SoftDevice version is flashed.
+    assert(SD_VERSION_GET(MBR_SIZE) >= BLE_ADV_SCHED_CFG_SUPPORT_MIN_SD_VERSION);
+
+    // Use improved Advertiser Role Scheduling configuration.
+    ble_opt_t opt;
+
+    memset(&opt, 0, sizeof(opt));
+    opt.common_opt.adv_sched_cfg.sched_cfg = ADV_SCHED_CFG_IMPROVED;
+
+    err_code = sd_ble_opt_set(BLE_COMMON_OPT_ADV_SCHED_CFG, &opt);
+
+    assert(err_code == NRF_SUCCESS);
+    (void)err_code;
+#endif
 
     m_initialized = true;
 }
