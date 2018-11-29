@@ -71,7 +71,7 @@ _Pragma("GCC diagnostic pop")
  * @brief Defines the minimum version of the SoftDevice that supports configuration of BLE advertising
  *        role scheduling.
  *
- *        The first SoftDevice that supports this option is S140 6.1.1 (60001001). The full version
+ *        The first SoftDevice that supports this option is S140 6.1.1 (6001001). The full version
  *        number for the SoftDevice binary is a decimal number in the form Mmmmbbb, where:
  *           - M is major version (one or more digits)
  *           - mmm is minor version (three digits)
