@@ -400,8 +400,7 @@ nrf_802154_rx_error_t nrf_802154_filter_frame_part(const uint8_t * p_psdu, uint8
         {
             if (p_psdu[0] < IMM_ACK_LENGTH || p_psdu[0] > MAX_PACKET_SIZE)
             {
-                // Frame length is invalid
-                result = NRF_802154_RX_ERROR_INVALID_FRAME;
+                result = NRF_802154_RX_ERROR_INVALID_LENGTH;
                 break;
             }
 

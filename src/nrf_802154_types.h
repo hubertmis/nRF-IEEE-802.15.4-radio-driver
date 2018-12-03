@@ -83,6 +83,7 @@ typedef uint8_t nrf_802154_rx_error_t;
 #define NRF_802154_RX_ERROR_ABORTED           0x06 // !< Procedure was aborted by another driver operation with FORCE priority.
 #define NRF_802154_RX_ERROR_TIMESLOT_DENIED   0x07 // !< Delayed reception request was rejected due to denied timeslot request.
 #define NRF_802154_RX_ERROR_TIMEOUT           0x08 // !< Frame not received during delayed reception time slot.
+#define NRF_802154_RX_ERROR_INVALID_LENGTH    0x09 // !< Received a frame with invalid length.
 
 /**
  * @brief Possible errors during energy detection.

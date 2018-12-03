@@ -1859,7 +1859,7 @@ static void irq_bcmatch_state_rx(void)
                 m_flags.frame_filtered = true;
             }
         }
-        else if ((filter_result == NRF_802154_RX_ERROR_INVALID_FRAME) ||
+        else if ((filter_result == NRF_802154_RX_ERROR_INVALID_LENGTH) ||
                  (!nrf_802154_pib_promiscuous_get()))
         {
             rx_terminate();
