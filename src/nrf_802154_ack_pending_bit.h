@@ -30,7 +30,7 @@
 
 /**
  * @brief This file implements procedures to set pending bit in nRF 802.15.4 radio driver.
- * 
+ *
  * @deprecated  The API provided by this module is deprecated. Please refer to nrf_802154_ack_data module.
  *
  */

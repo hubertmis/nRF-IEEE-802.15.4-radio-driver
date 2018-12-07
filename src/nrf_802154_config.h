@@ -460,9 +460,9 @@ extern "C" {
 
 /**
  * @def NRF_802154_MAX_ACK_IE_SIZE
- * 
+ *
  * Maximum supported size of 802.15.4-2015 IE header and content fields in an Enh-Ack.
- * 
+ *
  */
 #ifndef NRF_802154_MAX_ACK_IE_SIZE
 #define NRF_802154_MAX_ACK_IE_SIZE 8

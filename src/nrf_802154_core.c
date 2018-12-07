@@ -47,6 +47,7 @@
 #include "nrf_802154_const.h"
 #include "nrf_802154_critical_section.h"
 #include "nrf_802154_debug.h"
+#include "nrf_802154_frame_parser.h"
 #include "nrf_802154_notification.h"
 #include "nrf_802154_pib.h"
 #include "nrf_802154_procedures_duration.h"
@@ -179,12 +180,12 @@ static rx_buffer_t * const mp_current_rx_buffer = &nrf_802154_rx_buffers[0];
 
 #endif
 
-static const uint8_t * mp_ack;                         ///< Pointer to Ack frame buffer.
-static const uint8_t * mp_tx_data;                     ///< Pointer to the data to transmit.
-static uint32_t        m_ed_time_left;                 ///< Remaining time of the current energy detection procedure [us].
-static uint8_t         m_ed_result;                    ///< Result of the current energy detection procedure.
+static const uint8_t * mp_ack;         ///< Pointer to Ack frame buffer.
+static const uint8_t * mp_tx_data;     ///< Pointer to the data to transmit.
+static uint32_t        m_ed_time_left; ///< Remaining time of the current energy detection procedure [us].
+static uint8_t         m_ed_result;    ///< Result of the current energy detection procedure.
 
-static volatile radio_state_t m_state;                 ///< State of the radio driver.
+static volatile radio_state_t m_state; ///< State of the radio driver.
 
 typedef struct
 {
@@ -1075,6 +1076,8 @@ static void tx_terminate(void)
 /** Terminate RX ACK procedure. */
 static void rx_ack_terminate(void)
 {
+    uint32_t ints_to_disable;
+
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
 
@@ -1085,7 +1088,10 @@ static void rx_ack_terminate(void)
 
     if (timeslot_is_granted())
     {
-        nrf_radio_int_disable(NRF_RADIO_INT_END_MASK);
+        ints_to_disable  = NRF_RADIO_INT_END_MASK;
+        ints_to_disable |= NRF_RADIO_INT_ADDRESS_MASK;
+
+        nrf_radio_int_disable(ints_to_disable);
         nrf_radio_shorts_set(SHORTS_IDLE);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
 
@@ -1814,6 +1820,11 @@ static void irq_address_state_tx_ack(void)
     nrf_802154_tx_ack_started(mp_ack);
 }
 
+static void irq_address_state_rx_ack(void)
+{
+    nrf_802154_core_hooks_rx_ack_started();
+}
+
 #if !NRF_802154_DISABLE_BCC_MATCHING
 // This event is generated during frame reception to request Radio Scheduler timeslot
 // and to filter frame
@@ -1977,7 +1988,7 @@ static void irq_crcok_state_rx(void)
                 send_ack = true;
             }
         }
-        
+
         if (send_ack)
         {
             bool wait_for_phyend;
@@ -2253,6 +2264,7 @@ static void irq_phyend_state_tx_ack(void)
 static void irq_phyend_state_tx_frame(void)
 {
     uint32_t ints_to_disable = 0;
+    uint32_t ints_to_enable  = 0;
 
     // Ignore PHYEND event if transmission has not started. This event may be triggered by
     // previously terminated transmission.
@@ -2281,14 +2293,20 @@ static void irq_phyend_state_tx_frame(void)
 #if NRF_802154_TX_STARTED_NOTIFY_ENABLED
         ints_to_disable |= NRF_RADIO_INT_ADDRESS_MASK;
 #endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
-        nrf_radio_int_disable(ints_to_disable);
 
         if (nrf_802154_revision_has_phyend_event())
         {
-            nrf_radio_int_disable(NRF_RADIO_INT_PHYEND_MASK);
+            ints_to_disable |= NRF_RADIO_INT_PHYEND_MASK;
             nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-            nrf_radio_int_enable(NRF_RADIO_INT_END_MASK);
+            ints_to_enable |= NRF_RADIO_INT_END_MASK;
         }
+
+        nrf_radio_int_disable(ints_to_disable);
+
+        nrf_radio_event_clear(NRF_RADIO_EVENT_ADDRESS);
+        ints_to_enable |= NRF_RADIO_INT_ADDRESS_MASK;
+
+        nrf_radio_int_enable(ints_to_enable);
 
         // Clear FEM configuration set at the beginning of the transmission
         fem_for_tx_reset(false);
@@ -2335,7 +2353,10 @@ static void irq_phyend_state_tx_frame(void)
             }
         }
 
-        ack_matching_enable();
+        if ((mp_tx_data[FRAME_VERSION_OFFSET] & FRAME_VERSION_MASK) != FRAME_VERSION_2)
+        {
+            ack_matching_enable();
+        }
     }
     else
     {
@@ -2351,6 +2372,35 @@ static void irq_end_state_rx_ack(void)
 {
     bool          ack_match    = ack_is_matched();
     rx_buffer_t * p_ack_buffer = NULL;
+    uint8_t     * p_ack_data   = mp_current_rx_buffer->psdu;
+
+    if (!ack_match &&
+        ((mp_tx_data[FRAME_VERSION_OFFSET] & FRAME_VERSION_MASK) == FRAME_VERSION_2) &&
+        ((p_ack_data[FRAME_VERSION_OFFSET] & FRAME_VERSION_MASK) == FRAME_VERSION_2) &&
+        ((p_ack_data[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) == FRAME_TYPE_ACK) &&
+        (nrf_radio_crc_status_get() == NRF_RADIO_CRC_STATUS_OK))
+    {
+        // For frame version 2 sequence number bit may be suppressed and its check fails.
+        // Verify ACK frame using its destination address.
+        nrf_802154_frame_parser_mhr_data_t tx_mhr_data;
+        nrf_802154_frame_parser_mhr_data_t ack_mhr_data;
+        bool                               parse_result;
+
+        parse_result = nrf_802154_frame_parser_mhr_parse(mp_tx_data, &tx_mhr_data);
+        assert(parse_result);
+        parse_result = nrf_802154_frame_parser_mhr_parse(p_ack_data, &ack_mhr_data);
+
+        if (parse_result &&
+            (tx_mhr_data.p_src_addr != NULL) &&
+            (ack_mhr_data.p_dst_addr != NULL) &&
+            (tx_mhr_data.src_addr_size == ack_mhr_data.dst_addr_size) &&
+            (0 == memcmp(tx_mhr_data.p_src_addr,
+                         ack_mhr_data.p_dst_addr,
+                         tx_mhr_data.src_addr_size)))
+        {
+            ack_match = true;
+        }
+    }
 
     if (ack_match)
     {
@@ -2463,6 +2513,10 @@ static void irq_handler(void)
 
             case RADIO_STATE_TX_ACK:
                 irq_address_state_tx_ack();
+                break;
+
+            case RADIO_STATE_RX_ACK:
+                irq_address_state_rx_ack();
                 break;
 
             default:

@@ -93,6 +93,8 @@
 
 #define PAN_ID_OFFSET                4                                            ///< Offset of Pan Id in Data frame (+1 for frame length byte).
 
+#define PHR_OFFSET                   0                                            ///< Offset of the phy header in a frame
+
 #define SECURITY_ENABLED_OFFSET      1                                            ///< Byte containing Security enabled bit.
 #define SECURITY_ENABLED_BIT         0x08                                         ///< Bits containing Security enabled field.
 #define SECURITY_LEVEL_MASK          0x07                                         ///< Mask of bits containing Security level field.

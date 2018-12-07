@@ -42,9 +42,9 @@
 void nrf_802154_ack_generator_init(void);
 
 /** Create an ACK in response to provided frame and insert it into an appropriate radio buffer.
- * 
+ *
  * @param [in]  p_frame  Pointer to a frame to respond to.
- *  
+ *
  * @returns  Pointer to constant buffer containing created ACK frame or NULL in case of invalid frame.
  */
 const uint8_t * nrf_802154_ack_generator_create(const uint8_t * p_frame);

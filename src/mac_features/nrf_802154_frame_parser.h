@@ -30,7 +30,7 @@
 
 /**
  * @brief This module contatins frame parsing utilities for 802.15.4 radio driver.
- * 
+ *
  */
 
 #ifndef NRF_802154_FRAME_PARSER_H
@@ -38,6 +38,23 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
+#define NRF_802154_FRAME_PARSER_INVALID_OFFSET 0xff
+
+/**
+ * @biref Structure containing pointers to parts of MHR and details of MHR structure.
+ */
+typedef struct
+{
+    const uint8_t * p_dst_panid;           ///< Pointer to the destination PAN ID field or NULL if missing.
+    const uint8_t * p_dst_addr;            ///< Pointer to the destination address field or NULL if missing.
+    const uint8_t * p_src_panid;           ///< Pointer to the source PAN ID field or NULL if missing.
+    const uint8_t * p_src_addr;            ///< Pointer to the source address field or NULL if missing.
+    const uint8_t * p_sec_ctrl;            ///< Pointer to the security control field or NULL if missing.
+    uint8_t         dst_addr_size;         ///< Size of destination address field.
+    uint8_t         src_addr_size;         ///< Size of source address field.
+    uint8_t         addressing_end_offset; ///< Offset of the first byte following addressing fields.
+} nrf_802154_frame_parser_mhr_data_t;
 
 /**
  * @brief Determine if destination address is extended.
@@ -59,7 +76,8 @@ bool nrf_802154_frame_parser_dst_addr_is_extended(const uint8_t * p_frame);
  * @returns  Pointer to the first byte of destination address in @p p_frame.
  *           NULL if destination address cannot be retrieved.
  */
-const uint8_t * nrf_802154_frame_parser_dst_addr_get(const uint8_t * p_frame, bool * p_dst_addr_extended);
+const uint8_t * nrf_802154_frame_parser_dst_addr_get(const uint8_t * p_frame,
+                                                     bool          * p_dst_addr_extended);
 
 /**
  * @brief Get offset of destination address field in provided frame.
@@ -92,6 +110,15 @@ const uint8_t * nrf_802154_frame_parser_dst_panid_get(const uint8_t * p_frame);
 uint8_t nrf_802154_frame_parser_dst_panid_offset_get(const uint8_t * p_frame);
 
 /**
+ * @brief Get offset of the end of destination address fields.
+ *
+ * @param[in]   p_frame  Pointer to a frame.
+ *
+ * @returns  Offset of the first byte following destination addressing fields in the MHR.
+ */
+uint8_t nrf_802154_frame_parser_dst_addr_end_offset_get(const uint8_t * p_frame);
+
+/**
  * @brief Determine if source address is extended.
  *
  * @param[in]   p_frame   Pointer to a frame to check.
@@ -100,6 +127,16 @@ uint8_t nrf_802154_frame_parser_dst_panid_offset_get(const uint8_t * p_frame);
  * @retval  false  Otherwise.
  */
 bool nrf_802154_frame_parser_src_addr_is_extended(const uint8_t * p_frame);
+
+/**
+ * @brief Determine if source address is short.
+ *
+ * @param[in]   p_frame   Pointer to a frame to check.
+ *
+ * @retval  true   If source address is short..
+ * @retval  false  Otherwise.
+ */
+bool nrf_802154_frame_parser_src_addr_is_short(const uint8_t * p_frame);
 
 /**
  * @brief Get source address from provided frame.
@@ -111,7 +148,8 @@ bool nrf_802154_frame_parser_src_addr_is_extended(const uint8_t * p_frame);
  * @returns  Pointer to the first byte of source address in @p p_frame.
  *           NULL if source address cannot be retrieved.
  */
-const uint8_t * nrf_802154_frame_parser_src_addr_get(const uint8_t * p_frame, bool * p_src_addr_extended);
+const uint8_t * nrf_802154_frame_parser_src_addr_get(const uint8_t * p_frame,
+                                                     bool          * p_src_addr_extended);
 
 /**
  * @brief Get offset of source address field in provided frame.
@@ -122,16 +160,6 @@ const uint8_t * nrf_802154_frame_parser_src_addr_get(const uint8_t * p_frame, bo
  *           Zero if source address cannot be retrieved.
  */
 uint8_t nrf_802154_frame_parser_src_addr_offset_get(const uint8_t * p_frame);
-
-/**
- * @brief Determine if source PAN ID is compressed.
- *
- * @param[in]   p_frame   Pointer to a frame to check.
- *
- * @retval  true   If source PAN ID is compressed.
- * @retval  false  Otherwise.
- */
-bool nrf_802154_frame_parser_src_panid_is_compressed(const uint8_t * p_frame);
 
 /**
  * @brief Get source PAN ID from provided frame.
@@ -154,6 +182,18 @@ const uint8_t * nrf_802154_frame_parser_src_panid_get(const uint8_t * p_frame);
 uint8_t nrf_802154_frame_parser_src_panid_offset_get(const uint8_t * p_frame);
 
 /**
+ * @brief Get pointer and details of MHR parts of given frame
+ *
+ * @param[in]  p_frame   Pointer to a frame to parse.
+ * @param[out] p_fields  Pointer to a structure containing pointers and details of the parsed frame.
+ *
+ * @retval true   Frame parsed correctly.
+ * @retval false  Parse error. @p p_fields values are invalid.
+ */
+bool nrf_802154_frame_parser_mhr_parse(const uint8_t                      * p_frame,
+                                       nrf_802154_frame_parser_mhr_data_t * p_fields);
+
+/**
  * @brief Get security control field in provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
@@ -162,6 +202,15 @@ uint8_t nrf_802154_frame_parser_src_panid_offset_get(const uint8_t * p_frame);
  *           NULL if security control cannot be retrieved (security not enabled).
  */
 const uint8_t * nrf_802154_frame_parser_sec_ctrl_get(const uint8_t * p_frame);
+
+/**
+ * @brief Get offset of the first byte after addressing fields in MHR.
+ *
+ * @param[in]   p_frame  Pointer to a frame.
+ *
+ * @returns  Offset in bytes of the first byte after addressing fields in MHR.
+ */
+uint8_t nrf_802154_frame_parser_addressing_end_offset_get(const uint8_t * p_frame);
 
 /**
  * @brief Get offset of security control field in provided frame.
@@ -217,12 +266,11 @@ bool nrf_802154_frame_parser_ie_present_bit_is_set(const uint8_t * p_frame);
  * @brief Get IE header field in provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
- * @param[out]  p_length Length of the IE header field.
  *
  * @returns  Pointer to the first byte of IE header field in @p p_frame.
  *           NULL if IE header cannot be retrieved (IE not present).
  */
-const uint8_t * nrf_802154_frame_parser_ie_header_get(const uint8_t * p_frame, uint8_t * p_length);
+const uint8_t * nrf_802154_frame_parser_ie_header_get(const uint8_t * p_frame);
 
 /**
  * @brief Get offset of IE header field in provided frame.

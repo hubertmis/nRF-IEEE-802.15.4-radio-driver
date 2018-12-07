@@ -134,8 +134,8 @@ typedef struct
  */
 typedef uint8_t nrf_802154_ack_data_t;
 
-#define NRF_802154_ACK_DATA_PENDING_BIT  0x00
-#define NRF_802154_ACK_DATA_IE           0x01
+#define NRF_802154_ACK_DATA_PENDING_BIT 0x00
+#define NRF_802154_ACK_DATA_IE          0x01
 
 /**
  *@}

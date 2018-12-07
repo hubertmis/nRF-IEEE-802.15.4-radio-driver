@@ -24,6 +24,7 @@
             "src/nrf_802154_rx_buffer.h",
             "src/nrf_802154_timer_coord.h",
             "src/mac_features/nrf_802154_filter.h",
+            "src/mac_features/nrf_802154_frame_parser.h",
             "src/mac_features/ack_generator/nrf_802154_ack_generator.h",
             "src/rsch/nrf_802154_rsch.h",
             "src/rsch/nrf_802154_rsch_crit_sect.h"
@@ -176,6 +177,7 @@
                     "cmock\\mock_nrf_802154_critical_section.c",
                     "cmock\\mock_nrf_802154_debug.c",
                     "cmock\\mock_nrf_802154_filter.c",
+                    "cmock\\mock_nrf_802154_frame_parser.c",
                     "cmock\\mock_nrf_802154_notification.c",
                     "cmock\\mock_nrf_802154_pib.c",
                     "cmock\\mock_nrf_802154_priority_drop.c",

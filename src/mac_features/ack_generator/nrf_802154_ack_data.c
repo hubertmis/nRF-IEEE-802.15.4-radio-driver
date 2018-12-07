@@ -46,48 +46,48 @@
 #include "nrf_802154_types.h"
 
 /// Maximum number of Short Addresses of nodes for which there is ACK data to set.
-#define NUM_SHORT_ADDRESSES     NRF_802154_PENDING_SHORT_ADDRESSES
+#define NUM_SHORT_ADDRESSES    NRF_802154_PENDING_SHORT_ADDRESSES
 /// Maximum number of Extended Addresses of nodes for which there is ACK data to set.
-#define NUM_EXTENDED_ADDRESSES  NRF_802154_PENDING_EXTENDED_ADDRESSES
+#define NUM_EXTENDED_ADDRESSES NRF_802154_PENDING_EXTENDED_ADDRESSES
 
 /// Structure representing pending bit setting variables.
 typedef struct
 {
-    bool     enabled;                                                       /// If setting pending bit is enabled.
-    uint8_t  short_addr[NUM_SHORT_ADDRESSES][SHORT_ADDRESS_SIZE];           /// Array of short addresses of nodes for which there is pending data in the buffer.
-    uint8_t  extended_addr[NUM_EXTENDED_ADDRESSES][EXTENDED_ADDRESS_SIZE];  /// Array of extended addresses of nodes for which there is pending data in the buffer.
-    uint32_t num_of_short_addr;                                             /// Current number of short addresses of nodes for which there is pending data in the buffer.
-    uint32_t num_of_ext_addr;                                               /// Current number of extended addresses of nodes for which there is pending data in the buffer.
+    bool     enabled;                                                      /// If setting pending bit is enabled.
+    uint8_t  short_addr[NUM_SHORT_ADDRESSES][SHORT_ADDRESS_SIZE];          /// Array of short addresses of nodes for which there is pending data in the buffer.
+    uint8_t  extended_addr[NUM_EXTENDED_ADDRESSES][EXTENDED_ADDRESS_SIZE]; /// Array of extended addresses of nodes for which there is pending data in the buffer.
+    uint32_t num_of_short_addr;                                            /// Current number of short addresses of nodes for which there is pending data in the buffer.
+    uint32_t num_of_ext_addr;                                              /// Current number of extended addresses of nodes for which there is pending data in the buffer.
 } pending_bit_arrays_t;
 
 // Structure representing a single IE record.
 typedef struct
 {
-    uint8_t p_data[NRF_802154_MAX_ACK_IE_SIZE];           /// Pointer to IE data buffer.
-    uint8_t len;                                          /// Length of the buffer.
+    uint8_t p_data[NRF_802154_MAX_ACK_IE_SIZE]; /// Pointer to IE data buffer.
+    uint8_t len;                                /// Length of the buffer.
 } ie_data_t;
 
 // Structure representing IE records sent in an ACK message to a given short address.
 typedef struct
 {
-    uint8_t   addr[SHORT_ADDRESS_SIZE];                   /// Short address of peer node.
-    ie_data_t ie_data;                                    /// Pointer to IE records.
+    uint8_t   addr[SHORT_ADDRESS_SIZE]; /// Short address of peer node.
+    ie_data_t ie_data;                  /// Pointer to IE records.
 } ack_short_ie_data_t;
 
 // Structure representing IE records sent in an ACK message to a given extended address.
 typedef struct
 {
-    uint8_t   addr[EXTENDED_ADDRESS_SIZE];                /// Extended address of peer node.
-    ie_data_t ie_data;                                    /// Pointer to IE records.
+    uint8_t   addr[EXTENDED_ADDRESS_SIZE]; /// Extended address of peer node.
+    ie_data_t ie_data;                     /// Pointer to IE records.
 } ack_ext_ie_data_t;
 
 // Structure representing IE data setting variables.
 typedef struct
 {
-    ack_short_ie_data_t short_data[NUM_SHORT_ADDRESSES];    /// Array of short addresses and IE records sent to these addresses.
-    ack_ext_ie_data_t   ext_data[NUM_EXTENDED_ADDRESSES];   /// Array of extended addresses and IE records sent to these addresses.
-    uint32_t            num_of_short_data;                  /// Current number of short addresses stored in @p short_data.
-    uint32_t            num_of_ext_data;                    /// Current number of extended addresses stored in @p ext_data.
+    ack_short_ie_data_t short_data[NUM_SHORT_ADDRESSES];  /// Array of short addresses and IE records sent to these addresses.
+    ack_ext_ie_data_t   ext_data[NUM_EXTENDED_ADDRESSES]; /// Array of extended addresses and IE records sent to these addresses.
+    uint32_t            num_of_short_data;                /// Current number of short addresses stored in @p short_data.
+    uint32_t            num_of_ext_data;                  /// Current number of extended addresses stored in @p ext_data.
 } ie_arrays_t;
 
 // TODO: Combine below arrays to perform binary search only once per Ack generation.
@@ -172,7 +172,9 @@ static int8_t short_addr_compare(const uint8_t * p_first_addr, const uint8_t * p
  * @retval  0  First address is equal to the second address.
  * @retval  1  First address is greater than the second address.
  */
-static int8_t addr_compare(const uint8_t * p_first_addr, const uint8_t * p_second_addr, bool extended)
+static int8_t addr_compare(const uint8_t * p_first_addr,
+                           const uint8_t * p_second_addr,
+                           bool            extended)
 {
     if (extended)
     {
@@ -223,7 +225,6 @@ static bool addr_binary_search(const uint8_t * p_addr,
             assert(false);
             break;
     }
-
 
     // The actual algorithm
     int32_t low      = 0;
@@ -298,7 +299,7 @@ static bool addr_index_find(const uint8_t * p_addr,
     {
         case NRF_802154_ACK_DATA_PENDING_BIT:
             p_addr_array = extended ? (uint8_t *)m_pending_bit.extended_addr :
-                                      (uint8_t *)m_pending_bit.short_addr;
+                           (uint8_t *)m_pending_bit.short_addr;
             break;
 
         case NRF_802154_ACK_DATA_IE:
@@ -346,7 +347,7 @@ static bool addr_add(const uint8_t * p_addr, uint32_t location, uint8_t data_typ
                 max_addr_array_len = NUM_SHORT_ADDRESSES;
                 p_addr_array_len   = &m_pending_bit.num_of_short_addr;
                 entry_size         = SHORT_ADDRESS_SIZE;
-            }   
+            }
             break;
 
         case NRF_802154_ACK_DATA_IE:
@@ -418,7 +419,7 @@ static bool addr_remove(uint32_t location, uint8_t data_type, bool extended)
                 p_addr_array     = (uint8_t *)m_pending_bit.short_addr;
                 p_addr_array_len = &m_pending_bit.num_of_short_addr;
                 entry_size       = SHORT_ADDRESS_SIZE;
-            }   
+            }
             break;
 
         case NRF_802154_ACK_DATA_IE:
@@ -486,7 +487,11 @@ void nrf_802154_ack_data_enable(bool enabled)
     m_pending_bit.enabled = enabled;
 }
 
-bool nrf_802154_ack_data_for_addr_set(const uint8_t * p_addr, bool extended, const void * p_data, uint8_t data_len, uint8_t data_type)
+bool nrf_802154_ack_data_for_addr_set(const uint8_t * p_addr,
+                                      bool            extended,
+                                      const void    * p_data,
+                                      uint8_t         data_len,
+                                      uint8_t         data_type)
 {
     uint32_t location = 0;
 
@@ -497,6 +502,7 @@ bool nrf_802154_ack_data_for_addr_set(const uint8_t * p_addr, bool extended, con
     }
 
     bool retval = addr_add(p_addr, location, data_type, extended);
+
     if (data_type == NRF_802154_ACK_DATA_IE && retval)
     {
         ie_data_add(location, extended, p_data, data_len);
@@ -565,15 +571,20 @@ bool nrf_802154_ack_data_pending_bit_should_be_set(const uint8_t * p_frame)
     return addr_index_find(p_src_addr, &location, NRF_802154_ACK_DATA_PENDING_BIT, extended);
 }
 
-const uint8_t * nrf_802154_ack_data_ie_get(const uint8_t * p_frame, uint8_t * p_ie_length)
+const uint8_t * nrf_802154_ack_data_ie_get(const uint8_t * p_src_addr,
+                                           bool            src_addr_extended,
+                                           uint8_t       * p_ie_length)
 {
-    bool            extended;
-    uint32_t        location;
-    const uint8_t * p_src_addr = nrf_802154_frame_parser_src_addr_get(p_frame, &extended);
+    uint32_t location;
 
-    if (addr_index_find(p_src_addr, &location, NRF_802154_ACK_DATA_IE, extended))
+    if (NULL == p_src_addr)
     {
-        if (extended)
+        return NULL;
+    }
+
+    if (addr_index_find(p_src_addr, &location, NRF_802154_ACK_DATA_IE, src_addr_extended))
+    {
+        if (src_addr_extended)
         {
             *p_ie_length = m_ie.ext_data[location].ie_data.len;
             return m_ie.ext_data[location].ie_data.p_data;

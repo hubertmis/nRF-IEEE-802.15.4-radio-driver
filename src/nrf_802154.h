@@ -487,7 +487,7 @@ bool nrf_802154_continuous_carrier(void);
  * @brief Notify that transmitting the ACK frame has started.
  *
  * @note This function should be very short to prevent dropping frames by the driver.
- * 
+ *
  * @param[in]  p_data  Pointer to buffer containing ACK data (PHR + PSDU).
  */
 extern void nrf_802154_tx_ack_started(const uint8_t * p_data);
@@ -953,7 +953,7 @@ bool nrf_802154_pan_coord_get(void);
  * @param[in]  p_data    Pointer to the buffer containing data to be set.
  * @param[in]  length    Length of @p p_data.
  * @param[in]  data_type Type of data to be set. Please refer to nrf_802154_ack_data_t type.
- * 
+ *
  * @retval True   Address successfully added to the list.
  * @retval False  There is not enough memory to store this address in the list.
  */

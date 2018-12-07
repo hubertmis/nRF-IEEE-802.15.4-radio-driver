@@ -30,7 +30,7 @@
 
 /**
  * @brief This module contains an ACK data generator for nRF 802.15.4 radio driver.
- * 
+ *
  * @note  Current implementation supports setting pending bit and IEs in 802.15.4-2015 Enh-Ack frames.
  */
 
@@ -112,11 +112,14 @@ bool nrf_802154_ack_data_pending_bit_should_be_set(const uint8_t * p_frame);
 /**
  * @brief Get IE data stored in the list for source address of provided frame.
  *
- * @param[in]  p_frame     Pointer to a frame whose source address is searched for in the list.
- * @param[out] p_ie_length Length of the IE data.
+ * @param[in]  p_src_addr    Pointer to a source address that is searched for in the list.
+ * @param[in]  src_addr_ext  If the source address is extended.
+ * @param[out] p_ie_length   Length of the IE data.
  *
  * @returns  Pointer to stored IE data or NULL if IE data should not be set.
  */
-const uint8_t * nrf_802154_ack_data_ie_get(const uint8_t * p_frame, uint8_t * p_ie_length);
+const uint8_t * nrf_802154_ack_data_ie_get(const uint8_t * p_src_addr,
+                                           bool            src_addr_ext,
+                                           uint8_t       * p_ie_length);
 
 #endif // NRF_802154_ACK_DATA_H
