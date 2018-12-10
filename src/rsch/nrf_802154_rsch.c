@@ -345,6 +345,11 @@ void nrf_802154_rsch_continuous_mode_priority_set(rsch_prio_t prio)
                    FUNCTION_RSCH_CONTINUOUS_EXIT);
 }
 
+void nrf_802154_rsch_continuous_ended(void)
+{
+    nrf_raal_continuous_ended();
+}
+
 bool nrf_802154_rsch_timeslot_request(uint32_t length_us)
 {
     return nrf_raal_timeslot_request(length_us);

@@ -128,6 +128,15 @@ void nrf_802154_rsch_uninit(void);
 void nrf_802154_rsch_continuous_mode_priority_set(rsch_prio_t prio);
 
 /**
+ * @brief Confirm that current part of continuous timeslot is ended by the core.
+ *
+ * This confirmation is used by the core to synchronize ending of continuous timeslot parts with
+ * the RSCH module.
+ *
+ */
+void nrf_802154_rsch_continuous_ended(void);
+
+/**
  * @brief Request timeslot for radio communication immediately.
  *
  * This function should be called only after @ref nrf_802154_rsch_prec_approved indicated the

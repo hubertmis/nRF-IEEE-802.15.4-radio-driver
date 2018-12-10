@@ -1799,6 +1799,7 @@ void nrf_802154_rsch_crit_sect_prio_changed(rsch_prio_t prio)
     else
     {
         cont_prec_denied();
+        nrf_802154_rsch_continuous_ended();
     }
 }
 

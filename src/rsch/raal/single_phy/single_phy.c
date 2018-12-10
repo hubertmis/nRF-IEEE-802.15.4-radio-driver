@@ -69,6 +69,11 @@ void nrf_raal_continuous_mode_exit(void)
     m_continuous = false;
 }
 
+void nrf_raal_continuous_ended(void)
+{
+    // Intentionally empty.
+}
+
 bool nrf_raal_timeslot_request(uint32_t length_us)
 {
     (void)length_us;
