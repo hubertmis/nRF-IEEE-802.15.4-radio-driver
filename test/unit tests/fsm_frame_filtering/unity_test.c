@@ -726,6 +726,8 @@ void test_OnBcmatchEventStateRx_TimeslotShouldBeRequested(void)
     nrf_802154_rx_duration_get_ExpectAndReturn(m_test_rx_buffer.psdu[0], false, duration);
     nrf_802154_rsch_timeslot_request_ExpectAndReturn(duration, true);
 
+    nrf_802154_core_hooks_rx_started_Expect();
+
     irq_bcmatch_state_rx();
 
     TEST_ASSERT_TRUE(m_flags.rx_timeslot_requested);

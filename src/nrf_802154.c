@@ -377,6 +377,21 @@ bool nrf_802154_transmit_raw_at(const uint8_t * p_data,
     return result;
 }
 
+bool nrf_802154_receive_at(uint32_t t0,
+                           uint32_t dt,
+                           uint32_t timeout,
+                           uint8_t  channel)
+{
+    bool result;
+
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RECEIVE_AT);
+
+    result = nrf_802154_delayed_trx_receive(t0, dt, timeout, channel);
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RECEIVE_AT);
+    return result;
+}
+
 bool nrf_802154_energy_detection(uint32_t time_us)
 {
     bool result;

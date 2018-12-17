@@ -287,6 +287,31 @@ nrf_802154_sleep_error_t nrf_802154_sleep_if_idle(void);
  */
 bool nrf_802154_receive(void);
 
+/**
+ * @brief Request reception at specified time.
+ *
+ * This function works as delayed version of the @sref nrf_802154_receive. It is not
+ * blocking, but queues delayed reception using Radio Scheduler module. If delayed reception
+ * cannot be performed (the @ref nrf_802154_receive_at would return false) or requested
+ * reception timeslot is denied, the @ref nrf_drv_radio802154_receive_failed with the
+ * @ref NRF_802154_RX_ERROR_DELAYED_TIMESLOT_DENIED argument is called.
+ *
+ * If the requested reception time is in the past, the function returns false and does not
+ * schedule reception.
+ *
+ * @param[in]  t0       Base of delay time - absolute time used by the Timer Scheduler [us].
+ * @param[in]  dt       Delta of delay time from @p t0 [us].
+ * @param[in]  timeout  Reception timeout (counted from @p t0 + @p dt) [us].
+ * @param[in]  channel  Radio channel on which the frame should be received.
+ *
+ * @retval  true   If the transmission procedure was scheduled.
+ * @retval  false  If the driver could not schedule the transmission procedure.
+ */
+bool nrf_802154_receive_at(uint32_t t0,
+                           uint32_t dt,
+                           uint32_t timeout,
+                           uint8_t  channel);
+
 #if NRF_802154_USE_RAW_API
 /**
  * @brief Change radio state to transmit.

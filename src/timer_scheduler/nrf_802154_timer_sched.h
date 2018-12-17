@@ -122,6 +122,15 @@ uint32_t nrf_802154_timer_sched_granularity_get(void);
 bool nrf_802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0, uint32_t dt);
 
 /**
+ * @brief Get timer time remaining to expiration.
+ *
+ * @param[in]  p_timer   Pointer to the timer to check remaining time.
+ *
+ * @retval remaining time [us] or 0 if timer has already expired.
+ */
+uint32_t nrf_802154_timer_sched_remaining_time_get(const nrf_802154_timer_t * p_timer);
+
+/**
  * @brief Start given timer and add it to the scheduler.
  *
  * @note Fields t0, dt, callback and p_context should be filled in @p p_timer prior to calling this

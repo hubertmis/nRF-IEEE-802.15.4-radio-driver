@@ -302,6 +302,24 @@ bool nrf_802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0, uint32_
     return difference > 0;
 }
 
+uint32_t nrf_802154_timer_sched_remaining_time_get(const nrf_802154_timer_t * p_timer)
+{
+    assert(p_timer != NULL);
+
+    uint32_t now        = nrf_802154_lp_timer_time_get();
+    uint32_t expiration = p_timer->t0 + p_timer->dt;
+    int32_t  remaining  = expiration - now;
+
+    if (remaining > 0)
+    {
+        return (uint32_t)remaining;
+    }
+    else
+    {
+        return 0ul;
+    }
+}
+
 void nrf_802154_timer_sched_add(nrf_802154_timer_t * p_timer, bool round_up)
 {
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TSCH_ADD);
