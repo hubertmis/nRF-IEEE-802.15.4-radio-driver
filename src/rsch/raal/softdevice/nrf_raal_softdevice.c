@@ -534,6 +534,8 @@ static nrf_radio_signal_callback_return_param_t * signal_handler(uint8_t signal_
                 timer_to_margin_set();
 
                 m_ret_param.callback_action = NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
+
+                nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_EXTEND_SUCCESS);
                 break;
             }
 
