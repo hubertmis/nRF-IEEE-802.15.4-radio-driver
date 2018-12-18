@@ -646,18 +646,19 @@ void nrf_raal_init(void)
 
 #if (SD_VERSION >= BLE_ADV_SCHED_CFG_SUPPORT_MIN_SD_VERSION)
     // Ensure that correct SoftDevice version is flashed.
-    assert(SD_VERSION_GET(MBR_SIZE) >= BLE_ADV_SCHED_CFG_SUPPORT_MIN_SD_VERSION);
+    if (SD_VERSION_GET(MBR_SIZE) >= BLE_ADV_SCHED_CFG_SUPPORT_MIN_SD_VERSION)
+    {
+        // Use improved Advertiser Role Scheduling configuration.
+        ble_opt_t opt;
 
-    // Use improved Advertiser Role Scheduling configuration.
-    ble_opt_t opt;
+        memset(&opt, 0, sizeof(opt));
+        opt.common_opt.adv_sched_cfg.sched_cfg = ADV_SCHED_CFG_IMPROVED;
 
-    memset(&opt, 0, sizeof(opt));
-    opt.common_opt.adv_sched_cfg.sched_cfg = ADV_SCHED_CFG_IMPROVED;
+        err_code = sd_ble_opt_set(BLE_COMMON_OPT_ADV_SCHED_CFG, &opt);
 
-    err_code = sd_ble_opt_set(BLE_COMMON_OPT_ADV_SCHED_CFG, &opt);
-
-    assert(err_code == NRF_SUCCESS);
-    (void)err_code;
+        assert(err_code == NRF_SUCCESS);
+        (void)err_code;
+    }
 #endif
 
     m_initialized = true;
