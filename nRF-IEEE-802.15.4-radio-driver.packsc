@@ -281,28 +281,6 @@
         ]
     },
 
-    "mpsl": {
-        "_class": "nRF_drv_radio_802_15_4",
-        "_description": "MPSL",
-        "_files": [
-            {
-                "_value": "../../external/mpsl/libmpsl_hardfp_nrf52.a",
-                "_condition": "'armgcc' in _toolchains or 'ses' in _toolchains",
-                "_attrs": [
-                    "lock"
-                ]
-            },
-            {
-                "_value": "../../external/mpsl/libmpsl_raal_hardfp_nrf52.a",
-                "_condition": "'armgcc' in _toolchains or 'ses' in _toolchains",
-                "_attrs": [
-                    "lock"
-                ]
-            }
-
-        ]
-    },
-
     "fem": {
         "_class": "nRF_drv_radio_802_15_4",
         "_description": "FEM",
