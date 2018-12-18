@@ -107,9 +107,7 @@ typedef struct
     uint16_t timeslot_safe_margin;
 
     /**
-     * @brief @deprecated Clock accuracy in ppm unit.
-     * This value is not used anymore.
-     * Clock accuracy is embedded into timeslot_safe_margin.
+     * @brief Clock accuracy in ppm unit.
      */
     uint16_t lf_clk_accuracy_ppm;
 } nrf_raal_softdevice_cfg_t;
