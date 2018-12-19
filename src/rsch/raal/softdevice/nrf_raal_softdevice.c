@@ -107,6 +107,7 @@ _Pragma("GCC diagnostic pop")
 
 /**@brief PPM constants. */
 #define PPM_UNIT                                     1000000UL
+#define MAX_HFCLK_PPM                                40
 
 /**@brief Defines states of timeslot. */
 typedef enum
@@ -166,7 +167,9 @@ static volatile uint16_t m_timeslot_extend_tries;
 
 static uint32_t time_corrected_for_drift_get(uint32_t time)
 {
-    return time - NRF_802154_DIVIDE_AND_CEIL(time * m_config.lf_clk_accuracy_ppm, PPM_UNIT);
+    uint32_t ppm = m_config.lf_clk_accuracy_ppm + MAX_HFCLK_PPM;
+
+    return time - NRF_802154_DIVIDE_AND_CEIL(time * ppm, PPM_UNIT);
 }
 
 static void calculate_config(void)
