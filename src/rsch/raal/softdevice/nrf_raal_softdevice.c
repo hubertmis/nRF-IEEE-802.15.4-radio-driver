@@ -151,6 +151,9 @@ static timer_action_t m_timer_action;
 /**@brief Current timeslot length. */
 static uint16_t m_timeslot_length;
 
+/**@brief Previously granted timeslot length. */
+static uint16_t m_prev_timeslot_length;
+
 /**@brief Interval between successive timeslot extensions. */
 static uint16_t m_extension_interval;
 
@@ -279,8 +282,12 @@ static void timer_on_extend_update(void)
     }
     else
     {
+        uint16_t extension_interval = (m_prev_timeslot_length == m_config.timeslot_length) ?
+                                      m_extension_interval :
+                                      time_corrected_for_drift_get(m_prev_timeslot_length);
+
         nrf_timer_cc_write(RAAL_TIMER, TIMER_CC_ACTION,
-                           nrf_timer_cc_read(RAAL_TIMER, TIMER_CC_ACTION) + m_extension_interval);
+                           nrf_timer_cc_read(RAAL_TIMER, TIMER_CC_ACTION) + extension_interval);
         nrf_timer_int_enable(RAAL_TIMER, TIMER_CC_ACTION_INT);
     }
 }
@@ -502,18 +509,18 @@ static nrf_radio_signal_callback_return_param_t * signal_handler(uint8_t signal_
 
             assert(m_timeslot_state == TIMESLOT_STATE_REQUESTED);
 
-            m_timeslot_state = TIMESLOT_STATE_GRANTED;
-
             // Set up timer first with requested timeslot length.
             timer_start();
 
             // Re-initialize timeslot data for future extensions.
+            m_prev_timeslot_length = m_timeslot_length;
             timeslot_data_init();
-
-            timeslot_started_notify();
 
             // Try to extend right after start.
             timeslot_extend(m_timeslot_length);
+
+            // Do not notify started timeslot here. Notify after successful extend to make sure
+            // enough timeslot length is available before notification.
 
             nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_START);
             break;
@@ -572,17 +579,23 @@ static nrf_radio_signal_callback_return_param_t * signal_handler(uint8_t signal_
                 timer_to_margin_set();
 
                 m_ret_param.callback_action = NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
+            }
+            else
+            {
+                timer_on_extend_update();
+                m_prev_timeslot_length = m_timeslot_length;
 
-                nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_EXTEND_SUCCESS);
-                break;
+                // Request further extension only if any of previous one failed.
+                if (m_timeslot_extend_tries != 0)
+                {
+                    timeslot_next_extend();
+                }
             }
 
-            timer_on_extend_update();
-
-            // Request futher extension only if any of previous one failed.
-            if (m_timeslot_extend_tries != 0)
+            if (!timeslot_is_granted())
             {
-                timeslot_next_extend();
+                m_timeslot_state = TIMESLOT_STATE_GRANTED;
+                timeslot_started_notify();
             }
 
             nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_EXTEND_SUCCESS);
