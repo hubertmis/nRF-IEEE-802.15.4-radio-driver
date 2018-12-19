@@ -421,16 +421,8 @@ static void timer_irq_handle(void)
                 // Ignore any other events.
                 timer_reset();
 
-#if (ENABLE_REQUEST_AND_END_ON_TIMESLOT_END == 1)
-                timeslot_data_init();
-                timeslot_request_prepare();
-                m_ret_param.callback_action =
-                    NRF_RADIO_SIGNAL_CALLBACK_ACTION_REQUEST_AND_END;
-                m_ret_param.params.request.p_next = &m_request;
-#else
                 // Return and wait for NRF_EVT_RADIO_SESSION_IDLE event.
                 m_ret_param.callback_action = NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
-#endif
 
                 nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_MARGIN);
             }
