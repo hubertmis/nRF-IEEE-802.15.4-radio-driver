@@ -82,6 +82,17 @@ _Pragma("GCC diagnostic pop")
  */
 #define BLE_ADV_SCHED_CFG_SUPPORT_MIN_SD_VERSION     (6001001)
 
+/*
+ * @brief Defines the minimum version of the SoftDevice that correctly handles timeslot releasing.
+ *
+ *        The first SoftDevice that supports this option is S140 6.1.0 (6001000). The full version
+ *        number for the SoftDevice binary is a decimal number in the form Mmmmbbb, where:
+ *           - M is major version (one or more digits)
+ *           - mmm is minor version (three digits)
+ *           - bbb is bugfix version (three digits).
+ */
+#define TIMESLOT_RELEASE_SUPPORT_MIN_SD_VERSION      (6001000)
+
 /**@brief Enable Request and End on timeslot safety interrupt. */
 #define ENABLE_REQUEST_AND_END_ON_TIMESLOT_END       0
 
@@ -160,6 +171,9 @@ static uint16_t m_extension_interval;
 
 /**@brief Number of already performed extentions tries on failed event. */
 static volatile uint16_t m_timeslot_extend_tries;
+
+/**@brief Defines if timeslot releasing works correctly on given SoftDevice version. */
+static bool m_timeslot_releasing;
 
 /***************************************************************************************************
  * @section Drift calculations
@@ -486,8 +500,8 @@ static nrf_radio_signal_callback_return_param_t * signal_handler(uint8_t signal_
 
         m_timeslot_state = TIMESLOT_STATE_IDLE;
 
-        // TODO: Change to NRF_RADIO_SIGNAL_CALLBACK_ACTION_END (KRKNWK-937)
-        m_ret_param.callback_action = NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
+        m_ret_param.callback_action = m_timeslot_releasing ? NRF_RADIO_SIGNAL_CALLBACK_ACTION_END :
+                                      NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
         timer_reset();
 
         nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_ENDED);
@@ -713,6 +727,12 @@ void nrf_raal_init(void)
         (void)err_code;
     }
 #endif
+
+    // Ensure that correct SoftDevice version is flashed.
+    if (SD_VERSION_GET(MBR_SIZE) >= TIMESLOT_RELEASE_SUPPORT_MIN_SD_VERSION)
+    {
+        m_timeslot_releasing = true;
+    }
 
     m_initialized = true;
 }
