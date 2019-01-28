@@ -1316,9 +1316,9 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 /** Enter Sleep state. */
 static void sleep_init(void)
 {
+    nrf_802154_timer_coord_stop();
     nrf_802154_rsch_crit_sect_prio_request(RSCH_PRIO_IDLE);
     m_rsch_timeslot_is_granted = false;
-    nrf_802154_timer_coord_stop();
 }
 
 /** Initialize Falling Asleep operation. */
