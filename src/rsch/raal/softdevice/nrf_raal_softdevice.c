@@ -812,5 +812,5 @@ bool nrf_raal_timeslot_request(uint32_t length_us)
 
 uint32_t nrf_raal_timeslot_us_left_get(void)
 {
-    return safe_time_to_timeslot_end_get();
+    return timeslot_is_granted() ? safe_time_to_timeslot_end_get() : 0;
 }
