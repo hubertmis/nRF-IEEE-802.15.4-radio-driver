@@ -782,7 +782,7 @@ void nrf_raal_continuous_mode_exit(void)
     // Emulate signal interrupt to inform SD about end of continuous mode.
     if (timeslot_is_granted())
     {
-        NVIC_SetPendingIRQ(RAAL_TIMER_IRQn);
+        NVIC_SetPendingIRQ(RADIO_IRQn);
     }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_EXIT);
