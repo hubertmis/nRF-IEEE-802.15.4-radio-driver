@@ -783,6 +783,7 @@ void nrf_raal_continuous_mode_exit(void)
     if (timeslot_is_granted())
     {
         NVIC_SetPendingIRQ(RADIO_IRQn);
+        NVIC_EnableIRQ(RADIO_IRQn);
     }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_EXIT);
