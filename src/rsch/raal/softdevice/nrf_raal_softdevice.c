@@ -502,7 +502,6 @@ static nrf_radio_signal_callback_return_param_t * signal_handler(uint8_t signal_
 
         m_ret_param.callback_action = m_timeslot_releasing ? NRF_RADIO_SIGNAL_CALLBACK_ACTION_END :
                                       NRF_RADIO_SIGNAL_CALLBACK_ACTION_NONE;
-        timer_reset();
 
         nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_EVENT_ENDED);
         nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_SIG_HANDLER);
@@ -777,13 +776,21 @@ void nrf_raal_continuous_mode_exit(void)
     assert(m_initialized);
     assert(m_continuous);
 
-    m_continuous = false;
-
-    // Emulate signal interrupt to inform SD about end of continuous mode.
     if (timeslot_is_granted())
     {
+        // Reset timer prior marking exiting continuous mode to prevent timeslot release caused by
+        // the timer
+        timer_reset();
+
+        m_continuous = false;
+
+        // Emulate signal interrupt to inform SD about end of continuous mode.
         NVIC_SetPendingIRQ(RADIO_IRQn);
         NVIC_EnableIRQ(RADIO_IRQn);
+    }
+    else
+    {
+        m_continuous = false;
     }
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RAAL_CONTINUOUS_EXIT);
