@@ -211,9 +211,12 @@ static void timer_start(void)
 /**@brief Reset timer. */
 static void timer_reset(void)
 {
+    NVIC_DisableIRQ(RAAL_TIMER_IRQn);
+    __DSB();
+    __ISB();
+
     nrf_timer_task_trigger(RAAL_TIMER, NRF_TIMER_TASK_STOP);
     nrf_timer_event_clear(RAAL_TIMER, TIMER_CC_ACTION_EVENT);
-    NVIC_ClearPendingIRQ(RAAL_TIMER_IRQn);
 }
 
 /**@brief Get current time on RAAL Timer. */
@@ -783,6 +786,7 @@ void nrf_raal_continuous_mode_exit(void)
         timer_reset();
 
         m_continuous = false;
+        __DMB();
 
         // Emulate signal interrupt to inform SD about end of continuous mode.
         NVIC_SetPendingIRQ(RADIO_IRQn);
