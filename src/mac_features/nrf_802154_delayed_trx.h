@@ -92,7 +92,7 @@ bool nrf_802154_delayed_trx_receive(uint32_t t0,
                                     uint8_t  channel);
 
 /**
- * @brief Abort started delayed transmit/receive procedure.
+ * @brief Aborts ONGOING delayed receive procedure.
  *
  * @param[in]  term_lvl  Termination level set by request aborting ongoing operation.
  * @param[in]  req_orig  Module that originates this request.
