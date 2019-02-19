@@ -586,7 +586,10 @@ void NRF_802154_RTC_IRQ_HANDLER(void)
     }
 }
 
+#ifndef UNITY_ON_TARGET
 __WEAK void nrf_802154_lp_timer_synchronized(void)
 {
     // Intentionally empty
 }
+
+#endif // UNITY_ON_TARGET
