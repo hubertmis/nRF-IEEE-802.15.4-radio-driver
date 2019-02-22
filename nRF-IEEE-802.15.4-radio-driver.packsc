@@ -79,6 +79,7 @@
                 ],
                 "_links": [
                     ["s140"],
+                    "!mpsl",
                     "nrf52840_xxaa"
                 ],
                 "_name": "swi"
@@ -121,6 +122,7 @@
                     "src/nrf_802154_swi.c"
                 ],
                 "_links": [
+                    ["mpsl"],
                     "!s140",
                     "nrf52840_xxaa"
                 ],
@@ -142,10 +144,15 @@
                     "src/nrf_802154_rssi.c",
                     "src/nrf_802154_rx_buffer.c",
                     "src/nrf_802154_timer_coord.c",
-                    "src/mac_features/nrf_802154_precise_ack_timeout.c",
                     "src/mac_features/nrf_802154_csma_ca.c",
                     "src/mac_features/nrf_802154_delayed_trx.c",
                     "src/mac_features/nrf_802154_filter.c",
+                    "src/mac_features/nrf_802154_frame_parser.c",
+                    "src/mac_features/nrf_802154_precise_ack_timeout.c",
+                    "src/mac_features/ack_generator/nrf_802154_ack_data.c",
+                    "src/mac_features/ack_generator/nrf_802154_ack_generator.c",
+                    "src/mac_features/ack_generator/nrf_802154_enh_ack_generator.c",
+                    "src/mac_features/ack_generator/nrf_802154_imm_ack_generator.c",
                     "src/platform/clock/nrf_802154_clock_sdk.c",
                     "src/platform/hp_timer/nrf_802154_hp_timer.c",
                     "src/platform/lp_timer/nrf_802154_lp_timer_nodrv.c",
@@ -159,6 +166,7 @@
                 ],
                 "_links": [
                     "!s140",
+                    "!mpsl",
                     "nrf52840_xxaa"
                 ],
                 "_name": "direct"
