@@ -2824,11 +2824,11 @@ bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
             {
                 result = false;
             }
+        }
 
-            if (notify_function != NULL)
-            {
-                notify_function(result);
-            }
+        if (notify_function != NULL)
+        {
+            notify_function(result);
         }
 
         nrf_802154_critical_section_exit();

@@ -50,7 +50,7 @@
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
 #define TX_SETUP_TIME 190u ///< Time [us] needed to change channel, stop rx and setup tx procedure.
-#define RX_SETUP_TIME 190u ///< Time [us] needed to change channel, stop tx and setup rx procedure.
+#define RX_SETUP_TIME 93u  ///< Time [us] needed to change channel, stop tx and setup rx procedure.
 
 /**
  * @brief States of delayed operations.
