@@ -313,7 +313,7 @@ static void receive_started_notify(void)
 #endif
 
 /** Notify MAC layer that a frame was transmitted. */
-static void transmitted_frame_notify(uint8_t * p_ack, int8_t power, int8_t lqi)
+static void transmitted_frame_notify(uint8_t * p_ack, int8_t power, uint8_t lqi)
 {
     const uint8_t * p_frame = mp_tx_data;
 
