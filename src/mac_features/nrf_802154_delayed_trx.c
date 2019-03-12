@@ -375,23 +375,6 @@ void nrf_802154_rsch_delayed_timeslot_started(rsch_dly_ts_id_t dly_ts_id)
     }
 }
 
-void nrf_802154_rsch_delayed_timeslot_failed(rsch_dly_ts_id_t dly_ts_id)
-{
-    assert(dly_ts_id < RSCH_DLY_TS_NUM);
-    assert(dly_op_state_get(dly_ts_id) == DELAYED_TRX_OP_STATE_PENDING);
-
-    if (RSCH_DLY_TX == dly_ts_id)
-    {
-        notify_tx_timeslot_denied();
-    }
-    else
-    {
-        notify_rx_timeslot_denied();
-    }
-
-    dly_op_state_set(dly_ts_id, DELAYED_TRX_OP_STATE_STOPPED);
-}
-
 bool nrf_802154_delayed_trx_abort(nrf_802154_term_t term_lvl, req_originator_t req_orig)
 {
     bool result = true;

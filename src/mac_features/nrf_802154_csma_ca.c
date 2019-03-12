@@ -43,7 +43,7 @@
 
 #include "nrf_802154_config.h"
 #include "nrf_802154_const.h"
-#include "nrf_802154_debug.h"
+#include "../nrf_802154_debug.h"
 #include "nrf_802154_notification.h"
 #include "nrf_802154_request.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
