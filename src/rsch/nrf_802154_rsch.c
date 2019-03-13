@@ -293,6 +293,8 @@ static void delayed_timeslot_start(void * p_context)
 
     p_dly_ts->prio = RSCH_PRIO_IDLE;
 
+    all_prec_update();
+
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_TIMER_DELAYED_START);
 }
 
