@@ -5,9 +5,7 @@
     "_links": [
         "appskeleton_unity_nrf52",
         "nrf_802154:file_included_by_test",
-        "raal:cmock",
-        "fem:cmock",
-        "hal:cmock"
+        "hal_nrf_radio:cmock"
     ],
     "_defines": [
         "NRF52840_XXAA"

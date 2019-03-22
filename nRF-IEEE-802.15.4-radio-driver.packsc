@@ -78,9 +78,10 @@
                     "src/nrf_802154_swi.c"
                 ],
                 "_links": [
+                    "nrfx_hal",
                     ["s140"],
                     "!mpsl",
-                    "nrf52840_xxaa"
+                    "!unity"
                 ],
                 "_name": "swi"
             },
@@ -122,9 +123,10 @@
                     "src/nrf_802154_swi.c"
                 ],
                 "_links": [
+                    "nrfx_hal",
                     ["mpsl"],
                     "!s140",
-                    "nrf52840_xxaa"
+                    "!unity"
                 ],
                 "_name": "rem"
             },
@@ -165,9 +167,10 @@
                     "src/nrf_802154_request_direct.c"
                 ],
                 "_links": [
+                    "nrfx_hal",
                     "!s140",
                     "!mpsl",
-                    "nrf52840_xxaa"
+                    "!unity"
                 ],
                 "_name": "direct"
             },
@@ -220,7 +223,7 @@
             "src/rsch/raal/nrf_raal_api.h"
         ],
         "_links": [
-            "hal"
+            "nrfx_hal"
         ],
         "_includes": [
             "src/rsch/raal",
@@ -322,7 +325,7 @@
                     "public"
                 ],
                 "_links": [
-                    "hal"
+                    "nrfx_hal"
                 ],
                 "_files": [
                     "src/fem/nrf_fem_control.c"
@@ -333,7 +336,7 @@
                     "private"
                 ],
                 "_links": [
-                    "hal"
+                    "nrfx_hal"
                 ],
                 "_files": [
                     "cmock\\mock_nrf_fem_control_api.c"
@@ -352,46 +355,40 @@
         ]
     },
 
-    "hal": {
-        "_class": "nRF_drv_radio_802_15_4",
-        "_description": "HAL",
-        "_headers": [
-            "external/hal/nrf_egu.h",
-            "external/hal/nrf_ppi.h",
-            "external/hal/nrf_timer.h",
-            "src/hal/nrf_radio.h"
-        ],
-        "_includes": [
-            "external",
-            "external/hal",
+    "hal_nrf_radio" : {
+        "_class" : "nRF_Drivers",
+        "_description" : "RADIO Hardware Access Layer",
+        "_includes" :[
             "src/hal"
         ],
-        "_variants": [
+        "_headers" :[
             {
-                "_attrs": [
+                "_attrs" :[
+                    "lock"
+                ],
+                "_value" : "src/hal/nrf_radio.h"
+            }
+        ],
+        "_links" :[
+            "nrfx_hal"
+        ],
+        "_variants" :[
+            {
+                "_attrs" :[
                     "public"
                 ]
             },
             {
-                "_attrs": [
-                    "private"
-                ], 
-                "_files": [
-                    "cmock\\mock_nrf_egu.c",
-                    "cmock\\mock_nrf_ppi.c",
-                    "cmock\\mock_nrf_radio.c",
-                    "cmock\\mock_nrf_timer.c"
-                ], 
-                "_includes": [
-                    "3|cmock"
-                ], 
-                "_name": "cmock"
-            }, 
-            {
-                "_attrs": [
+                "_attrs" :[
                     "private"
                 ],
-                "_name": "file_included_by_test"
+                "_files" :[
+                    "cmock\\mock_nrf_radio.c"
+                ],
+                "_includes" :[
+                    "cmock"
+                ],
+                "_name" : "cmock"
             }
         ]
     },
