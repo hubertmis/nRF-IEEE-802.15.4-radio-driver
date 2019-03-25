@@ -85,12 +85,13 @@ static const compare_channel_descriptor_t m_cmp_ch[CHANNEL_CNT] = {{RTC_LP_TIMER
                                                                     RTC_SYNC_COMPARE_EVENT,
                                                                     RTC_SYNC_COMPARE_EVENT_MASK}};
 
-static uint64_t m_target_times[CHANNEL_CNT];     ///< Target time of given channel [us].
+static uint64_t m_target_times[CHANNEL_CNT];       ///< Target time of given channel [us].
 
-static volatile uint32_t m_offset_counter;       ///< Counter of RTC overflows, incremented by 2 on each OVERFLOW event.
-static volatile uint8_t  m_mutex;                ///< Mutex for write access to @ref m_offset_counter.
-static volatile bool     m_clock_ready;          ///< Information that LFCLK is ready.
-static volatile uint32_t m_lp_timer_irq_enabled; ///< Information that RTC interrupt was enabled while entering critical section.
+static volatile uint32_t m_lp_timer_irq_enabled;   ///< Information that RTC interrupt was enabled while entering critical section.
+static volatile uint32_t m_offset_counter;         ///< Counter of RTC overflows, incremented by 2 on each OVERFLOW event.
+static volatile uint8_t  m_mutex;                  ///< Mutex for write access to @ref m_offset_counter.
+static volatile bool     m_clock_ready;            ///< Information that LFCLK is ready.
+static volatile bool     m_shall_fire_immediately; ///< Information if timer should fire immediately.
 
 static uint32_t overflow_counter_get(void);
 
@@ -489,7 +490,8 @@ void nrf_802154_lp_timer_start(uint32_t t0, uint32_t dt)
 
     if (shall_strike(now + MIN_RTC_COMPARE_EVENT_DT))
     {
-        handle_compare_match(true);
+        m_shall_fire_immediately = true;
+        NVIC_SetPendingIRQ(NRF_802154_RTC_IRQN);
     }
     else
     {
@@ -570,6 +572,12 @@ void NRF_802154_RTC_IRQ_HANDLER(void)
     }
 
     // Handle compare match.
+    if (m_shall_fire_immediately)
+    {
+        m_shall_fire_immediately = false;
+        handle_compare_match(true);
+    }
+
     if (nrf_rtc_int_is_enabled(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].int_mask) &&
         nrf_rtc_event_pending(NRF_802154_RTC_INSTANCE, m_cmp_ch[LP_TIMER_CHANNEL].event))
     {
