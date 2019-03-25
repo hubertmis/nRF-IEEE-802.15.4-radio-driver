@@ -227,13 +227,13 @@ static bool addr_binary_search(const uint8_t * p_addr,
     }
 
     // The actual algorithm
-    int32_t low      = 0;
-    int32_t midpoint = 0;
-    int32_t high     = addr_array_len;
+    int32_t  low      = 0;
+    uint32_t midpoint = 0;
+    int32_t  high     = addr_array_len;
 
     while (high >= low)
     {
-        midpoint = low + (high - low) / 2;
+        midpoint = (uint32_t)(low + (high - low) / 2);
 
         if (midpoint >= addr_array_len)
         {
@@ -243,7 +243,7 @@ static bool addr_binary_search(const uint8_t * p_addr,
         switch (addr_compare(p_addr, p_addr_array + entry_size * midpoint, extended))
         {
             case -1:
-                high = midpoint - 1;
+                high = (int32_t)(midpoint - 1);
                 break;
 
             case 0:
@@ -251,7 +251,7 @@ static bool addr_binary_search(const uint8_t * p_addr,
                 return true;
 
             case 1:
-                low = midpoint + 1;
+                low = (int32_t)(midpoint + 1);
                 break;
 
             default:
@@ -267,7 +267,7 @@ static bool addr_binary_search(const uint8_t * p_addr,
      * to 0 and with last case being utilized, low is set to 1. However, midpoint equal to 0 is
      * incorrect, as in the last iteration first element of the array proves to be less than the
      * element to be added to the array. With the below code, midpoint is then shifted to 1. */
-    if (low == midpoint + 1)
+    if ((uint32_t)low == midpoint + 1)
     {
         midpoint++;
     }
