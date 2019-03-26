@@ -226,7 +226,8 @@
             "nrfx_hal"
         ],
         "_includes": [
-            "external/softdevice/s140/headers"
+            "external/softdevice/s140/headers",
+            "external/softdevice/s140/headers/nrf52"
         ],
         "_variants": [
             {
