@@ -3,10 +3,7 @@
         "_class": "nRF_drv_radio_802_15_4",
         "_description": "-",
         "_includes": [
-            "src",
-            "src/mac_features",
-            "src/mac_features/ack_generator",
-            "src/rsch"
+            "src"
         ],
         "_headers": [
             "src/nrf_802154.h",
@@ -203,7 +200,10 @@
                     "cmock\\mock_nrf_802154_ack_generator.c"
                 ],
                 "_includes": [
-                    "3|cmock"
+                    "cmock",
+                    "src/mac_features",
+                    "src/mac_features/ack_generator",
+                    "src/rsch"
                 ],
                 "_name": "cmock"
             }, 
@@ -226,7 +226,6 @@
             "nrfx_hal"
         ],
         "_includes": [
-            "src/rsch/raal",
             "external/softdevice/s140/headers"
         ],
         "_variants": [
@@ -276,9 +275,6 @@
                 "_files": [
                     "src/rsch/raal/softdevice/nrf_raal_softdevice.c"
                 ],
-                "_includes": [
-                    "src/rsch/raal/softdevice"
-                ],
                 "_links": [
                     "nrf_drivers",
                     "softdevice_sim",
@@ -294,7 +290,8 @@
                     "cmock\\mock_nrf_raal_api.c"
                 ], 
                 "_includes": [
-                    "3|cmock"
+                    "cmock",
+                    "src/rsch/raal"
                 ], 
                 "_name": "cmock"
             }, 
@@ -312,9 +309,6 @@
         "_description": "FEM",
         "_headers": [
             "src/fem/nrf_fem_control_api.h"
-        ],
-        "_includes": [
-            "src/fem"
         ],
         "_defines": [
             "ENABLE_FEM"
@@ -342,7 +336,8 @@
                     "cmock\\mock_nrf_fem_control_api.c"
                 ], 
                 "_includes": [
-                    "3|cmock"
+                    "cmock",
+                    "src/fem"
                 ], 
                 "_name": "cmock"
             }, 

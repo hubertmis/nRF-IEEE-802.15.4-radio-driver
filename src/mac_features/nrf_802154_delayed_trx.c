@@ -46,7 +46,7 @@
 #include "nrf_802154_pib.h"
 #include "nrf_802154_procedures_duration.h"
 #include "nrf_802154_request.h"
-#include "nrf_802154_rsch.h"
+#include "rsch/nrf_802154_rsch.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
 #define TX_SETUP_TIME 190u ///< Time [us] needed to change channel, stop rx and setup tx procedure.

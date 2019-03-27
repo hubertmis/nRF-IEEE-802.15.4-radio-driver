@@ -53,8 +53,6 @@
 #include "nrf_802154_priority_drop.h"
 #include "nrf_802154_request.h"
 #include "nrf_802154_revision.h"
-#include "nrf_802154_rsch.h"
-#include "nrf_802154_rsch_crit_sect.h"
 #include "nrf_802154_rssi.h"
 #include "nrf_802154_rx_buffer.h"
 #include "nrf_802154_timer_coord.h"
@@ -62,6 +60,8 @@
 #include "platform/clock/nrf_802154_clock.h"
 #include "platform/lp_timer/nrf_802154_lp_timer.h"
 #include "platform/temperature/nrf_802154_temperature.h"
+#include "rsch/nrf_802154_rsch.h"
+#include "rsch/nrf_802154_rsch_crit_sect.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
 #include "mac_features/nrf_802154_ack_timeout.h"
