@@ -1684,17 +1684,13 @@ static void cont_prec_approved(void)
 
         assert(nrf_radio_shorts_get() == SHORTS_IDLE);
 
-        if (m_state != RADIO_STATE_SLEEP)
-        {
-            m_rsch_timeslot_is_granted = true;
-            nrf_802154_timer_coord_start();
-        }
+        m_rsch_timeslot_is_granted = true;
+        nrf_802154_timer_coord_start();
 
         switch (m_state)
         {
             case RADIO_STATE_SLEEP:
-                // Intentionally empty.
-                // Ignore this notification if continuous mode was not requested.
+                // Intentionally empty. Appropriate action will be performed on state change.
                 break;
 
             case RADIO_STATE_RX:
