@@ -264,7 +264,7 @@ static inline void notify_core(void)
         temp_mon          = m_ntf_mutex_monitor;
         approved_prio_lvl = approved_prio_lvl_get();
 
-        if ((m_cont_mode_prio > RSCH_PRIO_IDLE) && (m_last_notified_prio != approved_prio_lvl))
+        if (m_last_notified_prio != approved_prio_lvl)
         {
             m_last_notified_prio = approved_prio_lvl;
 

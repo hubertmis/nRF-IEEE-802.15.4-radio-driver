@@ -1321,7 +1321,6 @@ static void sleep_init(void)
 {
     nrf_802154_timer_coord_stop();
     nrf_802154_rsch_crit_sect_prio_request(RSCH_PRIO_IDLE);
-    m_rsch_timeslot_is_granted = false;
 }
 
 /** Initialize Falling Asleep operation. */
@@ -1746,11 +1745,6 @@ static void cont_prec_denied(void)
 
         switch (m_state)
         {
-            case RADIO_STATE_SLEEP:
-                // Intentionally empty.
-                // Ignore this notification if continuous mode was not requested.
-                break;
-
             case RADIO_STATE_FALLING_ASLEEP:
                 state_set(RADIO_STATE_SLEEP);
                 sleep_init();
@@ -1780,6 +1774,7 @@ static void cont_prec_denied(void)
             case RADIO_STATE_ED:
             case RADIO_STATE_CCA:
             case RADIO_STATE_CONTINUOUS_CARRIER:
+            case RADIO_STATE_SLEEP:
                 // Intentionally empty.
                 break;
 
