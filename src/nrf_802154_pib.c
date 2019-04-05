@@ -44,10 +44,11 @@
 #include "nrf_802154_config.h"
 #include "nrf_802154_const.h"
 #include "nrf_802154_utils.h"
+#include "nrf_fal.h"
 
 typedef struct
 {
-    nrf_radio_txpower_t  tx_power;                             ///< Transmit power.
+    int8_t               tx_power;                             ///< Transmit power.
     uint8_t              pan_id[PAN_ID_SIZE];                  ///< Pan Id of this node.
     uint8_t              short_addr[SHORT_ADDRESS_SIZE];       ///< Short Address of this node.
     uint8_t              extended_addr[EXTENDED_ADDRESS_SIZE]; ///< Extended Address of this node.
@@ -60,6 +61,64 @@ typedef struct
 
 // Static variables.
 static nrf_802154_pib_data_t m_data; ///< Buffer containing PIB data.
+
+/**
+ * Converts TX power integer values to RADIO TX power allowed values.
+ *
+ * @param[in]  integer_tx_power  TX power integer value.
+ *
+ * @retval     RADIO TX power allowed value.
+ */
+static nrf_radio_txpower_t to_radio_tx_power_convert(int8_t integer_tx_power)
+{
+    const nrf_radio_txpower_t allowed_values[] =
+    {
+#if defined(RADIO_TXPOWER_TXPOWER_Neg40dBm)
+        NRF_RADIO_TXPOWER_NEG40DBM, /**< -40 dBm. */
+#endif
+        NRF_RADIO_TXPOWER_NEG20DBM, /**< -20 dBm. */
+        NRF_RADIO_TXPOWER_NEG16DBM, /**< -16 dBm. */
+        NRF_RADIO_TXPOWER_NEG12DBM, /**< -12 dBm. */
+        NRF_RADIO_TXPOWER_NEG8DBM,  /**< -8 dBm. */
+        NRF_RADIO_TXPOWER_NEG4DBM,  /**< -4 dBm. */
+        NRF_RADIO_TXPOWER_0DBM,     /**< 0 dBm. */
+#if defined(RADIO_TXPOWER_TXPOWER_Pos2dBm)
+        NRF_RADIO_TXPOWER_POS2DBM,  /**< 2 dBm. */
+#endif
+#if defined(RADIO_TXPOWER_TXPOWER_Pos3dBm)
+        NRF_RADIO_TXPOWER_POS3DBM,  /**< 3 dBm. */
+#endif
+        NRF_RADIO_TXPOWER_POS4DBM,  /**< 4 dBm. */
+#if defined(RADIO_TXPOWER_TXPOWER_Pos5dBm)
+        NRF_RADIO_TXPOWER_POS5DBM,  /**< 5 dBm. */
+#endif
+#if defined(RADIO_TXPOWER_TXPOWER_Pos6dBm)
+        NRF_RADIO_TXPOWER_POS6DBM,  /**< 6 dBm. */
+#endif
+#if defined(RADIO_TXPOWER_TXPOWER_Pos7dBm)
+        NRF_RADIO_TXPOWER_POS7DBM,  /**< 7 dBm. */
+#endif
+#if defined(RADIO_TXPOWER_TXPOWER_Pos8dBm)
+        NRF_RADIO_TXPOWER_POS8DBM,  /**< 8 dBm. */
+#endif
+    };
+
+    nrf_radio_txpower_t radio_tx_power = allowed_values[NUMELTS(allowed_values) - 1];
+
+    if (integer_tx_power < (int8_t)radio_tx_power)
+    {
+        for (uint32_t i = 0; i < NUMELTS(allowed_values); i++)
+        {
+            if (integer_tx_power <= (int8_t)allowed_values[i])
+            {
+                radio_tx_power = allowed_values[i];
+                break;
+            }
+        }
+    }
+
+    return radio_tx_power;
+}
 
 void nrf_802154_pib_init(void)
 {
@@ -121,59 +180,14 @@ void nrf_802154_pib_channel_set(uint8_t channel)
 
 nrf_radio_txpower_t nrf_802154_pib_tx_power_get(void)
 {
-    return m_data.tx_power;
+    int8_t tx_power = nrf_fal_tx_power_get(m_data.channel, m_data.tx_power);
+
+    return to_radio_tx_power_convert(tx_power);
 }
 
 void nrf_802154_pib_tx_power_set(int8_t dbm)
 {
-    const nrf_radio_txpower_t allowed_values[] =
-    {
-#if defined(RADIO_TXPOWER_TXPOWER_Neg40dBm)
-        NRF_RADIO_TXPOWER_NEG40DBM, /**< -40 dBm. */
-#endif
-        NRF_RADIO_TXPOWER_NEG20DBM, /**< -20 dBm. */
-        NRF_RADIO_TXPOWER_NEG16DBM, /**< -16 dBm. */
-        NRF_RADIO_TXPOWER_NEG12DBM, /**< -12 dBm. */
-        NRF_RADIO_TXPOWER_NEG8DBM,  /**< -8 dBm. */
-        NRF_RADIO_TXPOWER_NEG4DBM,  /**< -4 dBm. */
-        NRF_RADIO_TXPOWER_0DBM,     /**< 0 dBm. */
-#if defined(RADIO_TXPOWER_TXPOWER_Pos2dBm)
-        NRF_RADIO_TXPOWER_POS2DBM,  /**< 2 dBm. */
-#endif
-#if defined(RADIO_TXPOWER_TXPOWER_Pos3dBm)
-        NRF_RADIO_TXPOWER_POS3DBM,  /**< 3 dBm. */
-#endif
-        NRF_RADIO_TXPOWER_POS4DBM,  /**< 4 dBm. */
-#if defined(RADIO_TXPOWER_TXPOWER_Pos5dBm)
-        NRF_RADIO_TXPOWER_POS5DBM,  /**< 5 dBm. */
-#endif
-#if defined(RADIO_TXPOWER_TXPOWER_Pos6dBm)
-        NRF_RADIO_TXPOWER_POS6DBM,  /**< 6 dBm. */
-#endif
-#if defined(RADIO_TXPOWER_TXPOWER_Pos7dBm)
-        NRF_RADIO_TXPOWER_POS7DBM,  /**< 7 dBm. */
-#endif
-#if defined(RADIO_TXPOWER_TXPOWER_Pos8dBm)
-        NRF_RADIO_TXPOWER_POS8DBM,  /**< 8 dBm. */
-#endif
-
-    };
-
-    nrf_radio_txpower_t tx_power = allowed_values[NUMELTS(allowed_values) - 1];
-
-    if (dbm < (int8_t)tx_power)
-    {
-        for (uint32_t i = 0; i < NUMELTS(allowed_values); i++)
-        {
-            if (dbm <= (int8_t)allowed_values[i])
-            {
-                tx_power = allowed_values[i];
-                break;
-            }
-        }
-    }
-
-    m_data.tx_power = tx_power;
+    m_data.tx_power = dbm;
 }
 
 const uint8_t * nrf_802154_pib_pan_id_get(void)
