@@ -3014,53 +3014,31 @@ bool nrf_802154_core_channel_update(void)
 
     if (result)
     {
+        if (timeslot_is_granted())
+        {
+            channel_set(nrf_802154_pib_channel_get());
+        }
+
         switch (m_state)
         {
             case RADIO_STATE_RX:
-            {
-                bool term_result;
-
-                if (timeslot_is_granted())
-                {
-                    channel_set(nrf_802154_pib_channel_get());
-                }
-
-                term_result =
-                    current_operation_terminate(NRF_802154_TERM_NONE, REQ_ORIG_CORE, true);
-
-                if (term_result)
+                if (current_operation_terminate(NRF_802154_TERM_NONE, REQ_ORIG_CORE, true))
                 {
                     rx_init(true);
                 }
 
                 break;
-            }
 
             case RADIO_STATE_CONTINUOUS_CARRIER:
                 if (timeslot_is_granted())
                 {
-                    channel_set(nrf_802154_pib_channel_get());
                     nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
                 }
 
                 break;
 
-            case RADIO_STATE_TX_ACK:
-            case RADIO_STATE_CCA_TX:
-            case RADIO_STATE_TX:
-            case RADIO_STATE_RX_ACK:
-            case RADIO_STATE_CCA:
-                if (timeslot_is_granted())
-                {
-                    channel_set(nrf_802154_pib_channel_get());
-                }
-
-                break;
-
-            case RADIO_STATE_SLEEP:
-            case RADIO_STATE_FALLING_ASLEEP:
-            case RADIO_STATE_ED:
-                // Don't perform any action in these states (channel will be updated on state change).
+            default:
+                // Don't perform any additional action in any other state.
                 break;
         }
 
