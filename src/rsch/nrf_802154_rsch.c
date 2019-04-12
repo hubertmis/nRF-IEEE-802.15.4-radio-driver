@@ -447,6 +447,22 @@ bool nrf_802154_rsch_delayed_timeslot_request(uint32_t         t0,
     return result;
 }
 
+bool nrf_802154_rsch_timeslot_is_requested(void)
+{
+    bool result = false;
+
+    for (uint32_t i = 0; i < RSCH_PREC_CNT; i++)
+    {
+        if (m_approved_prios[i] > RSCH_PRIO_IDLE)
+        {
+            result = true;
+            break;
+        }
+    }
+
+    return result;
+}
+
 bool nrf_802154_rsch_prec_is_approved(rsch_prec_t prec, rsch_prio_t prio)
 {
     assert(prec < RSCH_PREC_CNT);

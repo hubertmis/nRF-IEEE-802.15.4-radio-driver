@@ -179,6 +179,16 @@ bool nrf_802154_rsch_delayed_timeslot_request(uint32_t         t0,
                                               rsch_dly_ts_id_t dly_ts);
 
 /**
+ * @brief Check if there is a pending timeslot request.
+ *
+ * @note Delayed timeslot is considered requested once its preconditions are granted.
+ *
+ * @retval true   There is a timeslot request pending.
+ * @retval false  There are no pending timeslot requests.
+ */
+bool nrf_802154_rsch_timeslot_is_requested(void);
+
+/**
  * @brief Check if the RSCH precondition is satisfied.
  *
  * @param[in]  prec    RSCH precondition to be checked.

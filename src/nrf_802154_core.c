@@ -1732,12 +1732,15 @@ static void cont_prec_denied(void)
 
     if (timeslot_is_granted())
     {
-        irq_deinit();
-        nrf_radio_reset();
-        nrf_fem_control_pin_clear();
-
         m_rsch_timeslot_is_granted = false;
-        nrf_802154_timer_coord_stop();
+
+        if (nrf_802154_rsch_timeslot_is_requested())
+        {
+            irq_deinit();
+            nrf_radio_reset();
+            nrf_fem_control_pin_clear();
+            nrf_802154_timer_coord_stop();
+        }
 
         result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RSCH, false);
         assert(result);
