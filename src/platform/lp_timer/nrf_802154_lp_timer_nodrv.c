@@ -40,8 +40,8 @@
 
 #include <assert.h>
 
-#include <hal/nrf_rtc.h>
 #include <nrf.h>
+#include <nrf_rtc.h>
 
 #include "platform/clock/nrf_802154_clock.h"
 #include "nrf_802154_config.h"

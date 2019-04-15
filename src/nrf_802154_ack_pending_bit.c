@@ -43,7 +43,7 @@
 #include "nrf_802154_config.h"
 #include "nrf_802154_const.h"
 
-#include "hal/nrf_radio.h"
+#include "nrf_radio.h"
 
 /// Maximum number of Short Addresses of nodes for which there is pending data in buffer.
 #define NUM_PENDING_SHORT_ADDRESSES    NRF_802154_PENDING_SHORT_ADDRESSES

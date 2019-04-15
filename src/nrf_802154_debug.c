@@ -38,10 +38,10 @@
 
 #include <stdint.h>
 
-#include "hal/nrf_gpio.h"
-#include "hal/nrf_gpiote.h"
-#include "hal/nrf_ppi.h"
 #include "nrf.h"
+#include "nrf_gpio.h"
+#include "nrf_gpiote.h"
+#include "nrf_ppi.h"
 
 #if ENABLE_DEBUG_LOG
 /// Buffer used to store debug log messages.

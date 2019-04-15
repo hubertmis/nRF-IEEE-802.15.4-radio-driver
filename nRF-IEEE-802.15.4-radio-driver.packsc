@@ -177,7 +177,7 @@
                 ],
                 "_links": [
                     ["unity"]
-                ],  
+                ],
                 "_files": [
                     "cmock\\mock_nrf_802154.c",
                     "cmock\\mock_nrf_802154_ack_pending_bit.c",
@@ -206,7 +206,7 @@
                     "src/rsch"
                 ],
                 "_name": "cmock"
-            }, 
+            },
             {
                 "_attrs": [
                     "private"
@@ -286,16 +286,16 @@
             {
                 "_attrs": [
                     "private"
-                ], 
+                ],
                 "_files": [
                     "cmock\\mock_nrf_raal_api.c"
-                ], 
+                ],
                 "_includes": [
                     "cmock",
                     "src/rsch/raal"
-                ], 
+                ],
                 "_name": "cmock"
-            }, 
+            },
             {
                 "_attrs": [
                     "private"
@@ -335,13 +335,13 @@
                 ],
                 "_files": [
                     "cmock\\mock_nrf_fem_control_api.c"
-                ], 
+                ],
                 "_includes": [
                     "cmock",
                     "src/fem"
-                ], 
+                ],
                 "_name": "cmock"
-            }, 
+            },
             {
                 "_attrs": [
                     "private"
@@ -350,45 +350,6 @@
             }
         ]
     },
-
-    "hal_nrf_radio" : {
-        "_class" : "nRF_Drivers",
-        "_description" : "RADIO Hardware Access Layer",
-        "_includes" :[
-            "src/hal"
-        ],
-        "_headers" :[
-            {
-                "_attrs" :[
-                    "lock"
-                ],
-                "_value" : "src/hal/nrf_radio.h"
-            }
-        ],
-        "_links" :[
-            "nrfx_hal"
-        ],
-        "_variants" :[
-            {
-                "_attrs" :[
-                    "public"
-                ]
-            },
-            {
-                "_attrs" :[
-                    "private"
-                ],
-                "_files" :[
-                    "cmock\\mock_nrf_radio.c"
-                ],
-                "_includes" :[
-                    "cmock"
-                ],
-                "_name" : "cmock"
-            }
-        ]
-    },
-
     "cli": {
         "_class": "nRF_drv_radio_802_15_4",
         "_description": "This option enables CLI.",

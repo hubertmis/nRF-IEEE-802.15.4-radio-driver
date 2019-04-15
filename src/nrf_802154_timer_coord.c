@@ -42,7 +42,7 @@
 
 #include "nrf_802154_config.h"
 #include "nrf_802154_debug.h"
-#include "hal/nrf_ppi.h"
+#include "nrf_ppi.h"
 #include "platform/hp_timer/nrf_802154_hp_timer.h"
 #include "platform/lp_timer/nrf_802154_lp_timer.h"
 
