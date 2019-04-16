@@ -44,7 +44,7 @@
 #include "nrf_802154_config.h"
 #include "nrf_802154_const.h"
 #include "nrf_802154_utils.h"
-#include "nrf_fal.h"
+#include "fal/nrf_802154_fal.h"
 
 typedef struct
 {
@@ -180,7 +180,7 @@ void nrf_802154_pib_channel_set(uint8_t channel)
 
 nrf_radio_txpower_t nrf_802154_pib_tx_power_get(void)
 {
-    int8_t tx_power = nrf_fal_tx_power_get(m_data.channel, m_data.tx_power);
+    int8_t tx_power = nrf_802154_fal_tx_power_get(m_data.channel, m_data.tx_power);
 
     return to_radio_tx_power_convert(tx_power);
 }
