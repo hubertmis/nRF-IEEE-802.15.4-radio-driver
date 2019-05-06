@@ -385,7 +385,7 @@ void test_edend_handler_ShallResetToRxStateAndNotifySuccessIfEdEnded(void)
     nrf_radio_ed_sample_get_ExpectAndReturn(result);
 
     nrf_802154_pib_channel_get_ExpectAndReturn(channel);
-    nrf_radio_frequency_set_Expect((channel - 10) * 5);
+    nrf_radio_frequency_set_Expect(2400 + (channel - 10) * 5);
     verify_ed_terminate_periph_reset(true);
     verify_complete_receive_begin();
 

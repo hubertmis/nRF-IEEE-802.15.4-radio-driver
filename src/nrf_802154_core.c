@@ -469,7 +469,7 @@ static void channel_set(uint8_t channel)
 {
     assert(channel >= 11 && channel <= 26);
 
-    nrf_radio_frequency_set(5 + (5 * (channel - 11)));
+    nrf_radio_frequency_set(2405 + 5 * (channel - 11));
 }
 
 /***************************************************************************************************
