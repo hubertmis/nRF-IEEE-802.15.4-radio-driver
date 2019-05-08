@@ -102,9 +102,14 @@ static void verify_continuous_carrier_begin_periph_setup(void)
     uint32_t event_addr;
     uint32_t task_addr;
     uint32_t fork_addr;
+    int8_t   tx_power;
 
     m_rsch_timeslot_is_granted = true;
 
+    tx_power = rand();
+    nrf_802154_pib_tx_power_get_ExpectAndReturn(tx_power);
+    nrf_radio_txpower_set_Expect(tx_power);
+    
     nrf_fem_control_ppi_enable_Expect(NRF_FEM_CONTROL_PA_PIN, NRF_TIMER_CC_CHANNEL2);
     nrf_fem_control_timer_set_Expect(NRF_FEM_CONTROL_PA_PIN, NRF_TIMER_CC_CHANNEL2, NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
     fork_addr = rand();
