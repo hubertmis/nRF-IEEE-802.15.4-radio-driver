@@ -63,6 +63,8 @@
 #define EPOCH_32BIT_US                  (1ULL << 32)
 #define EPOCH_FROM_TIME(time)           ((time) & ((uint64_t)UINT32_MAX << 32))
 
+#define MAX_LP_TIMER_SYNC_ITERS         4
+
 // Struct holding information about compare channel.
 typedef struct
 {
@@ -516,6 +518,7 @@ void nrf_802154_lp_timer_sync_start_now(void)
     uint32_t counter;
     uint32_t offset;
     uint64_t now;
+    uint32_t iterations = MAX_LP_TIMER_SYNC_ITERS;
 
     do
     {
@@ -523,7 +526,7 @@ void nrf_802154_lp_timer_sync_start_now(void)
         now = time_get(offset, counter);
         timer_sync_start_at((uint32_t)now, MIN_RTC_COMPARE_EVENT_DT, &now);
     }
-    while (counter_get() != counter);
+    while ((counter_get() != counter) && (--iterations > 0));
 }
 
 void nrf_802154_lp_timer_sync_start_at(uint32_t t0, uint32_t dt)
