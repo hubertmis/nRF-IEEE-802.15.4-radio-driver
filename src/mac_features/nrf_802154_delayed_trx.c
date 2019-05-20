@@ -80,7 +80,7 @@ static uint8_t            m_rx_channel;    ///< Channel number on which receptio
 /**
  * @brief State of delayed operations.
  */
-static delayed_trx_op_state_t m_dly_op_state[RSCH_DLY_TS_NUM];
+static volatile delayed_trx_op_state_t m_dly_op_state[RSCH_DLY_TS_NUM];
 
 /**
  * @brief Timestamp of last start of frame notification received in RX window.
@@ -90,15 +90,34 @@ static uint32_t m_sof_timestamp;
 /**
  * Set state of a delayed operation.
  *
- * @param[in]  dly_ts_id    Delayed timeslot ID.
- * @param[in]  dly_op_state Delayed operation state.
+ * @param[in]  expected_dly_rx_state   Delayed RX current expected state.
+ * @param[in]  new_dly_rx_state        Delayed RX new state to be set.
+ *
+ * @retval true   Successfully set the new state.
+ * @retval false  Failed to set the new state.
  */
-static void dly_op_state_set(rsch_dly_ts_id_t dly_ts_id, delayed_trx_op_state_t dly_op_state)
+static bool dly_rx_state_set(delayed_trx_op_state_t expected_dly_rx_state,
+                             delayed_trx_op_state_t new_dly_rx_state)
 {
-    assert(dly_ts_id < RSCH_DLY_TS_NUM);
-    assert(dly_op_state < DELAYED_TRX_OP_STATE_NB);
+    volatile delayed_trx_op_state_t current_dly_rx_state;
 
-    m_dly_op_state[dly_ts_id] = dly_op_state;
+    do
+    {
+        current_dly_rx_state =
+            (delayed_trx_op_state_t)__LDREXB((uint8_t *)&m_dly_op_state[RSCH_DLY_RX]);
+
+        if (current_dly_rx_state != expected_dly_rx_state)
+        {
+            __CLREX();
+            return false;
+        }
+
+    }
+    while (__STREXB((uint8_t)new_dly_rx_state, (uint8_t *)&m_dly_op_state[RSCH_DLY_RX]));
+
+    __DMB();
+
+    return true;
 }
 
 /**
@@ -113,6 +132,38 @@ static delayed_trx_op_state_t dly_op_state_get(rsch_dly_ts_id_t dly_ts_id)
     assert(dly_ts_id < RSCH_DLY_TS_NUM);
 
     return m_dly_op_state[dly_ts_id];
+}
+
+/**
+ * Set state of a delayed operation.
+ *
+ * @param[in]  dly_ts_id    Delayed timeslot ID.
+ * @param[in]  dly_op_state Delayed operation state.
+ */
+static void dly_op_state_set(rsch_dly_ts_id_t dly_ts_id, delayed_trx_op_state_t dly_op_state)
+{
+    assert(dly_op_state < DELAYED_TRX_OP_STATE_NB);
+
+    switch (dly_ts_id)
+    {
+        case RSCH_DLY_TX:
+        {
+            m_dly_op_state[RSCH_DLY_TX] = dly_op_state;
+            break;
+        }
+
+        case RSCH_DLY_RX:
+        {
+            assert(dly_rx_state_set(m_dly_op_state[RSCH_DLY_RX], dly_op_state));
+            break;
+        }
+
+        case RSCH_DLY_TS_NUM:
+        {
+            assert(false);
+            break;
+        }
+    }
 }
 
 /**
@@ -151,57 +202,12 @@ static bool dly_op_request(uint32_t         t0,
 }
 
 /**
- * Transmit request result callback.
- *
- * @param[in]  dly_ts_id  Delayed timeslot ID.
- * @param[in]  result     Result of delayed operation start:
- *                        - true: start succeeded (PENDING -> ONGOING)
- *                        - false: start failed (PENDING -> STOPPED)
- */
-static void dly_op_timeslot_started_callback(rsch_dly_ts_id_t dly_ts_id, bool result)
-{
-    if (result)
-    {
-        dly_op_state_set(dly_ts_id, DELAYED_TRX_OP_STATE_ONGOING);
-    }
-    else
-    {
-        dly_op_state_set(dly_ts_id, DELAYED_TRX_OP_STATE_STOPPED);
-    }
-}
-
-/**
- * Notify MAC layer that requested timeslot is not granted if tx request failed.
- */
-static void notify_tx_timeslot_denied(void)
-{
-    nrf_802154_notify_transmit_failed(mp_tx_data, NRF_802154_TX_ERROR_TIMESLOT_DENIED);
-}
-
-/**
- * Notify MAC layer that requested timeslot is not granted if rx request failed.
- */
-static void notify_rx_timeslot_denied(void)
-{
-    nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_DELAYED_TIMESLOT_DENIED);
-}
-
-/**
- * Notify MAC layer that delayed operation was aborted.
- */
-static void notify_rx_aborted(void)
-{
-    nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_DELAYED_ABORTED);
-}
-
-/**
  * Notify MAC layer that no frame was received before timeout.
  *
  * @param[in]  p_context  Not used.
  */
 static void notify_rx_timeout(void * p_context)
 {
-
     (void)p_context;
 
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_DTRX_RX_TIMEOUT);
@@ -224,8 +230,14 @@ static void notify_rx_timeout(void * p_context)
         }
         else
         {
-            dly_op_state_set(RSCH_DLY_RX, DELAYED_TRX_OP_STATE_STOPPED);
-            nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_DELAYED_TIMEOUT);
+            if (dly_rx_state_set(DELAYED_TRX_OP_STATE_ONGOING, DELAYED_TRX_OP_STATE_STOPPED))
+            {
+                nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_DELAYED_TIMEOUT);
+            }
+
+            // even if the set operation failed, the delayed RX state
+            // should be set to STOPPED from other context anyway
+            assert(dly_op_state_get(RSCH_DLY_RX) == DELAYED_TRX_OP_STATE_STOPPED);
         }
     }
 
@@ -244,11 +256,11 @@ static void tx_timeslot_started_callback(bool result)
     // To avoid attaching to every possible transmit hook, in order to be able
     // to switch from ONGOING to STOPPED state, ONGOING state is not used at all
     // and state is changed to STOPPED right after transmit request.
-    dly_op_timeslot_started_callback(RSCH_DLY_TX, false);
+    dly_op_state_set(RSCH_DLY_TX, DELAYED_TRX_OP_STATE_STOPPED);
 
     if (!result)
     {
-        notify_tx_timeslot_denied();
+        nrf_802154_notify_transmit_failed(mp_tx_data, NRF_802154_TX_ERROR_TIMESLOT_DENIED);
     }
 }
 
@@ -259,11 +271,13 @@ static void tx_timeslot_started_callback(bool result)
  */
 static void rx_timeslot_started_callback(bool result)
 {
-    dly_op_timeslot_started_callback(RSCH_DLY_RX, result);
-
     if (result)
     {
-        uint32_t now = nrf_802154_timer_sched_time_get();
+        uint32_t now;
+
+        assert(dly_rx_state_set(DELAYED_TRX_OP_STATE_PENDING, DELAYED_TRX_OP_STATE_ONGOING));
+
+        now = nrf_802154_timer_sched_time_get();
 
         m_timeout_timer.t0 = now;
         m_sof_timestamp    = now;
@@ -272,7 +286,9 @@ static void rx_timeslot_started_callback(bool result)
     }
     else
     {
-        notify_rx_timeslot_denied();
+        assert(dly_rx_state_set(DELAYED_TRX_OP_STATE_PENDING, DELAYED_TRX_OP_STATE_STOPPED));
+
+        nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_DELAYED_TIMESLOT_DENIED);
     }
 }
 
@@ -416,12 +432,22 @@ bool nrf_802154_delayed_trx_abort(nrf_802154_term_t term_lvl, req_originator_t r
 {
     bool result = true;
 
-    if (dly_op_state_get(RSCH_DLY_RX) == DELAYED_TRX_OP_STATE_ONGOING)
+    if (req_orig == REQ_ORIG_DELAYED_TRX)
+    {
+        // Ignore if self-request.
+    }
+    else if (dly_op_state_get(RSCH_DLY_RX) == DELAYED_TRX_OP_STATE_ONGOING)
     {
         if (term_lvl >= NRF_802154_TERM_802154)
         {
-            dly_op_state_set(RSCH_DLY_RX, DELAYED_TRX_OP_STATE_STOPPED);
-            notify_rx_aborted();
+            if (dly_rx_state_set(DELAYED_TRX_OP_STATE_ONGOING, DELAYED_TRX_OP_STATE_STOPPED))
+            {
+                nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_DELAYED_ABORTED);
+            }
+
+            // even if the set operation failed, the delayed RX state
+            // should be set to STOPPED from other context anyway
+            assert(dly_op_state_get(RSCH_DLY_RX) == DELAYED_TRX_OP_STATE_STOPPED);
         }
         else
         {
