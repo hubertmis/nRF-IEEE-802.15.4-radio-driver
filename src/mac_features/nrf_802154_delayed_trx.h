@@ -58,7 +58,7 @@
  *       be timed out by the next higher layer or the ACK timeout module. The ACK timeout timer
  *       shall start when the @ref nrf_802154_tx_started function is called.
  *
- * @param[in]  p_data   Pointer to array containing data to transmit (PHR + PSDU).
+ * @param[in]  p_data   Pointer to a buffer containing PHR and PSDU of the frame that should be transmitted.
  * @param[in]  cca      If the driver should perform CCA procedure before transmission.
  * @param[in]  t0       Base of delay time [us].
  * @param[in]  dt       Delta of delay time from @p t0 [us].

@@ -67,7 +67,7 @@ typedef enum
 /**
  * @brief TX delayed operation configuration.
  */
-static const uint8_t * mp_tx_psdu;         ///< Pointer to PHR + PSDU of the frame requested to transmit.
+static const uint8_t * mp_tx_data;         ///< Pointer to a buffer containing PHR and PSDU of the frame requested to be transmitted.
 static bool            m_tx_cca;           ///< If CCA should be performed prior to transmission.
 static uint8_t         m_tx_channel;       ///< Channel number on which transmission should be performed.
 
@@ -175,7 +175,7 @@ static void dly_op_timeslot_started_callback(rsch_dly_ts_id_t dly_ts_id, bool re
  */
 static void notify_tx_timeslot_denied(void)
 {
-    nrf_802154_notify_transmit_failed(mp_tx_psdu, NRF_802154_TX_ERROR_TIMESLOT_DENIED);
+    nrf_802154_notify_transmit_failed(mp_tx_data, NRF_802154_TX_ERROR_TIMESLOT_DENIED);
 }
 
 /**
@@ -290,7 +290,7 @@ static void tx_timeslot_started_callout(void)
     {
         (void)nrf_802154_request_transmit(NRF_802154_TERM_802154,
                                           REQ_ORIG_DELAYED_TRX,
-                                          mp_tx_psdu,
+                                          mp_tx_data,
                                           m_tx_cca,
                                           true,
                                           tx_timeslot_started_callback);
@@ -349,7 +349,7 @@ bool nrf_802154_delayed_trx_transmit(const uint8_t * p_data,
         ack             = p_data[ACK_REQUEST_OFFSET] & ACK_REQUEST_BIT;
         timeslot_length = nrf_802154_tx_duration_get(p_data[0], cca, ack);
 
-        mp_tx_psdu   = p_data;
+        mp_tx_data   = p_data;
         m_tx_cca     = cca;
         m_tx_channel = channel;
 

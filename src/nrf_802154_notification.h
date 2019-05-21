@@ -65,7 +65,7 @@ void nrf_802154_notification_init(void);
 /**
  * @brief Notify next higher layer that a frame was received.
  *
- * @param[in]  p_data  Array of bytes containing PSDU. First byte contains frame length, other contain the frame itself.
+ * @param[in]  p_data  Pointer to a buffer containing PHR and PSDU of the received frame.
  * @param[in]  power   RSSI measured during the frame reception.
  * @param[in]  lqi     LQI indicating measured link quality during the frame reception.
  */
@@ -81,9 +81,9 @@ void nrf_802154_notify_receive_failed(nrf_802154_rx_error_t error);
 /**
  * @brief Notify next higher layer that a frame was transmitted.
  *
- * @param[in]  p_frame  Pointer to buffer containing PSDU of transmitted frame.
- * @param[in]  p_ack    Pointer to buffer containing PSDU of ACK frame. NULL if ACK was not
- *                      requested.
+ * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the transmitted frame.
+ * @param[in]  p_ack    Pointer to a buffer containing PHR and PSDU of ACK frame. NULL if ACK was
+ *                      not requested.
  * @param[in]  power    RSSI of received frame or 0 if ACK was not requested.
  * @param[in]  lqi      LQI of received frame of 0 if ACK was not requested.
  */
@@ -95,7 +95,7 @@ void nrf_802154_notify_transmitted(const uint8_t * p_frame,
 /**
  * @brief Notify next higher layer that a frame was not transmitted.
  *
- * @param[in]  p_frame  Pointer to buffer containing PSDU of the frame that failed transmit
+ * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the frame that failed transmit
  *                      operation.
  * @param[in]  error    An error code indicating reason of the failure.
  */

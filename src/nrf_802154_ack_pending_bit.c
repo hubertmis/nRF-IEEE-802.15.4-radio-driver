@@ -367,7 +367,7 @@ void nrf_802154_ack_pending_bit_for_addr_reset(bool extended)
     }
 }
 
-bool nrf_802154_ack_pending_bit_should_be_set(const uint8_t * p_psdu)
+bool nrf_802154_ack_pending_bit_should_be_set(const uint8_t * p_data)
 {
     const uint8_t * p_src_addr;
     uint8_t         location;
@@ -379,26 +379,26 @@ bool nrf_802154_ack_pending_bit_should_be_set(const uint8_t * p_psdu)
         return true;
     }
 
-    switch (p_psdu[DEST_ADDR_TYPE_OFFSET] & DEST_ADDR_TYPE_MASK)
+    switch (p_data[DEST_ADDR_TYPE_OFFSET] & DEST_ADDR_TYPE_MASK)
     {
         case DEST_ADDR_TYPE_SHORT:
-            p_src_addr = &p_psdu[SRC_ADDR_OFFSET_SHORT_DST];
+            p_src_addr = &p_data[SRC_ADDR_OFFSET_SHORT_DST];
             break;
 
         case DEST_ADDR_TYPE_EXTENDED:
-            p_src_addr = &p_psdu[SRC_ADDR_OFFSET_EXTENDED_DST];
+            p_src_addr = &p_data[SRC_ADDR_OFFSET_EXTENDED_DST];
             break;
 
         default:
             return true;
     }
 
-    if (0 == (p_psdu[PAN_ID_COMPR_OFFSET] & PAN_ID_COMPR_MASK))
+    if (0 == (p_data[PAN_ID_COMPR_OFFSET] & PAN_ID_COMPR_MASK))
     {
         p_src_addr += PAN_ID_SIZE;
     }
 
-    switch (p_psdu[SRC_ADDR_TYPE_OFFSET] & SRC_ADDR_TYPE_MASK)
+    switch (p_data[SRC_ADDR_TYPE_OFFSET] & SRC_ADDR_TYPE_MASK)
     {
         case SRC_ADDR_TYPE_SHORT:
             extended = false;

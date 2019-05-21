@@ -168,7 +168,7 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 /** Get LQI of given received packet. If CRC is calculated by hardware LQI is included instead of CRC
  *  in the frame. Length is stored in byte with index 0; CRC is 2 last bytes.
  */
-#define RX_FRAME_LQI(psdu)      ((psdu)[(psdu)[0] - 1])
+#define RX_FRAME_LQI(data)      ((data)[(data)[0] - 1])
 
 #if NRF_802154_RX_BUFFERS > 1
 /// Pointer to currently used receive buffer.
@@ -264,19 +264,19 @@ static uint8_t lqi_get(const uint8_t * p_data)
     return (uint8_t)lqi;
 }
 
-static void received_frame_notify(uint8_t * p_psdu)
+static void received_frame_notify(uint8_t * p_data)
 {
-    nrf_802154_notify_received(p_psdu,                      // data
+    nrf_802154_notify_received(p_data,                      // data
                                rssi_last_measurement_get(), // rssi
-                               lqi_get(p_psdu));            // lqi
+                               lqi_get(p_data));            // lqi
 }
 
 /** Allow nesting critical sections and notify MAC layer that a frame was received. */
-static void received_frame_notify_and_nesting_allow(uint8_t * p_psdu)
+static void received_frame_notify_and_nesting_allow(uint8_t * p_data)
 {
     nrf_802154_critical_section_nesting_allow();
 
-    received_frame_notify(p_psdu);
+    received_frame_notify(p_data);
 
     nrf_802154_critical_section_nesting_deny();
 }
@@ -454,7 +454,7 @@ static bool rx_buffer_is_available(void)
  */
 static uint8_t * rx_buffer_get(void)
 {
-    return rx_buffer_is_available() ? mp_current_rx_buffer->psdu : NULL;
+    return rx_buffer_is_available() ? mp_current_rx_buffer->data : NULL;
 }
 
 /***************************************************************************************************
@@ -1226,7 +1226,7 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
                     if (notify)
                     {
                         mp_current_rx_buffer->free = false;
-                        received_frame_notify(mp_current_rx_buffer->psdu);
+                        received_frame_notify(mp_current_rx_buffer->data);
                     }
                 }
                 else
@@ -1771,7 +1771,7 @@ static void cont_prec_denied(void)
             case RADIO_STATE_TX_ACK:
                 state_set(RADIO_STATE_RX);
                 mp_current_rx_buffer->free = false;
-                received_frame_notify_and_nesting_allow(mp_current_rx_buffer->psdu);
+                received_frame_notify_and_nesting_allow(mp_current_rx_buffer->data);
                 break;
 
             case RADIO_STATE_CCA_TX:
@@ -1836,15 +1836,15 @@ static void irq_address_state_rx_ack(void)
 // and to filter frame
 static void irq_bcmatch_state_rx(void)
 {
-    uint8_t               prev_num_psdu_bytes;
-    uint8_t               num_psdu_bytes;
+    uint8_t               prev_num_data_bytes;
+    uint8_t               num_data_bytes;
     nrf_802154_rx_error_t filter_result;
     bool                  frame_accepted = true;
 
-    num_psdu_bytes      = nrf_radio_bcc_get() / 8;
-    prev_num_psdu_bytes = num_psdu_bytes;
+    num_data_bytes      = nrf_radio_bcc_get() / 8;
+    prev_num_data_bytes = num_data_bytes;
 
-    assert(num_psdu_bytes >= PHR_SIZE + FCF_SIZE);
+    assert(num_data_bytes >= PHR_SIZE + FCF_SIZE);
 
     // If CRCERROR event is set, it means that events are handled out of order due to software
     // latency. Just skip this handler in this case - frame will be dropped.
@@ -1856,14 +1856,14 @@ static void irq_bcmatch_state_rx(void)
     if (!m_flags.frame_filtered)
     {
         m_flags.psdu_being_received = true;
-        filter_result               = nrf_802154_filter_frame_part(mp_current_rx_buffer->psdu,
-                                                                   &num_psdu_bytes);
+        filter_result               = nrf_802154_filter_frame_part(mp_current_rx_buffer->data,
+                                                                   &num_data_bytes);
 
         if (filter_result == NRF_802154_RX_ERROR_NONE)
         {
-            if (num_psdu_bytes != prev_num_psdu_bytes)
+            if (num_data_bytes != prev_num_data_bytes)
             {
-                nrf_radio_bcc_set(num_psdu_bytes * 8);
+                nrf_radio_bcc_set(num_data_bytes * 8);
             }
             else
             {
@@ -1878,7 +1878,7 @@ static void irq_bcmatch_state_rx(void)
 
             frame_accepted = false;
 
-            if ((mp_current_rx_buffer->psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
+            if ((mp_current_rx_buffer->data[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) !=
                 FRAME_TYPE_ACK)
             {
                 receive_failed_notify(filter_result);
@@ -1893,8 +1893,8 @@ static void irq_bcmatch_state_rx(void)
     if ((!m_flags.rx_timeslot_requested) && (frame_accepted))
     {
         if (nrf_802154_rsch_timeslot_request(nrf_802154_rx_duration_get(
-                                                 mp_current_rx_buffer->psdu[0],
-                                                 ack_is_requested(mp_current_rx_buffer->psdu))))
+                                                 mp_current_rx_buffer->data[0],
+                                                 ack_is_requested(mp_current_rx_buffer->data))))
         {
             m_flags.rx_timeslot_requested = true;
 
@@ -1927,26 +1927,26 @@ static void irq_crcerror_state_rx(void)
 
 static void irq_crcok_state_rx(void)
 {
-    uint8_t * p_received_psdu = mp_current_rx_buffer->psdu;
+    uint8_t * p_received_data = mp_current_rx_buffer->data;
     uint32_t  ints_to_disable = 0;
     uint32_t  ints_to_enable  = 0;
 
 #if NRF_802154_DISABLE_BCC_MATCHING
-    uint8_t               num_psdu_bytes      = PHR_SIZE + FCF_SIZE;
-    uint8_t               prev_num_psdu_bytes = 0;
+    uint8_t               num_data_bytes      = PHR_SIZE + FCF_SIZE;
+    uint8_t               prev_num_data_bytes = 0;
     nrf_802154_rx_error_t filter_result;
 
     // Frame filtering
-    while (num_psdu_bytes != prev_num_psdu_bytes)
+    while (num_data_bytes != prev_num_data_bytes)
     {
-        prev_num_psdu_bytes = num_psdu_bytes;
+        prev_num_data_bytes = num_data_bytes;
 
         // Keep checking consecutive parts of the frame header.
-        filter_result = nrf_802154_filter_frame_part(mp_current_rx_buffer->psdu, &num_psdu_bytes);
+        filter_result = nrf_802154_filter_frame_part(mp_current_rx_buffer->data, &num_data_bytes);
 
         if (filter_result == NRF_802154_RX_ERROR_NONE)
         {
-            if (num_psdu_bytes == prev_num_psdu_bytes)
+            if (num_data_bytes == prev_num_data_bytes)
             {
                 m_flags.frame_filtered = true;
             }
@@ -1959,7 +1959,7 @@ static void irq_crcok_state_rx(void)
 
     // Timeslot request
     if (m_flags.frame_filtered &&
-        ack_is_requested(p_received_psdu) &&
+        ack_is_requested(p_received_data) &&
         !nrf_802154_rsch_timeslot_request(nrf_802154_rx_duration_get(0, true)))
     {
         // Frame is destined to this node but there is no timeslot to transmit ACK.
@@ -1969,11 +1969,11 @@ static void irq_crcok_state_rx(void)
         rx_flags_clear();
 
         // Filter out received ACK frame if promiscuous mode is disabled.
-        if (((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK) ||
+        if (((p_received_data[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK) ||
             nrf_802154_pib_promiscuous_get())
         {
             mp_current_rx_buffer->free = false;
-            received_frame_notify_and_nesting_allow(p_received_psdu);
+            received_frame_notify_and_nesting_allow(p_received_data);
         }
 
         return;
@@ -1985,10 +1985,10 @@ static void irq_crcok_state_rx(void)
         bool send_ack = false;
 
         if (m_flags.frame_filtered &&
-            ack_is_requested(mp_current_rx_buffer->psdu) &&
+            ack_is_requested(mp_current_rx_buffer->data) &&
             nrf_802154_pib_auto_ack_get())
         {
-            mp_ack = nrf_802154_ack_generator_create(mp_current_rx_buffer->psdu);
+            mp_ack = nrf_802154_ack_generator_create(mp_current_rx_buffer->data);
             if (NULL != mp_ack)
             {
                 send_ack = true;
@@ -2099,7 +2099,7 @@ static void irq_crcok_state_rx(void)
                 rx_terminate();
                 rx_init(true);
 
-                received_frame_notify_and_nesting_allow(p_received_psdu);
+                received_frame_notify_and_nesting_allow(p_received_data);
             }
         }
         else
@@ -2107,7 +2107,7 @@ static void irq_crcok_state_rx(void)
             rx_restart(true);
 
             // Filter out received ACK frame if promiscuous mode is disabled.
-            if (((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK) ||
+            if (((p_received_data[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK) ||
                 nrf_802154_pib_promiscuous_get())
             {
                 // Find new RX buffer
@@ -2125,7 +2125,7 @@ static void irq_crcok_state_rx(void)
                     }
                 }
 
-                received_frame_notify_and_nesting_allow(p_received_psdu);
+                received_frame_notify_and_nesting_allow(p_received_data);
             }
             else
             {
@@ -2147,7 +2147,7 @@ static void irq_crcok_state_rx(void)
         rx_init(true);
 
 #if NRF_802154_DISABLE_BCC_MATCHING
-        if ((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK)
+        if ((p_received_data[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK)
         {
             receive_failed_notify(filter_result);
         }
@@ -2159,7 +2159,7 @@ static void irq_crcok_state_rx(void)
 
 static void irq_phyend_state_tx_ack(void)
 {
-    uint8_t * p_received_psdu = mp_current_rx_buffer->psdu;
+    uint8_t * p_received_data = mp_current_rx_buffer->data;
     uint32_t  ints_to_enable  = 0;
     uint32_t  ints_to_disable = 0;
 
@@ -2264,7 +2264,7 @@ static void irq_phyend_state_tx_ack(void)
 
     rx_flags_clear();
 
-    received_frame_notify_and_nesting_allow(p_received_psdu);
+    received_frame_notify_and_nesting_allow(p_received_data);
 }
 
 static void irq_phyend_state_tx_frame(void)
@@ -2378,7 +2378,7 @@ static void irq_end_state_rx_ack(void)
 {
     bool          ack_match    = ack_is_matched();
     rx_buffer_t * p_ack_buffer = NULL;
-    uint8_t     * p_ack_data   = mp_current_rx_buffer->psdu;
+    uint8_t     * p_ack_data   = mp_current_rx_buffer->data;
 
     if (!ack_match &&
         ((mp_tx_data[FRAME_VERSION_OFFSET] & FRAME_VERSION_MASK) == FRAME_VERSION_2) &&
@@ -2420,9 +2420,9 @@ static void irq_end_state_rx_ack(void)
 
     if (ack_match)
     {
-        transmitted_frame_notify(p_ack_buffer->psdu,           // psdu
+        transmitted_frame_notify(p_ack_buffer->data,           // phr + psdu
                                  rssi_last_measurement_get(),  // rssi
-                                 lqi_get(p_ack_buffer->psdu)); // lqi;
+                                 lqi_get(p_ack_buffer->data)); // lqi;
     }
     else
     {
