@@ -279,6 +279,10 @@
             {id: "TCOOR_TIMESTAMP_GET", val: 0x0703, from: "DRIVER", to: "TCOOR", text: "nrf_802154_timer_coord_timestamp_get()"},
             {id: "TCOOR_SYNCHRONIZED", val: 0x0704, from: "TCOOR", to: "TCOOR", text: "nrf_802154_lp_timer_synchronized()"},
 
+            {id: "DTRX_RX_TIMEOUT", val: 0x0800, from: "TSCH", to: "DTRX", text: "notify_rx_timeout()"},
+
+            {id: "ACK_TIMEOUT_FIRED", val: 0x0900, from: "TSCH", to: "ACK_TIMEOUT", text: "timeout_timer_fired()"},
+
             {id: "FUNCTION_mutex_trylock", val: 0x1000, from: "RSCH", to: "RSCH", text: "mutex_trylock()"},
             {id: "FUNCTION_mutex_unlock", val: 0x1001, from: "RSCH", to: "RSCH", text: "mutex_unlock()"},
             {id: "FUNCTION_max_prio_for_delayed_timeslot_get", val: 0x1002, from: "RSCH", to: "RSCH", text: "max_prio_for_delayed_timeslot_get()"},
@@ -389,7 +393,9 @@
         debugDecoder.prototype.draw = function()
         {
             this.addLine("Participant APP");
+            this.addLine("Participant ACK_TIMEOUT");
             this.addLine("Participant CSMACA");
+            this.addLine("Participant DTRX");
             this.addLine("Participant TSCH");
             this.addLine("Participant TCOOR");
             this.addLine("Participant DRIVER");

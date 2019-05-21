@@ -40,6 +40,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "../nrf_802154_debug.h"
 #include "nrf_802154_config.h"
 #include "nrf_802154_const.h"
 #include "nrf_802154_notification.h"
@@ -80,6 +81,11 @@ static uint8_t            m_rx_channel;    ///< Channel number on which receptio
  * @brief State of delayed operations.
  */
 static delayed_trx_op_state_t m_dly_op_state[RSCH_DLY_TS_NUM];
+
+/**
+ * @brief Timestamp of last start of frame notification received in RX window.
+ */
+static uint32_t m_sof_timestamp;
 
 /**
  * Set state of a delayed operation.
@@ -195,10 +201,35 @@ static void notify_rx_aborted(void)
  */
 static void notify_rx_timeout(void * p_context)
 {
+
     (void)p_context;
 
-    dly_op_state_set(RSCH_DLY_RX, DELAYED_TRX_OP_STATE_STOPPED);
-    nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_DELAYED_TIMEOUT);
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_DTRX_RX_TIMEOUT);
+
+    assert(dly_op_state_get(RSCH_DLY_RX) != DELAYED_TRX_OP_STATE_PENDING);
+
+    if (dly_op_state_get(RSCH_DLY_RX) == DELAYED_TRX_OP_STATE_ONGOING)
+    {
+        uint32_t now              = nrf_802154_timer_sched_time_get();
+        uint32_t max_frame_length = nrf_802154_rx_duration_get(MAX_PACKET_SIZE, true);
+        uint32_t sof_timestamp    = m_sof_timestamp;
+
+        if (nrf_802154_timer_sched_time_is_in_future(now, sof_timestamp, max_frame_length))
+        {
+            // @TODO protect against infinite extensions - allow only one timer extension
+            m_timeout_timer.t0 = sof_timestamp;
+            m_timeout_timer.dt = max_frame_length;
+
+            nrf_802154_timer_sched_add(&m_timeout_timer, true);
+        }
+        else
+        {
+            dly_op_state_set(RSCH_DLY_RX, DELAYED_TRX_OP_STATE_STOPPED);
+            nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_DELAYED_TIMEOUT);
+        }
+    }
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_DTRX_RX_TIMEOUT);
 }
 
 /**
@@ -232,7 +263,10 @@ static void rx_timeslot_started_callback(bool result)
 
     if (result)
     {
-        m_timeout_timer.t0 = nrf_802154_timer_sched_time_get();
+        uint32_t now = nrf_802154_timer_sched_time_get();
+
+        m_timeout_timer.t0 = now;
+        m_sof_timestamp    = now;
 
         nrf_802154_timer_sched_add(&m_timeout_timer, true);
     }
@@ -349,6 +383,9 @@ bool nrf_802154_delayed_trx_receive(uint32_t t0,
 
         m_rx_channel = channel;
 
+        // remove timer in case it was left after abort operation
+        nrf_802154_timer_sched_remove(&m_timeout_timer);
+
         result = dly_op_request(t0, dt, timeslot_length, RSCH_DLY_RX);
     }
 
@@ -384,7 +421,6 @@ bool nrf_802154_delayed_trx_abort(nrf_802154_term_t term_lvl, req_originator_t r
         if (term_lvl >= NRF_802154_TERM_802154)
         {
             dly_op_state_set(RSCH_DLY_RX, DELAYED_TRX_OP_STATE_STOPPED);
-            nrf_802154_timer_sched_remove(&m_timeout_timer);
             notify_rx_aborted();
         }
         else
@@ -400,14 +436,6 @@ void nrf_802154_delayed_trx_rx_started_hook(void)
 {
     if (dly_op_state_get(RSCH_DLY_RX) == DELAYED_TRX_OP_STATE_ONGOING)
     {
-        // @TODO protect against infinite extensions - allow only one timer extension
-        if (nrf_802154_timer_sched_remaining_time_get(&m_timeout_timer)
-            < nrf_802154_rx_duration_get(MAX_PACKET_SIZE, true))
-        {
-            m_timeout_timer.t0 = nrf_802154_timer_sched_time_get();
-            m_timeout_timer.dt = nrf_802154_rx_duration_get(MAX_PACKET_SIZE, true);
-
-            nrf_802154_timer_sched_add(&m_timeout_timer, true);
-        }
+        m_sof_timestamp = nrf_802154_timer_sched_time_get();
     }
 }

@@ -104,6 +104,10 @@ extern "C" {
 #define FUNCTION_TCOOR_TIMESTAMP_GET               0x0703UL
 #define FUNCTION_TCOOR_SYNCHRONIZED                0x0704UL
 
+#define FUNCTION_DTRX_RX_TIMEOUT                   0x0800UL
+
+#define FUNCTION_ACK_TIMEOUT_FIRED                 0x0900UL
+
 #define FUNCTION_mutex_trylock                     0x1000UL
 #define FUNCTION_mutex_unlock                      0x1001UL
 #define FUNCTION_max_prio_for_delayed_timeslot_get 0x1002UL
