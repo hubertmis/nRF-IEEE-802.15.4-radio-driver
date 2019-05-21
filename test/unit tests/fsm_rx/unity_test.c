@@ -88,8 +88,8 @@ static void insert_frame_with_noack_to_buffer(void)
 
     m_buffer.free = true;
 
-    m_buffer.psdu[0] = 16;
-    m_buffer.psdu[1] = 0x41; // Data frame, no Ack Request
+    m_buffer.data[0] = 16;
+    m_buffer.data[1] = 0x41; // Data frame, no Ack Request
 
     m_flags.frame_filtered = true;
 }
@@ -100,15 +100,15 @@ static void insert_frame_with_ack_request_to_buffer(void)
 
     m_buffer.free = true;
 
-    m_buffer.psdu[0] = 16;
-    m_buffer.psdu[1] = 0x61; // Data frame, Ack Request
+    m_buffer.data[0] = 16;
+    m_buffer.data[1] = 0x61; // Data frame, Ack Request
 
     m_flags.frame_filtered = true;
 }
 
 static void verify_setting_packet_ptr(void)
 {
-    nrf_radio_packetptr_set_Expect(m_buffer.psdu);
+    nrf_radio_packetptr_set_Expect(m_buffer.data);
 }
 
 static void verify_setting_tx_power(void)
@@ -134,7 +134,7 @@ static void received_notification_verify(void)
     nrf_radio_rssi_sample_get_ExpectAndReturn(rssi);
     nrf_802154_rssi_sample_corrected_get_ExpectAndReturn(rssi, corrected_rssi);
     nrf_802154_rssi_lqi_corrected_get_IgnoreAndReturn(corrected_lqi);
-    nrf_802154_notify_received_Expect(m_buffer.psdu, -corrected_rssi, expected_lqi);
+    nrf_802154_notify_received_Expect(m_buffer.data, -corrected_rssi, expected_lqi);
     nrf_802154_critical_section_nesting_deny_Expect();
 }
 
@@ -506,7 +506,7 @@ static void crcok_ack_periph_set_verify(void)
 
     nrf_802154_pib_auto_ack_get_ExpectAndReturn(true);
 
-    nrf_802154_ack_generator_create_ExpectAndReturn(m_buffer.psdu, p_ack);
+    nrf_802154_ack_generator_create_ExpectAndReturn(m_buffer.data, p_ack);
     nrf_radio_packetptr_set_Expect(p_ack);
 
     nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
@@ -539,7 +539,7 @@ void test_crcok_handler_ShallPreparePeriphsToTransmitAckIfRequested(void)
 
     nrf_802154_pib_auto_ack_get_ExpectAndReturn(true);
 
-    nrf_802154_ack_generator_create_ExpectAndReturn(m_buffer.psdu, p_ack);
+    nrf_802154_ack_generator_create_ExpectAndReturn(m_buffer.data, p_ack);
     nrf_radio_packetptr_set_Expect(p_ack);
 
     nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
@@ -780,7 +780,7 @@ void test_crcok_handler_ShallResetReceiverAndNotifyIfAckNotRequested(void)
     nrf_radio_rssi_sample_get_ExpectAndReturn(rssi);
     nrf_802154_rssi_sample_corrected_get_ExpectAndReturn(rssi, corrected_rssi);
     nrf_802154_rssi_lqi_corrected_get_IgnoreAndReturn(corrected_lqi);
-    nrf_802154_notify_received_Expect(m_buffer.psdu, -corrected_rssi, expected_lqi);
+    nrf_802154_notify_received_Expect(m_buffer.data, -corrected_rssi, expected_lqi);
     nrf_802154_critical_section_nesting_deny_Expect();
 
     irq_crcok_state_rx();

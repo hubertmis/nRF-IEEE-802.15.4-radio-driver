@@ -95,9 +95,9 @@ static void insert_frame_2015_with_ack_request_to_tx_buffer(void)
 
 static void insert_ack_2015_to_rx_buffer(void)
 {
-    m_rx_buffer.psdu[0] = 5;
-    m_rx_buffer.psdu[1] = 0x42;
-    m_rx_buffer.psdu[2] = 0x28;
+    m_rx_buffer.data[0] = 5;
+    m_rx_buffer.data[1] = 0x42;
+    m_rx_buffer.data[2] = 0x28;
 }
 
 static void mark_rx_buffer_occupied(void)
@@ -167,7 +167,7 @@ static void verify_transmitted_notification_ack(void)
 
     nrf_802154_core_hooks_transmitted_Expect(m_tx_buffer);
     nrf_802154_notify_transmitted_Expect(m_tx_buffer,
-                                         m_rx_buffer.psdu,
+                                         m_rx_buffer.data,
                                          -corrected_rssi,
                                          expected_lqi);
 
@@ -264,7 +264,7 @@ static void verify_complete_receive_begin(bool free_buffer)
 
     if (free_buffer)
     {
-        nrf_radio_packetptr_set_Expect(&m_rx_buffer.psdu);
+        nrf_radio_packetptr_set_Expect(&m_rx_buffer.data);
         shorts |= NRF_RADIO_SHORT_RXREADY_START_MASK;
     }
 
@@ -345,7 +345,7 @@ void test_transmit_begin_ShallDoNothingIfTimeslotIsNotGranted(void)
 {
     verify_timeslot_request(false, false);
 
-    tx_init(m_rx_buffer.psdu, false, false);
+    tx_init(m_rx_buffer.data, false, false);
 }
 
 // Basic peripheral setup if CCA is not performed
@@ -803,7 +803,7 @@ static void verify_phyend_ack_req_periph_setup(uint32_t shorts, bool buffer_free
 
     if (buffer_free)
     {
-        nrf_radio_packetptr_set_Expect(m_rx_buffer.psdu);
+        nrf_radio_packetptr_set_Expect(m_rx_buffer.data);
     }
 
     nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
@@ -1122,7 +1122,7 @@ void test_end_handler_ShallResetRadioToStartReceivingAndNotifyTransmittedFrameTy
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
     nrf_802154_frame_parser_mhr_parse_ReturnThruPtr_p_fields(&tx_data);
 
-    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.psdu, NULL, true);
+    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.data, NULL, true);
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
     nrf_802154_frame_parser_mhr_parse_ReturnThruPtr_p_fields(&ack_data);
 
@@ -1162,7 +1162,7 @@ void test_end_handler_ShallResetRadioToStartReceivingAndNotifyTransmitFailedWhen
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
     nrf_802154_frame_parser_mhr_parse_ReturnThruPtr_p_fields(&tx_data);
 
-    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.psdu, NULL, true);
+    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.data, NULL, true);
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
     nrf_802154_frame_parser_mhr_parse_ReturnThruPtr_p_fields(&ack_data);
 
@@ -1202,7 +1202,7 @@ void test_end_handler_ShallResetRadioToStartReceivingAndNotifyTransmitFailedWhen
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
     nrf_802154_frame_parser_mhr_parse_ReturnThruPtr_p_fields(&tx_data);
 
-    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.psdu, NULL, true);
+    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.data, NULL, true);
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
     nrf_802154_frame_parser_mhr_parse_ReturnThruPtr_p_fields(&ack_data);
 
@@ -1241,7 +1241,7 @@ void test_end_handler_ShallResetRadioToStartReceivingAndNotifyTransmitFailedWhen
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
     nrf_802154_frame_parser_mhr_parse_ReturnThruPtr_p_fields(&tx_data);
 
-    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.psdu, NULL, true);
+    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.data, NULL, true);
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
     nrf_802154_frame_parser_mhr_parse_ReturnThruPtr_p_fields(&ack_data);
 
@@ -1282,7 +1282,7 @@ void test_end_handler_ShallResetRadioToStartReceivingAndNotifyTransmitFailedWhen
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
     nrf_802154_frame_parser_mhr_parse_ReturnThruPtr_p_fields(&tx_data);
 
-    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.psdu, NULL, false);
+    nrf_802154_frame_parser_mhr_parse_ExpectAndReturn(m_rx_buffer.data, NULL, false);
     nrf_802154_frame_parser_mhr_parse_IgnoreArg_p_fields();
 
     verify_rx_ack_terminate_hardware_reset(true);
@@ -1332,7 +1332,7 @@ void test_end_handler_ShallResetRadioToStartReceivingAndNotifyTransmitFailedWhen
     insert_ack_2015_to_rx_buffer();
     insert_frame_2015_with_ack_request_to_tx_buffer();
 
-    m_rx_buffer.psdu[FRAME_TYPE_OFFSET] |= FRAME_TYPE_MASK;
+    m_rx_buffer.data[FRAME_TYPE_OFFSET] |= FRAME_TYPE_MASK;
 
     verify_complete_ack_is_not_matched();
 
@@ -1351,7 +1351,7 @@ void test_end_handler_ShallResetRadioToStartReceivingAndNotifyTransmitFailedWhen
     insert_ack_2015_to_rx_buffer();
     insert_frame_2015_with_ack_request_to_tx_buffer();
 
-    m_rx_buffer.psdu[FRAME_VERSION_OFFSET] |= FRAME_VERSION_MASK;
+    m_rx_buffer.data[FRAME_VERSION_OFFSET] |= FRAME_VERSION_MASK;
 
     verify_complete_ack_is_not_matched();
 
