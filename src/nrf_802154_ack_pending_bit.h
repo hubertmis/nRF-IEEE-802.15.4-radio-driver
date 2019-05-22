@@ -98,7 +98,7 @@ void nrf_802154_ack_pending_bit_for_addr_reset(bool extended);
 /**
  * @brief Check if pending bit should be set in ACK sent in response to given frame.
  *
- * @param[in]  p_data  Pointer to a buffer containing PHR and PSDU of the frame to which ACK frame is being prepared.
+ * @param[in]  p_data  Pointer to a buffer containing PHR and PSDU of the frame for which the ACK frame is being prepared.
  *
  * @retval true   Pending bit should be set.
  * @retval false  Pending bit should be cleared.

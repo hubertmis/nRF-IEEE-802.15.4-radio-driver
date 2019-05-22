@@ -87,8 +87,8 @@ void nrf_802154_swi_notify_transmitted(const uint8_t * p_frame,
 /**
  * @brief Notify next higher layer that a frame was not transmitted from SWI priority level.
  *
- * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the frame that failed transmit
- *                      operation.
+ * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the frame that failed
+ *                      the transmission.
  * @param[in]  error    Reason of the transmission failure.
  */
 void nrf_802154_swi_notify_transmit_failed(const uint8_t * p_frame, nrf_802154_tx_error_t error);
@@ -164,8 +164,8 @@ void nrf_802154_swi_receive(nrf_802154_term_t              term_lvl,
  *
  * @param[in]   term_lvl         Termination level of this request. Selects procedures to abort.
  * @param[in]   req_orig         Module that originates this request.
- * @param[in]   p_data           Pointer to a buffer containing PHR and PSDU of the frame that should
- *                               be transmitted.
+ * @param[in]   p_data           Pointer to a buffer containing PHR and PSDU of the frame to be
+ *                               transmitted.
  * @param[in]   cca              If the driver should perform CCA procedure before transmission.
  * @param[in]   immediate        If true, the driver schedules transmission immediately or never;
  *                               if false transmission may be postponed until tx preconditions are

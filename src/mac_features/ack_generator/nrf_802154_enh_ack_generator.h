@@ -46,7 +46,7 @@ void nrf_802154_enh_ack_generator_init(void);
  *
  * @param [in]  p_frame  Pointer to a buffer containing PHR and PSDU of the frame to respond to.
  *
- * @returns  Pointer to constant buffer containing PHR and PSDU of created Enhanced ACK frame.
+ * @returns  Pointer to a constant buffer containing PHR and PSDU of the created Enhanced ACK frame.
  */
 const uint8_t * nrf_802154_enh_ack_generator_create(const uint8_t * p_frame);
 
