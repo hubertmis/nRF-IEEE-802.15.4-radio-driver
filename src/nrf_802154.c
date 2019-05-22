@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2019, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,7 @@
 #include "nrf_radio.h"
 #include "platform/clock/nrf_802154_clock.h"
 #include "platform/lp_timer/nrf_802154_lp_timer.h"
+#include "platform/random/nrf_802154_random.h"
 #include "platform/temperature/nrf_802154_temperature.h"
 #include "rsch/nrf_802154_rsch.h"
 #include "rsch/nrf_802154_rsch_crit_sect.h"
@@ -212,6 +213,7 @@ void nrf_802154_init(void)
     nrf_802154_lp_timer_init();
     nrf_802154_pib_init();
     nrf_802154_priority_drop_init();
+    nrf_802154_random_init();
     nrf_802154_request_init();
     nrf_802154_revision_init();
     nrf_802154_rsch_crit_sect_init();
@@ -228,6 +230,7 @@ void nrf_802154_deinit(void)
     nrf_802154_timer_coord_uninit();
     nrf_802154_temperature_deinit();
     nrf_802154_rsch_uninit();
+    nrf_802154_random_deinit();
     nrf_802154_lp_timer_deinit();
     nrf_802154_clock_deinit();
     nrf_802154_core_deinit();

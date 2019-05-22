@@ -1060,8 +1060,6 @@ void nrf_802154_cca_cfg_get(nrf_802154_cca_cfg_t * p_cca_cfg);
  *       frame. This timer can be started by @ref nrf_802154_tx_started. When the timer expires,
  *       the MAC layer should call @ref nrf_802154_receive or @ref nrf_802154_sleep to stop waiting
  *       for the ACK frame.
- * @note Before the CSMA-CA procedure is used, the application should initialize a random seed with
- *       srand.
  *
  * @param[in]  p_data  Pointer to the frame to transmit. See also @ref nrf_802154_transmit_raw.
  */
@@ -1082,8 +1080,6 @@ void nrf_802154_transmit_csma_ca_raw(const uint8_t * p_data);
  *       frame. This timer can be started by @ref nrf_802154_tx_started. When the timer expires,
  *       the MAC layer should call @ref nrf_802154_receive or @ref nrf_802154_sleep to stop waiting
  *       for the ACK frame.
- * @note Before the CSMA-CA procedure is used, the application should initialize a random seed with
- *       srand.
  *
  * @param[in]  p_data    Pointer to the frame to transmit. See also @ref nrf_802154_transmit.
  * @param[in]  length    Length of the given frame. See also @ref nrf_802154_transmit.

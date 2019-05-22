@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
+/* Copyright (c) 2017 - 2019, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@
 #include "../nrf_802154_debug.h"
 #include "nrf_802154_notification.h"
 #include "nrf_802154_request.h"
+#include "platform/random/nrf_802154_random.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
 #if NRF_802154_CSMA_CA_ENABLED
@@ -137,7 +138,7 @@ static void frame_transmit(void * p_context)
  */
 static void random_backoff_start(void)
 {
-    uint8_t backoff_periods = rand() % (1 << m_be);
+    uint8_t backoff_periods = nrf_802154_random_get() % (1 << m_be);
 
     m_timer.callback  = frame_transmit;
     m_timer.p_context = NULL;
