@@ -50,8 +50,12 @@
 #include "rsch/nrf_802154_rsch.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
-#define TX_SETUP_TIME 190u ///< Time [us] needed to change channel, stop rx and setup tx procedure.
-#define RX_SETUP_TIME 160u ///< Time [us] needed to change channel, stop tx and setup rx procedure.
+/* The following time is the sum of 70us RTC_IRQHandler processing time, 40us of time that elapses
+ * from the moment a board starts transmission to the moment other boards (e.g. sniffer) are able
+ * to detect that frame and in case of TX - 50us that accounts for a delay of yet unknown origin.
+ */
+#define TX_SETUP_TIME 160u ///< Time needed to prepare TX procedure [us]. It does not include TX ramp-up time.
+#define RX_SETUP_TIME 110u ///< Time needed to prepare RX procedure [us]. It does not include RX ramp-up time.
 
 /**
  * @brief States of delayed operations.
@@ -398,7 +402,7 @@ bool nrf_802154_delayed_trx_receive(uint32_t t0,
 
         timeslot_length = timeout + nrf_802154_rx_duration_get(MAX_PACKET_SIZE, true);
 
-        m_timeout_timer.dt        = timeout;
+        m_timeout_timer.dt        = timeout + RX_RAMP_UP_TIME;
         m_timeout_timer.callback  = notify_rx_timeout;
         m_timeout_timer.p_context = NULL;
 

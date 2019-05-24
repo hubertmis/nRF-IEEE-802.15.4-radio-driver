@@ -10,7 +10,41 @@
 #include "raal/nrf_raal_api.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
 
-#define PREC_RAMP_UP_TIME 300                                ///< Ramp-up time of preconditions [us]. 300 is worst case for HFclock
+/* The following macro defines ramp-up time of preconditions [us]. It depends on HF clock,
+ * which takes the longest to ramp-up out of all preconditions.
+ * In case of nRF52811, the value of this macro is the sum of 360us of HFXO startup time,
+ * 31us of timer granularity margin, 55us of POWER_CLOCK_IRQHandler processing time, 60us of
+ * RTC_IRQHandler processing time and 9us of margin.
+ * In case of nRF52840, the value of this macro is the sum of 256us of HFXO debounce time,
+ * 75us of the worst case power-up time for an Epson crystal, 31us of timer granularity margin,
+ * 50us of POWER_CLOCK_IRQHandler processing time, 60us of RTC_IRQHandler processing time
+ * and 8us of margin.
+ */
+#ifdef NRF52811_XXAA
+#define PREC_HFXO_STARTUP_TIME                 360
+#define PREC_TIMER_GRANULARITY_MARGIN          31
+#define PREC_POWER_CLOCK_IRQ_HANDLER_PROC_TIME 50
+#define PREC_RTC_IRQ_HANDLER_PROC_TIME         60
+#define PREC_RAMP_UP_MARGIN                    9
+#define PREC_RAMP_UP_TIME                      (PREC_HFXO_STARTUP_TIME +                 \
+                                                PREC_TIMER_GRANULARITY_MARGIN +          \
+                                                PREC_POWER_CLOCK_IRQ_HANDLER_PROC_TIME + \
+                                                PREC_RTC_IRQ_HANDLER_PROC_TIME +         \
+                                                PREC_RAMP_UP_MARGIN)
+#else
+#define PREC_HFXO_DEBOUNCE_TIME                256
+#define PREC_CRYSTAL_WORST_CASE_POWER_UP_TIME  75
+#define PREC_TIMER_GRANULARITY_MARGIN          31
+#define PREC_POWER_CLOCK_IRQ_HANDLER_PROC_TIME 50
+#define PREC_RTC_IRQ_HANDLER_PROC_TIME         60
+#define PREC_RAMP_UP_MARGIN                    8
+#define PREC_RAMP_UP_TIME                      (PREC_HFXO_DEBOUNCE_TIME +                \
+                                                PREC_CRYSTAL_WORST_CASE_POWER_UP_TIME +  \
+                                                PREC_TIMER_GRANULARITY_MARGIN +          \
+                                                PREC_POWER_CLOCK_IRQ_HANDLER_PROC_TIME + \
+                                                PREC_RTC_IRQ_HANDLER_PROC_TIME +         \
+                                                PREC_RAMP_UP_MARGIN)
+#endif
 
 static volatile uint8_t     m_ntf_mutex;                     ///< Mutex for notyfying core.
 static volatile uint8_t     m_ntf_mutex_monitor;             ///< Mutex monitor, incremented every failed ntf mutex lock.
