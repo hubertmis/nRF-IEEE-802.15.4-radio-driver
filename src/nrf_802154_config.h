@@ -452,14 +452,13 @@ extern "C" {
  * Indicates whether the CSMA-CA algorithm waits for an available timeslot before it performs the CCA procedure.
  *
  * @note When this option is enabled, the CSMA-CA procedure may be synchronized with timeslots of
- *       other protocols. It decreases robustness of the CSMA-CA procedure and is not recommended.
- *       This option may be used as a workaround to problems with higher layers that do not correctly handle
- *       multiple CHANNEL_BUSY errors in a row. This potentially problematic situation may
- *       happen during activity of other protocols.
+ *       other protocols. This decreases the robustness of the CSMA-CA procedure. On the other hand, this increases
+ *       the performance of multi-protocol applications, especially when protocols other than 802.15.4 use
+ *       much of the radio time (like the BLE scanning operation).
  *
  */
 #ifndef NRF_802154_CSMA_CA_WAIT_FOR_TIMESLOT
-#define NRF_802154_CSMA_CA_WAIT_FOR_TIMESLOT 0
+#define NRF_802154_CSMA_CA_WAIT_FOR_TIMESLOT 1
 #endif
 
 /**
