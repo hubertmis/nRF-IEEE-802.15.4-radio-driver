@@ -42,7 +42,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "nrf_802154_ack_pending_bit.h"
 #include "nrf_802154_config.h"
 #include "nrf_802154_const.h"
 #include "nrf_802154_core.h"
@@ -204,7 +203,7 @@ uint32_t nrf_802154_first_symbol_timestamp_get(uint32_t end_timestamp, uint8_t p
 
 void nrf_802154_init(void)
 {
-    nrf_802154_ack_pending_bit_init();
+    nrf_802154_ack_data_init();
     nrf_802154_core_init();
     nrf_802154_clock_init();
     nrf_802154_critical_section_init();
@@ -549,27 +548,31 @@ bool nrf_802154_ack_data_set(const uint8_t * p_addr,
                              uint16_t        length,
                              uint8_t         data_type)
 {
-    return nrf_802154_ack_data_for_addr_set(p_addr, extended, p_data, length, data_type);
+    return nrf_802154_ack_data_for_addr_set(p_addr, extended, data_type, p_data, length);
 }
 
 void nrf_802154_auto_pending_bit_set(bool enabled)
 {
-    nrf_802154_ack_pending_bit_set(enabled);
+    nrf_802154_ack_data_enable(enabled);
 }
 
 bool nrf_802154_pending_bit_for_addr_set(const uint8_t * p_addr, bool extended)
 {
-    return nrf_802154_ack_pending_bit_for_addr_set(p_addr, extended);
+    return nrf_802154_ack_data_for_addr_set(p_addr,
+                                            extended,
+                                            NRF_802154_ACK_DATA_PENDING_BIT,
+                                            NULL,
+                                            0);
 }
 
 bool nrf_802154_pending_bit_for_addr_clear(const uint8_t * p_addr, bool extended)
 {
-    return nrf_802154_ack_pending_bit_for_addr_clear(p_addr, extended);
+    return nrf_802154_ack_data_for_addr_clear(p_addr, extended, NRF_802154_ACK_DATA_PENDING_BIT);
 }
 
 void nrf_802154_pending_bit_for_addr_reset(bool extended)
 {
-    nrf_802154_ack_pending_bit_for_addr_reset(extended);
+    nrf_802154_ack_data_reset(extended, NRF_802154_ACK_DATA_PENDING_BIT);
 }
 
 void nrf_802154_cca_cfg_set(const nrf_802154_cca_cfg_t * p_cca_cfg)

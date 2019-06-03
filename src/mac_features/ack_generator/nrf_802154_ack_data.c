@@ -489,25 +489,22 @@ void nrf_802154_ack_data_enable(bool enabled)
 
 bool nrf_802154_ack_data_for_addr_set(const uint8_t * p_addr,
                                       bool            extended,
+                                      uint8_t         data_type,
                                       const void    * p_data,
-                                      uint8_t         data_len,
-                                      uint8_t         data_type)
+                                      uint8_t         data_len)
 {
     uint32_t location = 0;
 
-    if (data_type != NRF_802154_ACK_DATA_IE)
-    {
-        assert(false);
-    }
-
-    // Provided address is in the database already or it can be added to the database
     if (addr_index_find(p_addr, &location, data_type, extended) ||
         addr_add(p_addr, location, data_type, extended))
     {
-        ie_data_add(location, extended, p_data, data_len);
+        if (data_type == NRF_802154_ACK_DATA_IE)
+        {
+            ie_data_add(location, extended, p_data, data_len);
+        }
+
         return true;
     }
-    // Provided address cannot be added
     else
     {
         return false;
@@ -528,7 +525,7 @@ bool nrf_802154_ack_data_for_addr_clear(const uint8_t * p_addr, bool extended, u
     }
 }
 
-void nrf_802154_ack_data_for_addr_reset(bool extended, uint8_t data_type)
+void nrf_802154_ack_data_reset(bool extended, uint8_t data_type)
 {
     switch (data_type)
     {

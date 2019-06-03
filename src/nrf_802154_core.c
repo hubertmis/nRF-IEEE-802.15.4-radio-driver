@@ -42,7 +42,6 @@
 #include <string.h>
 
 #include "nrf_802154.h"
-#include "nrf_802154_ack_pending_bit.h"
 #include "nrf_802154_config.h"
 #include "nrf_802154_const.h"
 #include "nrf_802154_critical_section.h"
@@ -63,6 +62,7 @@
 #include "mac_features/nrf_802154_delayed_trx.h"
 #include "mac_features/nrf_802154_filter.h"
 #include "mac_features/nrf_802154_frame_parser.h"
+#include "mac_features/ack_generator/nrf_802154_ack_data.h"
 #include "mac_features/ack_generator/nrf_802154_ack_generator.h"
 #include "rsch/nrf_802154_rsch.h"
 #include "rsch/nrf_802154_rsch_crit_sect.h"

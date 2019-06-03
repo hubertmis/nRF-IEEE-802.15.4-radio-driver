@@ -39,7 +39,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "nrf_802154_ack_pending_bit.h"
+#include "nrf_802154_ack_data.h"
 #include "nrf_802154_const.h"
 
 #define IMM_ACK_INITIALIZER {0x05, ACK_HEADER_WITH_PENDING, 0x00, 0x00, 0x00, 0x00}
@@ -59,7 +59,7 @@ const uint8_t * nrf_802154_imm_ack_generator_create(const uint8_t * p_frame)
     m_ack_data[DSN_OFFSET] = p_frame[DSN_OFFSET];
 
     // Set pending bit in ACK frame.
-    if (nrf_802154_ack_pending_bit_should_be_set(p_frame))
+    if (nrf_802154_ack_data_pending_bit_should_be_set(p_frame))
     {
         m_ack_data[FRAME_PENDING_OFFSET] = ACK_HEADER_WITH_PENDING;
     }

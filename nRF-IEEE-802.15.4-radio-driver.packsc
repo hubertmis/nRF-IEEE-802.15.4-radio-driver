@@ -7,7 +7,6 @@
         ],
         "_headers": [
             "src/nrf_802154.h",
-            "src/nrf_802154_ack_pending_bit.h",
             "src/nrf_802154_core_hooks.h",
             "src/nrf_802154_critical_section.h",
             "src/nrf_802154_debug.h",
@@ -22,6 +21,7 @@
             "src/nrf_802154_timer_coord.h",
             "src/mac_features/nrf_802154_filter.h",
             "src/mac_features/nrf_802154_frame_parser.h",
+            "src/mac_features/ack_generator/nrf_802154_ack_data.h",
             "src/mac_features/ack_generator/nrf_802154_ack_generator.h",
             "src/rsch/nrf_802154_rsch.h",
             "src/rsch/nrf_802154_rsch_crit_sect.h"
@@ -43,7 +43,6 @@
                 ],
                 "_files": [
                     "src/nrf_802154.c",
-                    "src/nrf_802154_ack_pending_bit.c",
                     "src/nrf_802154_core.c",
                     "src/nrf_802154_core_hooks.c",
                     "src/nrf_802154_critical_section.c",
@@ -91,7 +90,6 @@
                 ],
                 "_files": [
                     "src/nrf_802154.c",
-                    "src/nrf_802154_ack_pending_bit.c",
                     "src/nrf_802154_core.c",
                     "src/nrf_802154_core_hooks.c",
                     "src/nrf_802154_critical_section.c",
@@ -136,7 +134,6 @@
                 ],
                 "_files": [
                     "src/nrf_802154.c",
-                    "src/nrf_802154_ack_pending_bit.c",
                     "src/nrf_802154_core.c",
                     "src/nrf_802154_core_hooks.c",
                     "src/nrf_802154_critical_section.c",
@@ -186,7 +183,8 @@
                 ],
                 "_files": [
                     "cmock\\mock_nrf_802154.c",
-                    "cmock\\mock_nrf_802154_ack_pending_bit.c",
+                    "cmock\\mock_nrf_802154_ack_data.c",
+                    "cmock\\mock_nrf_802154_ack_generator.c",
                     "cmock\\mock_nrf_802154_core_hooks.c",
                     "cmock\\mock_nrf_802154_critical_section.c",
                     "cmock\\mock_nrf_802154_debug.c",
@@ -202,8 +200,7 @@
                     "cmock\\mock_nrf_802154_rsch_crit_sect.c",
                     "cmock\\mock_nrf_802154_rssi.c",
                     "cmock\\mock_nrf_802154_rx_buffer.c",
-                    "cmock\\mock_nrf_802154_timer_coord.c",
-                    "cmock\\mock_nrf_802154_ack_generator.c"
+                    "cmock\\mock_nrf_802154_timer_coord.c"
                 ],
                 "_includes": [
                     "cmock",
@@ -212,6 +209,41 @@
                     "src/rsch"
                 ],
                 "_name": "cmock"
+            },
+            {
+                "_attrs": [
+                    "private"
+                ],
+                "_links": [
+                    ["unity"]
+                ],
+                "_files": [
+                    "cmock\\mock_nrf_802154.c",
+                    "cmock\\mock_nrf_802154_ack_generator.c",
+                    "cmock\\mock_nrf_802154_core_hooks.c",
+                    "cmock\\mock_nrf_802154_critical_section.c",
+                    "cmock\\mock_nrf_802154_debug.c",
+                    "cmock\\mock_nrf_802154_filter.c",
+                    "cmock\\mock_nrf_802154_frame_parser.c",
+                    "cmock\\mock_nrf_802154_notification.c",
+                    "cmock\\mock_nrf_802154_pib.c",
+                    "cmock\\mock_nrf_802154_priority_drop.c",
+                    "cmock\\mock_nrf_802154_procedures_duration.c",
+                    "cmock\\mock_nrf_802154_request.c",
+                    "cmock\\mock_nrf_802154_revision.c",
+                    "cmock\\mock_nrf_802154_rsch.c",
+                    "cmock\\mock_nrf_802154_rsch_crit_sect.c",
+                    "cmock\\mock_nrf_802154_rssi.c",
+                    "cmock\\mock_nrf_802154_rx_buffer.c",
+                    "cmock\\mock_nrf_802154_timer_coord.c"
+                ],
+                "_includes": [
+                    "cmock",
+                    "src/mac_features",
+                    "src/mac_features/ack_generator",
+                    "src/rsch"
+                ],
+                "_name": "cmock_for_ack_data"
             },
             {
                 "_attrs": [

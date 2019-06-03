@@ -41,7 +41,6 @@
 
 #include "mac_features/nrf_802154_frame_parser.h"
 #include "nrf_802154_ack_data.h"
-#include "nrf_802154_ack_pending_bit.h"
 #include "nrf_802154_const.h"
 #include "nrf_802154_pib.h"
 
@@ -79,7 +78,7 @@ static void fcf_security_enabled_set(const uint8_t * p_frame)
 
 static void fcf_frame_pending_set(const uint8_t * p_frame)
 {
-    if (nrf_802154_ack_pending_bit_should_be_set(p_frame))
+    if (nrf_802154_ack_data_pending_bit_should_be_set(p_frame))
     {
         m_ack_data[FRAME_PENDING_OFFSET] |= FRAME_PENDING_BIT;
     }
