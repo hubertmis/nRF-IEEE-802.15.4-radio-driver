@@ -307,7 +307,9 @@ static void transmit_started_notify(void)
 /** Notify that reception of a frame has started. */
 static void receive_started_notify(void)
 {
-    nrf_802154_core_hooks_rx_started();
+    const uint8_t * p_frame = mp_current_rx_buffer->data;
+
+    nrf_802154_core_hooks_rx_started(p_frame);
 }
 
 #endif
@@ -485,7 +487,7 @@ static void channel_set(uint8_t channel)
  */
 static bool ack_is_requested(const uint8_t * p_frame)
 {
-    return (p_frame[ACK_REQUEST_OFFSET] & ACK_REQUEST_BIT) ? true : false;
+    return nrf_802154_frame_parser_ar_bit_is_set(p_frame);
 }
 
 /***************************************************************************************************

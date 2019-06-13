@@ -263,6 +263,16 @@ bool nrf_802154_frame_parser_dsn_suppress_bit_is_set(const uint8_t * p_frame);
 bool nrf_802154_frame_parser_ie_present_bit_is_set(const uint8_t * p_frame);
 
 /**
+ * @brief Determine if Ack Request (AR) bit is set.
+ *
+ * @param[in]   p_frame  Pointer to a frame.
+ *
+ * @retval  true   If AR bit is set.
+ * @retval  false  Otherwise.
+ */
+bool nrf_802154_frame_parser_ar_bit_is_set(const uint8_t * p_frame);
+
+/**
  * @brief Get IE header field in provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
