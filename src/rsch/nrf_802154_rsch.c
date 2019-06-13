@@ -328,6 +328,7 @@ static void delayed_timeslot_start(void * p_context)
     p_dly_ts->prio = RSCH_PRIO_IDLE;
 
     all_prec_update();
+    notify_core();
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RSCH_TIMER_DELAYED_START);
 }
@@ -400,11 +401,6 @@ void nrf_802154_rsch_continuous_mode_priority_set(rsch_prio_t prio)
 
     all_prec_update();
     notify_core();
-
-    if (prio == RSCH_PRIO_IDLE)
-    {
-        m_last_notified_prio = RSCH_PRIO_IDLE;
-    }
 
     nrf_802154_log(EVENT_TRACE_EXIT, (prio > RSCH_PRIO_IDLE) ? FUNCTION_RSCH_CONTINUOUS_ENTER :
                    FUNCTION_RSCH_CONTINUOUS_EXIT);
