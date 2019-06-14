@@ -380,6 +380,18 @@ bool nrf_802154_transmit_raw_at(const uint8_t * p_data,
     return result;
 }
 
+bool nrf_802154_transmit_at_cancel(void)
+{
+    bool result;
+
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TRANSMIT_AT_CANCEL);
+
+    result = nrf_802154_delayed_trx_transmit_cancel();
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_TRANSMIT_AT_CANCEL);
+    return result;
+}
+
 bool nrf_802154_receive_at(uint32_t t0,
                            uint32_t dt,
                            uint32_t timeout,
@@ -392,6 +404,18 @@ bool nrf_802154_receive_at(uint32_t t0,
     result = nrf_802154_delayed_trx_receive(t0, dt, timeout, channel);
 
     nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RECEIVE_AT);
+    return result;
+}
+
+bool nrf_802154_receive_at_cancel(void)
+{
+    bool result;
+
+    nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_RECEIVE_AT_CANCEL);
+
+    result = nrf_802154_delayed_trx_receive_cancel();
+
+    nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_RECEIVE_AT_CANCEL);
     return result;
 }
 

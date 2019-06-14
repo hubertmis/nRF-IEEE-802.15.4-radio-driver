@@ -179,6 +179,16 @@ bool nrf_802154_rsch_delayed_timeslot_request(uint32_t         t0,
                                               rsch_dly_ts_id_t dly_ts);
 
 /**
+ * @brief Cancel a requested future timeslot.
+ *
+ * @param[in] dly_ts_id     Type of the requested timeslot.
+ *
+ * @retval true     Scheduled timeslot has been cancelled.
+ * @retval false    No scheduled timeslot has been requested (nothing to cancel).
+ */
+bool nrf_802154_rsch_delayed_timeslot_cancel(rsch_dly_ts_id_t dly_ts_id);
+
+/**
  * @brief Check if there is a pending timeslot request.
  *
  * @note Delayed timeslot is considered requested once its preconditions are granted.

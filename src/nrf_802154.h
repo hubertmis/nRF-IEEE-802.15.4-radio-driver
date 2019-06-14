@@ -299,18 +299,32 @@ bool nrf_802154_receive(void);
  * If the requested reception time is in the past, the function returns false and does not
  * schedule reception.
  *
+ * A successfully scheduled reception can be cancelled by a call to @ref nrf_802154_receive_at_cancel.
+ *
  * @param[in]  t0       Base of delay time - absolute time used by the Timer Scheduler [us].
  * @param[in]  dt       Delta of delay time from @p t0 [us].
  * @param[in]  timeout  Reception timeout (counted from @p t0 + @p dt) [us].
  * @param[in]  channel  Radio channel on which the frame should be received.
  *
- * @retval  true   If the transmission procedure was scheduled.
- * @retval  false  If the driver could not schedule the transmission procedure.
+ * @retval  true   If the reception procedure was scheduled.
+ * @retval  false  If the driver could not schedule the reception procedure.
  */
 bool nrf_802154_receive_at(uint32_t t0,
                            uint32_t dt,
                            uint32_t timeout,
                            uint8_t  channel);
+
+/**
+ * @brief Cancel a delayed reception scheduled by a call to @ref nrf_802154_receive_at.
+ *
+ * If the receive window has been scheduled but has not started yet, this function prevents
+ * entering the receive window. If the receive window has been scheduled and has already started,
+ * the radio remains in receive state but a window timeout will not be reported.
+ *
+ * @retval  true    If the delayed reception was scheduled and successfully cancelled.
+ * @retval  false   If no delayed reception was scheduled.
+ */
+bool nrf_802154_receive_at_cancel(void);
 
 #if NRF_802154_USE_RAW_API
 /**
@@ -411,6 +425,8 @@ bool nrf_802154_transmit(const uint8_t * p_data, uint8_t length, bool cca);
  * If the requested transmission time is in the past, the function returns false and does not
  * schedule transmission.
  *
+ * A successfully scheduled transmission can be cancelled by a call to @ref nrf_802154_transmit_at_cancel.
+ *
  * @param[in]  p_data   Pointer to array containing data to transmit. First byte should contain frame
  *                      length (including PHR and FCS). Following bytes should contain data. CRC is
  *                      computed automatically by radio hardware. Therefore, the FCS field can
@@ -428,6 +444,20 @@ bool nrf_802154_transmit_raw_at(const uint8_t * p_data,
                                 uint32_t        t0,
                                 uint32_t        dt,
                                 uint8_t         channel);
+
+/**
+ * @brief Cancel a delayed transmission scheduled by a call to @ref nrf_802154_transmit_raw_at.
+ *
+ * If a delayed transmission has been scheduled but the transmission has not been started yet, a call
+ * to this function prevents the transmission. If the transmission is ongoing, it will not be aborted.
+ *
+ * If a delayed transmission has not been scheduled (or has already finished) this function does not
+ * change state and returns false.
+ *
+ * @retval  true    If the delayed transmission was scheduled and successfully cancelled.
+ * @retval  false   If no delayed transmission was scheduled.
+ */
+bool nrf_802154_transmit_at_cancel(void);
 
 /**
  * @brief Change radio state to energy detection.

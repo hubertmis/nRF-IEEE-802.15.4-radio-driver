@@ -282,7 +282,7 @@ static void tx_timeslot_started_callback(bool result)
     // To avoid attaching to every possible transmit hook, in order to be able
     // to switch from ONGOING to STOPPED state, ONGOING state is not used at all
     // and state is changed to STOPPED right after transmit request.
-    dly_op_state_set(RSCH_DLY_TX, DELAYED_TRX_OP_STATE_PENDING, DELAYED_TRX_OP_STATE_STOPPED);
+    m_dly_op_state[RSCH_DLY_TX] = DELAYED_TRX_OP_STATE_STOPPED;
 
     if (!result)
     {
@@ -428,7 +428,7 @@ bool nrf_802154_delayed_trx_receive(uint32_t t0,
         m_rx_channel = channel;
 
         // remove timer in case it was left after abort operation
-        nrf_802154_timer_sched_remove(&m_timeout_timer);
+        nrf_802154_timer_sched_remove(&m_timeout_timer, NULL);
 
         result = dly_op_request(t0, dt, timeslot_length, RSCH_DLY_RX);
     }
@@ -436,11 +436,8 @@ bool nrf_802154_delayed_trx_receive(uint32_t t0,
     return result;
 }
 
-void nrf_802154_rsch_delayed_timeslot_started(rsch_dly_ts_id_t dly_ts_id)
+static inline void timeslot_started_callout(rsch_dly_ts_id_t dly_ts_id)
 {
-    assert(dly_ts_id < RSCH_DLY_TS_NUM);
-    assert(dly_op_state_get(dly_ts_id) == DELAYED_TRX_OP_STATE_PENDING);
-
     switch (dly_ts_id)
     {
         case RSCH_DLY_TX:
@@ -452,8 +449,53 @@ void nrf_802154_rsch_delayed_timeslot_started(rsch_dly_ts_id_t dly_ts_id)
             break;
 
         default:
+            assert(false);
             break;
     }
+}
+
+void nrf_802154_rsch_delayed_timeslot_started(rsch_dly_ts_id_t dly_ts_id)
+{
+    switch (dly_op_state_get(dly_ts_id))
+    {
+        case DELAYED_TRX_OP_STATE_PENDING:
+            timeslot_started_callout(dly_ts_id);
+            break;
+
+        case DELAYED_TRX_OP_STATE_STOPPED:
+            /* Intentionally do nothing */
+            break;
+
+        default:
+            assert(false);
+    }
+}
+
+bool nrf_802154_delayed_trx_transmit_cancel(void)
+{
+    bool result;
+
+    result                      = nrf_802154_rsch_delayed_timeslot_cancel(RSCH_DLY_TX);
+    m_dly_op_state[RSCH_DLY_TX] = DELAYED_TRX_OP_STATE_STOPPED;
+
+    return result;
+}
+
+bool nrf_802154_delayed_trx_receive_cancel(void)
+{
+    bool result;
+
+    result = nrf_802154_rsch_delayed_timeslot_cancel(RSCH_DLY_RX);
+
+    bool was_running;
+
+    nrf_802154_timer_sched_remove(&m_timeout_timer, &was_running);
+
+    m_dly_op_state[RSCH_DLY_RX] = DELAYED_TRX_OP_STATE_STOPPED;
+
+    result = result || was_running;
+
+    return result;
 }
 
 bool nrf_802154_delayed_trx_abort(nrf_802154_term_t term_lvl, req_originator_t req_orig)

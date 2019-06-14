@@ -149,9 +149,10 @@ void nrf_802154_timer_sched_add(nrf_802154_timer_t * p_timer, bool round_up);
 /**
  * @brief Stop given timer and remove it from the scheduler.
  *
- * @param[inout]  p_timer  Pointer to the timer to stop and remove from the scheduler.
+ * @param[in,out]  p_timer       Pointer to the timer to stop and remove from the scheduler.
+ * @param[out]    p_was_running Informs a caller if the timer was running. Pass NULL if irrelevant.
  */
-void nrf_802154_timer_sched_remove(nrf_802154_timer_t * p_timer);
+void nrf_802154_timer_sched_remove(nrf_802154_timer_t * p_timer, bool * p_was_running);
 
 /**
  * @brief Check if given timer is already scheduled.

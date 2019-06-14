@@ -71,6 +71,16 @@ bool nrf_802154_delayed_trx_transmit(const uint8_t * p_data,
                                      uint8_t         channel);
 
 /**
+ * @brief Cancel a transmission scheduled by a call to @ref nrf_802154_delayed_trx_transmit.
+ *
+ * This function does not cancel transmission if it is already ongoing.
+ *
+ * @retval true     Successfully cancelled a scheduled transmission.
+ * @retval false    No delayed transmission was scheduled.
+ */
+bool nrf_802154_delayed_trx_transmit_cancel(void);
+
+/**
  *@}
  **/
 
@@ -90,6 +100,16 @@ bool nrf_802154_delayed_trx_receive(uint32_t t0,
                                     uint32_t dt,
                                     uint32_t timeout,
                                     uint8_t  channel);
+
+/**
+ * @brief Cancel a reception scheduled by a call to @ref nrf_802154_delayed_trx_receive.
+ *
+ * After a call to this function, no reception timeout event will be notified.
+ *
+ * @retval true     Successfully cancelled a scheduled transmission.
+ * @retval false    No delayed reception was scheduled.
+ */
+bool nrf_802154_delayed_trx_receive_cancel(void);
 
 /**
  * @brief Aborts ONGOING delayed receive procedure.
