@@ -121,22 +121,25 @@ extern "C" {
 #define FUNCTION_requested_prio_lvl_is_at_least    0x1007UL
 #define FUNCTION_notify_core                       0x1008UL
 
-#define PIN_DBG_RADIO_EVT_END                      11
-#define PIN_DBG_RADIO_EVT_DISABLED                 12
-#define PIN_DBG_RADIO_EVT_READY                    13
-#define PIN_DBG_RADIO_EVT_FRAMESTART               14
-#define PIN_DBG_RADIO_EVT_EDEND                    25
-#define PIN_DBG_RADIO_EVT_PHYEND                   24
+#ifdef NRF52811_XXAA
 
-#define PIN_DBG_TIMESLOT_ACTIVE                    3
-#define PIN_DBG_TIMESLOT_EXTEND_REQ                4
-#define PIN_DBG_TIMESLOT_SESSION_IDLE              16
-#define PIN_DBG_TIMESLOT_RADIO_IRQ                 28
-#define PIN_DBG_TIMESLOT_FAILED                    29
-#define PIN_DBG_TIMESLOT_BLOCKED                   30
-#define PIN_DBG_RAAL_CRITICAL_SECTION              15
+#define PIN_DBG_RADIO_EVT_END        13
+#define PIN_DBG_RADIO_EVT_DISABLED   14
+#define PIN_DBG_RADIO_EVT_READY      17
+#define PIN_DBG_RADIO_EVT_FRAMESTART 18
+#define PIN_DBG_RADIO_EVT_EDEND      25
+#define PIN_DBG_RADIO_EVT_PHYEND     24
 
-#define PIN_DBG_RTC0_EVT_REM                       31
+#else
+
+#define PIN_DBG_RADIO_EVT_END        11
+#define PIN_DBG_RADIO_EVT_DISABLED   12
+#define PIN_DBG_RADIO_EVT_READY      13
+#define PIN_DBG_RADIO_EVT_FRAMESTART 14
+#define PIN_DBG_RADIO_EVT_EDEND      25
+#define PIN_DBG_RADIO_EVT_PHYEND     24
+
+#endif
 
 #ifdef __cplusplus
 }

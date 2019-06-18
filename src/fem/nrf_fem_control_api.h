@@ -50,11 +50,21 @@ extern "C" {
  * @section Resource configuration.
  */
 
+#ifdef NRF52811_XXAA
 /** Default Power Amplifier pin. */
-#define NRF_FEM_CONTROL_DEFAULT_PA_PIN             15
+#define NRF_FEM_CONTROL_DEFAULT_PA_PIN  19
 
 /** Default Low Noise Amplifier pin. */
-#define NRF_FEM_CONTROL_DEFAULT_LNA_PIN            16
+#define NRF_FEM_CONTROL_DEFAULT_LNA_PIN 20
+
+#else
+
+/** Default Power Amplifier pin. */
+#define NRF_FEM_CONTROL_DEFAULT_PA_PIN  15
+
+/** Default Low Noise Amplifier pin. */
+#define NRF_FEM_CONTROL_DEFAULT_LNA_PIN 16
+#endif
 
 /** Default PPI channel for pin setting. */
 #define NRF_FEM_CONTROL_DEFAULT_SET_PPI_CHANNEL    15
