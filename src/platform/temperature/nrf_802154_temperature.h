@@ -29,7 +29,7 @@
  */
 
 /**
- * @brief This module defines Thermometer Abstraction Layer for the 802.15.4 driver.
+ * @brief Module that defines the Thermometer Abstraction Layer for the 802.15.4 driver.
  *
  */
 
@@ -47,32 +47,32 @@ extern "C" {
  * @defgroup nrf_802154_temperature Thermometer Abstraction Layer for the 802.15.4 driver
  * @{
  * @ingroup nrf_802154_temperature
- * @brief Thermometer Abstraction Layer interface for the 802.15.4 driver.
+ * @brief The Thermometer Abstraction Layer interface for the 802.15.4 driver.
  *
- * Thermometer Abstraction Layer is an abstraction layer of thermometer that is used to correct
- * RSSI, LQI, ED result and CCA threshold measurements.
+ * The Thermometer Abstraction Layer is an abstraction layer of the thermometer that is used to correct
+ * RSSI, LQI, and ED results and the CCA threshold measurements.
  *
  */
 
 /**
- * @brief Initialize thermometer.
+ * @brief Function for initializing the thermometer.
  */
 void nrf_802154_temperature_init(void);
 
 /**
- * @brief Uninitialize thermometer.
+ * @brief Function for deinitializing the thermometer.
  */
 void nrf_802154_temperature_deinit(void);
 
 /**
- * @brief Get current temperature.
+ * @brief Function for getting the current temperature.
  *
  * @return Current temperature [C].
  */
 int8_t nrf_802154_temperature_get(void);
 
 /**
- * @brief Callback executed when temperature changes.
+ * @brief Function for executing callback when the temperature changes.
  */
 extern void nrf_802154_temperature_changed(void);
 
