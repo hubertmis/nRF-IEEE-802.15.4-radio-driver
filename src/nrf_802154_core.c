@@ -1740,9 +1740,10 @@ static void cont_prec_denied(void)
         {
             irq_deinit();
             nrf_radio_reset();
-            nrf_fem_control_pin_clear();
-            nrf_802154_timer_coord_stop();
         }
+
+        nrf_fem_control_pin_clear();
+        nrf_802154_timer_coord_stop();
 
         result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RSCH, false);
         assert(result);
