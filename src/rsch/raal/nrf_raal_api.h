@@ -51,29 +51,28 @@ extern "C" {
  */
 
 /**
- * @brief Function for initializing Radio Arbiter Abstraction Layer client.
+ * @brief Initializes Radio Arbiter Abstraction Layer client.
  *
  * This function must be called once, before any other function from this module.
  *
- * @note The arbiter starts in the inactive mode after the initialization. To start the radio activity,
- *       the @p nrf_raal_continuous_mode_enter method must be called.
+ * @note The arbiter starts in the inactive mode after the initialization.
+ *       To start the radio activity, the @p nrf_raal_continuous_mode_enter method must be called.
  *
  */
 void nrf_raal_init(void);
 
 /**
- * @brief Function for deinitializing Radio Arbiter Abstraction Layer client.
+ * @brief Deinitializes Radio Arbiter Abstraction Layer client.
  *
  */
 void nrf_raal_uninit(void);
 
 /**
- * @brief Function for putting the arbiter into the continuous radio mode.
+ * @brief Puts the arbiter into the continuous radio mode.
  *
  * In this mode, the radio arbiter tries to create long continuous timeslots that will give
  * the radio driver as much radio time as possible while disturbing the other activities as little
  * as possible.
- * The arbiter client must make sure that the high frequency clock is enabled in each timeslot.
  *
  * @note The start of a timeslot is indicated by the @p nrf_raal_timeslot_started call.
  *
@@ -81,22 +80,23 @@ void nrf_raal_uninit(void);
 void nrf_raal_continuous_mode_enter(void);
 
 /**
- * @brief Function for moving the arbiter out of the continuous mode.
+ * @brief Moves the arbiter out of the continuous mode.
  *
- * In this mode, the radio arbiter does not extend or allocate any more timeslots for the radio driver.
+ * In this mode, the radio arbiter does not extend or allocate any more timeslots for
+ * the radio driver.
  *
  */
 void nrf_raal_continuous_mode_exit(void);
 
 /**
- * @brief Function for sending a confirmation to RAAL that the current part of the continuous timeslot is ended.
+ * @brief Sends a confirmation to RAAL that the current part of the continuous timeslot is ended.
  *
  * The core cannot use the RADIO peripheral after this call until the timeslot is started again.
  */
 void nrf_raal_continuous_ended(void);
 
 /**
- * @brief Function for requesting a timeslot for radio communication.
+ * @brief Requests a timeslot for radio communication.
  *
  * This method is to be called only after @p nrf_raal_timeslot_started indicated the start
  * of a timeslot.
@@ -111,38 +111,14 @@ void nrf_raal_continuous_ended(void);
 bool nrf_raal_timeslot_request(uint32_t length_us);
 
 /**
- * @brief Function for getting the remaining time of the currently granted timeslot, in [µs].
+ * @brief Gets the remaining time of the currently granted timeslot, in microseconds.
  *
  * @returns Number of microseconds left in the currently granted timeslot.
  */
 uint32_t nrf_raal_timeslot_us_left_get(void);
 
 /**
- * @brief Function for entering the critical section of the module.
- *
- * When this method is called, the execution of the @sa nrf_raal_timeslot_started and
- * @sa nrf_raal_timeslot_ended functions is blocked.
- *
- * @note This function can be called when RAAL is already in the critical section. The ongoing call can
- *       be interrupted by another call from an IRQ with higher priority.
- *
- */
-void nrf_raal_critical_section_enter(void);
-
-/**
- * @brief Function for exiting the critical section of the module.
- *
- * When this method is called, the driver must expect the execution of the
- * @sa nrf_raal_timeslot_started or the @sa nrf_raal_timeslot_ended
- * function.
- *
- * @note This function can be called when RAAL has already exited the critical section. The ongoing call
- *       cannot be interrupted by another call from an IRQ with higher priority.
- */
-void nrf_raal_critical_section_exit(void);
-
-/**
- * @brief Function for notifying the radio driver about the start of a timeslot. Called by the RAAL client.
+ * @brief Notifies the radio driver about the start of a timeslot. Called by the RAAL client.
  *
  * The radio driver has now exclusive access to the peripherals until @p nrf_raal_timeslot_ended
  * is called.
@@ -154,7 +130,7 @@ void nrf_raal_critical_section_exit(void);
 extern void nrf_raal_timeslot_started(void);
 
 /**
- * @brief Function for notifying the radio driver about the end of a timeslot. Called by the RAAL client.
+ * @brief Notifies the radio driver about the end of a timeslot. Called by the RAAL client.
  *
  * Depending on the RAAL client configuration, the radio driver has NRF_RAAL_MAX_CLEAN_UP_TIME_US
  * microseconds to do any clean-up actions on the RADIO peripheral and stop using it.

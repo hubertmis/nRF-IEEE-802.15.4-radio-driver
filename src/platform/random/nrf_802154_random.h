@@ -49,23 +49,23 @@ extern "C" {
  * @ingroup nrf_802154_random
  * @brief The pseudo-random number generator Abstraction Layer interface for the 802.15.4 driver.
  *
- * The Random Abstraction Layer is an abstraction layer of a pseudo-random number generator that is used
- * to perform CSMA-CA procedure correctly.
+ * The Random Abstraction Layer is an abstraction layer of a pseudo-random number generator that is
+ * used to perform CSMA-CA procedure correctly.
  *
  */
 
 /**
- * @brief Function for initializing the random number generator.
+ * @brief Initializes the random number generator.
  */
 void nrf_802154_random_init(void);
 
 /**
- * @brief Function for deinitializing the random number generator.
+ * @brief Deinitializes the random number generator.
  */
 void nrf_802154_random_deinit(void);
 
 /**
- * @brief Function for getting a pseudo-random number.
+ * @brief Gets a pseudo-random number.
  *
  * @return Pseudo-random number.
  */

@@ -94,7 +94,7 @@ typedef enum
 } rsch_dly_ts_id_t;
 
 /**
- * @brief Function for initializing Radio Scheduler.
+ * @brief Initializes Radio Scheduler.
  *
  * @note This function must be called once, before any other function from this module.
  *
@@ -105,13 +105,13 @@ typedef enum
 void nrf_802154_rsch_init(void);
 
 /**
- * @brief Function for deinitializing Radio Scheduler.
+ * @brief Deinitializes Radio Scheduler.
  *
  */
 void nrf_802154_rsch_uninit(void);
 
 /**
- * @brief Function for setting the priority for the continuous radio mode.
+ * @brief Sets the priority for the continuous radio mode.
  *
  * In the continuous mode, Radio Scheduler tries to satisfy all preconditions for as long as
  * possible to give the radio driver core as much radio time as possible while
@@ -126,7 +126,7 @@ void nrf_802154_rsch_uninit(void);
 void nrf_802154_rsch_continuous_mode_priority_set(rsch_prio_t prio);
 
 /**
- * @brief Function for confirming that the current part of the continuous timeslot is ended by the core.
+ * @brief Confirms that the current part of the continuous timeslot is ended by the core.
  *
  * This confirmation is used by the core to synchronize the ending of the continuous timeslot parts with
  * the RSCH module.
@@ -135,7 +135,7 @@ void nrf_802154_rsch_continuous_mode_priority_set(rsch_prio_t prio);
 void nrf_802154_rsch_continuous_ended(void);
 
 /**
- * @brief Function for immediately requesting a timeslot for radio communication.
+ * @brief Immediately requests a timeslot for radio communication.
  *
  * This function is to be called only after @ref nrf_802154_rsch_prec_approved indicated the
  * start of a timeslot.
@@ -150,7 +150,7 @@ void nrf_802154_rsch_continuous_ended(void);
 bool nrf_802154_rsch_timeslot_request(uint32_t length_us);
 
 /**
- * @brief Function for requesting a timeslot in the future.
+ * @brief Requests a timeslot in the future.
  *
  * Request timeslot that is to be granted in the future. The function parameters provide data when
  * the timeslot is supposed to start and how long it is to last. When the requested timeslot starts,
@@ -161,9 +161,9 @@ bool nrf_802154_rsch_timeslot_request(uint32_t length_us);
  *
  * @note The time parameters use the same units that are used in the Timer Scheduler module.
  *
- * @param[in]  t0      Base time of the timestamp of the timeslot start [탎].
- * @param[in]  dt      Time delta between @p t0 and the timestamp of the timeslot start [탎].
- * @param[in]  length  Requested radio timeslot length [탎].
+ * @param[in]  t0      Base time of the timestamp of the timeslot start, in microseconds.
+ * @param[in]  dt      Time delta between @p t0 and the timestamp of the timeslot start, in microseconds.
+ * @param[in]  length  Requested radio timeslot length, in microseconds.
  * @param[in]  prio    Priority level required for the delayed timeslot.
  * @param[in]  dly_ts  Type of the requested timeslot.
  *
@@ -177,7 +177,7 @@ bool nrf_802154_rsch_delayed_timeslot_request(uint32_t         t0,
                                               rsch_dly_ts_id_t dly_ts);
 
 /**
- * @brief Function for cancelling a requested future timeslot.
+ * @brief Cancels a requested future timeslot.
  *
  * @param[in] dly_ts_id     Type of the requested timeslot.
  *
@@ -187,9 +187,10 @@ bool nrf_802154_rsch_delayed_timeslot_request(uint32_t         t0,
 bool nrf_802154_rsch_delayed_timeslot_cancel(rsch_dly_ts_id_t dly_ts_id);
 
 /**
- * @brief Function for checking if there is a pending timeslot request.
+ * @brief Checks if there is a pending timeslot request.
  *
- * @note The delayed timeslot is considered requested once its preconditions are granted.
+ * @note The delayed timeslot is considered requested once its preconditions are requested
+ *       or granted.
  *
  * @retval true   There is a timeslot request pending.
  * @retval false  There are no pending timeslot requests.
@@ -197,7 +198,7 @@ bool nrf_802154_rsch_delayed_timeslot_cancel(rsch_dly_ts_id_t dly_ts_id);
 bool nrf_802154_rsch_timeslot_is_requested(void);
 
 /**
- * @brief Function for checking if the RSCH precondition is satisfied.
+ * @brief Checks if the RSCH precondition is satisfied.
  *
  * @param[in]  prec    RSCH precondition to be checked.
  * @param[in]  prio    Minimal required priority level of the given precondition.
@@ -208,14 +209,14 @@ bool nrf_802154_rsch_timeslot_is_requested(void);
 bool nrf_802154_rsch_prec_is_approved(rsch_prec_t prec, rsch_prio_t prio);
 
 /**
- * @brief Function for getting the remaining time of the currently granted timeslot [탎].
+ * @brief Gets the remaining time of the currently granted timeslot, in microseconds.
  *
  * @returns  Number of microseconds remaining in the currently granted timeslot.
  */
 uint32_t nrf_802154_rsch_timeslot_us_left_get(void);
 
 /**
- * @brief Function for notifying the core about changes of the approved priority level.
+ * @brief Notifies the core about changes of the approved priority level.
  *
  * If @p prio is greater than @ref RSCH_PRIO_IDLE, the radio driver has exclusive access to the
  * peripherals until this function is called with @p prio equal to @ref RSCH_PRIO_IDLE.
@@ -227,7 +228,7 @@ uint32_t nrf_802154_rsch_timeslot_us_left_get(void);
 extern void nrf_802154_rsch_continuous_prio_changed(rsch_prio_t prio);
 
 /**
- * @brief Function for notifying that the previously requested delayed timeslot has started just now.
+ * @brief Notifies that the previously requested delayed timeslot has started just now.
  *
  * @param[in]  dly_ts_id  Type of the started timeslot.
  */

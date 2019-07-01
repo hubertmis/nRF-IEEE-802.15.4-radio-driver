@@ -45,15 +45,15 @@
  */
 
 /**
- * @brief Function for setting the timeout time for the ACK timeout feature.
+ * @brief Sets the timeout time for the ACK timeout feature.
  *
- * @param[in]  time  Timeout time in µs.
+ * @param[in]  time  Timeout time in microseconds.
  *                   The default value is defined in nrf_802154_config.h.
  */
 void nrf_802154_ack_timeout_time_set(uint32_t time);
 
 /**
- * @brief Function for aborting a started ACK timeout procedure.
+ * @brief Aborts a started ACK timeout procedure.
  *
  * @param[in]  term_lvl  Termination level set by the request for aborting the ongoing operation.
  * @param[in]  req_orig  Module that originates the abort request.
@@ -65,14 +65,14 @@ void nrf_802154_ack_timeout_time_set(uint32_t time);
 bool nrf_802154_ack_timeout_abort(nrf_802154_term_t term_lvl, req_originator_t req_orig);
 
 /**
- * @brief Function for handling a transmitted event.
+ * @brief Handles a transmitted event.
  *
  * @param[in]  p_frame  Pointer to the buffer that contains the transmitted frame.
  */
 void nrf_802154_ack_timeout_transmitted_hook(const uint8_t * p_frame);
 
 /**
- * @brief Function for handling a TX failed event.
+ * @brief Handles a TX failed event.
  *
  * @param[in]  p_frame  Pointer to the buffer that contains a frame that was not transmitted.
  * @param[in]  error    Cause of failed transmission.
@@ -84,7 +84,7 @@ void nrf_802154_ack_timeout_transmitted_hook(const uint8_t * p_frame);
 bool nrf_802154_ack_timeout_tx_failed_hook(const uint8_t * p_frame, nrf_802154_tx_error_t error);
 
 /**
- * @brief Function for handling a TX started event.
+ * @brief Handles a TX started event.
  *
  * @param[in]  p_frame  Pointer to the buffer that contains a frame being transmitted.
  *
@@ -95,7 +95,7 @@ bool nrf_802154_ack_timeout_tx_failed_hook(const uint8_t * p_frame, nrf_802154_t
 bool nrf_802154_ack_timeout_tx_started_hook(const uint8_t * p_frame);
 
 /**
- * @brief Function for handling a RX ACK started event.
+ * @brief Handles a RX ACK started event.
  *
  */
 void nrf_802154_ack_timeout_rx_ack_started_hook(void);

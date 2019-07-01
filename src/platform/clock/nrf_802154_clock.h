@@ -33,7 +33,7 @@
  *
  * Clock Abstraction Layer can be used by other modules to start and stop nRF52840 clocks.
  *
- * It is used by the Radio Arbiter clients (RAAL) to start the HF clock when entering continuous mode
+ * It is used by the Radio Scheduler (RSCH) to start the HF clock when entering continuous mode
  * and to stop the HF clock after exiting the continuous mode.
  *
  * It is also used by the standalone Low Power Timer Abstraction Layer implementation
@@ -59,31 +59,31 @@ extern "C" {
  */
 
 /**
- * @brief Function for initializing the clock driver.
+ * @brief Initializes the clock driver.
  */
 void nrf_802154_clock_init(void);
 
 /**
- * @brief Function for deinitializing the clock driver.
+ * @brief Deinitializes the clock driver.
  */
 void nrf_802154_clock_deinit(void);
 
 /**
- * @brief Function for starting High Frequency Clock.
+ * @brief Starts the High Frequency Clock.
  *
- * This function is asynchronous. It is meant to request the ramp-up of the High Frequency Clock and exit.
- * When the High Frequency Clock is ready, @sa nrf_802154_hfclk_ready() must be called.
+ * This function is asynchronous, meant to request the ramp-up of the High Frequency Clock and exit.
+ * When the High Frequency Clock is ready, @ref nrf_802154_hfclk_ready() is called.
  *
  */
 void nrf_802154_clock_hfclk_start(void);
 
 /**
- * @brief Function for stopping the High Frequency Clock.
+ * @brief Stops the High Frequency Clock.
  */
 void nrf_802154_clock_hfclk_stop(void);
 
 /**
- * @brief Function for checking if the High Frequency Clock is running.
+ * @brief Checks if the High Frequency Clock is running.
  *
  * @retval true  High Frequency Clock is running.
  * @retval false High Frequency Clock is not running.
@@ -92,21 +92,21 @@ void nrf_802154_clock_hfclk_stop(void);
 bool nrf_802154_clock_hfclk_is_running(void);
 
 /**
- * @brief Function for starting the Low Frequency Clock.
+ * @brief Starts the Low Frequency Clock.
  *
- * This function is asynchronous. It is meant to request the ramp-up of the Low Frequency Clock and exit.
- * When the Low Frequency Clock is ready, @sa nrf_802154_lfclk_ready() must be called.
+ * This function is asynchronous, meant to request the ramp-up of the Low Frequency Clock and exit.
+ * When the Low Frequency Clock is ready, @ref nrf_802154_lfclk_ready() is called.
  *
  */
 void nrf_802154_clock_lfclk_start(void);
 
 /**
- * @brief Function for stopping the Low Frequency Clock.
+ * @brief Stops the Low Frequency Clock.
  */
 void nrf_802154_clock_lfclk_stop(void);
 
 /**
- * @brief Function for checking if the Low Frequency Clock is running.
+ * @brief Checks if the Low Frequency Clock is running.
  *
  * @retval true  Low Frequency Clock is running.
  * @retval false Low Frequency Clock is not running.
@@ -114,12 +114,12 @@ void nrf_802154_clock_lfclk_stop(void);
 bool nrf_802154_clock_lfclk_is_running(void);
 
 /**
- * @brief Function for executing callback when the High Frequency Clock is ready.
+ * @brief Callback function executed when the High Frequency Clock is ready.
  */
 extern void nrf_802154_clock_hfclk_ready(void);
 
 /**
- * @brief Function for executing callback when the Low Frequency Clock is ready.
+ * @brief Callback function executed when the Low Frequency Clock is ready.
  */
 extern void nrf_802154_clock_lfclk_ready(void);
 

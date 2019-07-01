@@ -29,7 +29,8 @@
  */
 
 /**
- * @brief Module that defines the Radio Arbiter Abstraction Layer interface.
+ * @brief Module that defines the Radio Arbiter Abstraction Layer interface
+ * using Timeslot API provided by SoftDevice.
  *
  */
 
@@ -66,7 +67,8 @@ extern "C" {
                                                              NRF_RAAL_TIMESLOT_DEFAULT_SAFE_MARGIN_CRYSTAL_TICKS)
 
 /**
- * @brief Function used to calculate a safe margin from the LF clock accuracy in ppm unit.
+ * @brief Function-like macro used to calculate a safe margin from the LF clock accuracy
+ *        in ppm unit.
  *
  * @param[in]  ppm  LF clock accuracy in ppm units.
  */
@@ -85,24 +87,28 @@ typedef struct
     uint32_t timeslot_length;
 
     /**
-     * @brief The longest acceptable delay until the start of the requested timeslot, in microseconds.
+     * @brief The longest acceptable delay until the start of the requested timeslot,
+     *        in microseconds.
      */
     uint32_t timeslot_timeout;
 
     /**
-     * @brief The maximum single timeslot length created by the extension processing, in microseconds.
+     * @brief The maximum single timeslot length created by the extension processing,
+     *        in microseconds.
      */
     uint32_t timeslot_max_length;
 
     /**
-     * @brief The maximum number of iteration of dividing timeslot_length by factor of 2 performed by the arbiter.
+     * @brief The maximum number of iteration of dividing timeslot_length by factor of 2 performed
+     *        by the arbiter.
      */
     uint16_t timeslot_alloc_iters;
 
     /**
-     * @brief The safe margin before the timeslot is finished and nrf_raal_timeslot_ended is to be called, in microseconds.
-     * @ref nrf_raal_softdevice_safe_margin_calc can be used to calculate the proper value based on the clock accuracy.
-     * This value can also be selected experimentally.
+     * @brief The safe margin before the timeslot is finished and nrf_raal_timeslot_ended
+     * is to be called, in microseconds. @ref nrf_raal_softdevice_safe_margin_calc can be used
+     * to calculate the proper value based on the clock accuracy. This value can also be selected
+     * experimentally.
      */
     uint16_t timeslot_safe_margin;
 
@@ -113,13 +119,13 @@ typedef struct
 } nrf_raal_softdevice_cfg_t;
 
 /**
- * @brief Function for informing the RAAL client about the SoftDevice SoC events.
+ * @brief Informs the RAAL client about the SoftDevice SoC events.
  *
  */
 void nrf_raal_softdevice_soc_evt_handler(uint32_t evt_id);
 
 /**
- * @brief Function for setting non-default parameters of RAAL.
+ * @brief Sets non-default parameters of RAAL.
  *
  */
 void nrf_raal_softdevice_config(const nrf_raal_softdevice_cfg_t * p_cfg);

@@ -29,7 +29,8 @@
  */
 
 /**
- * @brief Module that contains an enhanced acknowledgement (Enh-Ack) generator for the 802.15.4 radio driver.
+ * @brief Module that contains an enhanced acknowledgement (Enh-Ack) generator
+ * for the 802.15.4 radio driver.
  *
  */
 
@@ -39,14 +40,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/** Function for initializing the Enhanced ACK generator module. */
+/** Initializes the Enhanced ACK generator module. */
 void nrf_802154_enh_ack_generator_init(void);
 
-/** Function for creating an Enhanced ACK in response to the provided frame and for inserting it into an appropriate radio buffer.
+/** Creates an Enhanced ACK in response to the provided frame and inserts it
+ *  into an appropriate radio buffer.
  *
- * @param [in]  p_frame  Pointer to the buffer that contains PHR and PSDU of the frame to respond to.
+ * @param [in]  p_frame  Pointer to the buffer that contains PHR and PSDU of the frame
+ *                       to respond to.
  *
- * @returns  Pointer to a constant buffer that contains PHR and PSDU of the created Enhanced ACK frame.
+ * @returns  Pointer to a constant buffer that contains PHR and PSDU
+ *           of the created Enhanced ACK frame.
  */
 const uint8_t * nrf_802154_enh_ack_generator_create(const uint8_t * p_frame);
 

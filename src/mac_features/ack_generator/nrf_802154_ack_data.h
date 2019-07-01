@@ -41,19 +41,19 @@
 #include <stdint.h>
 
 /**
- * @brief Function for initializing the ACK data generator module.
+ * @brief Initializes the ACK data generator module.
  */
 void nrf_802154_ack_data_init(void);
 
 /**
- * @brief Function for enabling or disabling the ACK data generator module.
+ * @brief Enables or disables the ACK data generator module.
  *
  * @param[in]  enabled  True if the module is to be enabled. False otherwise.
  */
 void nrf_802154_ack_data_enable(bool enabled);
 
 /**
- * @brief Function for adding address to the ACK data list.
+ * @brief Adds an address to the ACK data list.
  *
  * ACK frames sent in response to frames with the source address matching any address from the ACK data list
  * will have the appropriate data set. If the source address does not match any of the addresses in the
@@ -75,11 +75,11 @@ bool nrf_802154_ack_data_for_addr_set(const uint8_t * p_addr,
                                       uint8_t         data_len);
 
 /**
- * @brief Function for removing address from the ACK data list.
+ * @brief Removes an address from the ACK data list.
  *
- * ACK frames sent in response to frames with the source address matching any address from the ACK data list
- * will have the appropriate data set. If the source address does not match any of the addresses in the
- * list, the ACK frame will not have the data set.
+ * ACK frames sent in response to frames with the source address matching any address from
+ * the ACK data list will have the appropriate data set. If the source address does not match
+ * any of the addresses in the list, the ACK frame will not have the data set.
  *
  * @param[in]  p_addr    Pointer to the address that is to be removed from the list.
  * @param[in]  extended  Indication if @p p_addr is an extended address or a short address.
@@ -91,16 +91,16 @@ bool nrf_802154_ack_data_for_addr_set(const uint8_t * p_addr,
 bool nrf_802154_ack_data_for_addr_clear(const uint8_t * p_addr, bool extended, uint8_t data_type);
 
 /**
- * @brief Function for removing all addresses of a given length from the ACK data list.
+ * @brief Removes all addresses of a given length from the ACK data list.
  *
- * @param[in]  extended  Indication if all extended addresses or all short addresses are to be removed
- *                       from the list.
+ * @param[in]  extended  Indication if all extended addresses or all short addresses are
+ *                       to be removed from the list.
  * @param[in]  data_type Type of data that is to be cleared for all addresses of a given length.
  */
 void nrf_802154_ack_data_reset(bool extended, uint8_t data_type);
 
 /**
- * @brief Function for checking if a pending bit is to be set in the ACK frame sent in response to a given frame.
+ * @brief Checks if a pending bit is to be set in the ACK frame sent in response to a given frame.
  *
  * @param[in]  p_frame  Pointer to the frame for which the ACK frame is being prepared.
  *
@@ -110,7 +110,7 @@ void nrf_802154_ack_data_reset(bool extended, uint8_t data_type);
 bool nrf_802154_ack_data_pending_bit_should_be_set(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the IE data stored in the list for the source address of the provided frame.
+ * @brief Gets the IE data stored in the list for the source address of the provided frame.
  *
  * @param[in]  p_src_addr    Pointer to the source address to search for in the list.
  * @param[in]  src_addr_ext  If the source address is extended.

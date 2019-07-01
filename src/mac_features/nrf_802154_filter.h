@@ -49,22 +49,23 @@
  */
 
 /**
- * @brief Function for verifying if the given part of the frame is valid.
+ * @brief Verifies if the given part of the frame is valid.
  *
- * This function is called a few times for each received frame. The first call is after the FCF is received
- * (PSDU length is 1 - @p p_num_bytes value is 1). The subsequent calls are performed when the number of
- * bytes requested by the previous call is available. The iteration ends when the function does not request
- * any more bytes to check.
- * If the verified part of the function is correct, this function returns true and sets @p p_num_bytes to
- * the number of bytes that should be available in PSDU during the next iteration. If the frame is correct and
- * there is nothing more to check, this function returns true and does not modify the @p p_num_bytes value.
- * If the verified frame is incorrect, this function returns false and the @p p_num_bytes value is undefined.
+ * This function is called a few times for each received frame. The first call is after the FCF
+ * is received (PSDU length is 1 - @p p_num_bytes value is 1). The subsequent calls are performed
+ * when the number of bytes requested by the previous call is available. The iteration ends
+ * when the function does not request any more bytes to check.
+ * If the verified part of the function is correct, this function returns true and sets
+ * @p p_num_bytes to the number of bytes that should be available in PSDU during the next iteration.
+ * If the frame is correct and there is nothing more to check, this function returns true
+ * and does not modify the @p p_num_bytes value. If the verified frame is incorrect, this function
+ * returns false and the @p p_num_bytes value is undefined.
  *
  * @param[in]    p_data       Pointer to a buffer that contains PHR and PSDU of the incoming frame.
- * @param[inout] p_num_bytes  Number of bytes available in @p p_data buffer. This value is either set to
- *                            the requested number of bytes for the next iteration or remains
- *                            unchanged if no more iterations are to be performed during the filtering of
- *                            the given frame.
+ * @param[inout] p_num_bytes  Number of bytes available in @p p_data buffer. This value is either
+ *                            set to the requested number of bytes for the next iteration or remains
+ *                            unchanged if no more iterations are to be performed during
+ *                            the filtering of the given frame.
  *
  * @retval NRF_802154_RX_ERROR_NONE               Verified part of the incoming frame is valid.
  * @retval NRF_802154_RX_ERROR_INVALID_FRAME      Verified part of the incoming frame is invalid.

@@ -29,7 +29,7 @@
  */
 
 /**
- * @brief Module that defines API or High Precision Timer for the 802.15.4 driver.
+ * @brief Module that defines API of High Precision Timer for the 802.15.4 driver.
  *
  */
 
@@ -51,51 +51,51 @@ extern "C" {
  *
  * The High Precision Timer is used only when the radio is in use. It is not
  * used when the radio is in the sleep mode or out of the RAAL timeslots.
- * This timer is meant to provide at least 1-µs precision. It is intended to be used
+ * This timer is meant to provide at least 1-microsecond precision. It is intended to be used
  * for precise frame timestamps or synchronous radio operations.
  *
  * @note The High Precision Timer is relative. To use it as an absolute timer,
- *       synchronize it with the Low Power Timer.
+ *       synchronize it with the Low Power Timer using the Timer Coordinator module.
  *
  */
 
 /**
- * @brief Function for initializing the timer.
+ * @brief Initializes the timer.
  */
 void nrf_802154_hp_timer_init(void);
 
 /**
- * @brief Function for deinitializing the timer.
+ * @brief Deinitializes the timer.
  */
 void nrf_802154_hp_timer_deinit(void);
 
 /**
- * @brief Function for starting the timer.
+ * @brief Starts the timer.
  *
  * The timer starts counting when this command is called.
  */
 void nrf_802154_hp_timer_start(void);
 
 /**
- * @brief Function for stopping the timer.
+ * @brief Stops the timer.
  *
  * The timer stops counting and enters the low power mode.
  */
 void nrf_802154_hp_timer_stop(void);
 
 /**
- * @brief Function for getting the value indicated by the timer right now.
+ * @brief Gets the value indicated by the timer right now.
  *
  * @note The returned value is relative to the @ref nrf_802154_hp_timer_start call time. It is not
  *       synchronized with the LP timer.
  *
- * @returns Current timer value in µs.
+ * @returns Current timer value in microseconds.
  *
  */
 uint32_t nrf_802154_hp_timer_current_time_get(void);
 
 /**
- * @brief Function for getting the task used to synchronize the timer with the LP timer.
+ * @brief Gets the task used to synchronize the timer with the LP timer.
  *
  * @returns  Address of the task.
  *
@@ -103,12 +103,12 @@ uint32_t nrf_802154_hp_timer_current_time_get(void);
 uint32_t nrf_802154_hp_timer_sync_task_get(void);
 
 /**
- * @brief Function for configuring the timer to detect if the synchronization task was triggered.
+ * @brief Configures the timer to detect if the synchronization task was triggered.
  */
 void nrf_802154_hp_timer_sync_prepare(void);
 
 /**
- * @brief Function for getting the timestamp of the synchronization event.
+ * @brief Gets the timestamp of the synchronization event.
  *
  * @param[out]  p_timestamp  Timestamp of the synchronization event.
  *
@@ -119,7 +119,7 @@ void nrf_802154_hp_timer_sync_prepare(void);
 bool nrf_802154_hp_timer_sync_time_get(uint32_t * p_timestamp);
 
 /**
- * @brief Function for getting the task used to make timestamp of an event.
+ * @brief Gets the task used to make timestamp of an event.
  *
  * This function is to be used to configure PPI.
  * It configures the timer to detect if the returned task was triggered to return
@@ -130,10 +130,10 @@ bool nrf_802154_hp_timer_sync_time_get(uint32_t * p_timestamp);
 uint32_t nrf_802154_hp_timer_timestamp_task_get(void);
 
 /**
- * @brief Function for getting the timestamp of the last event.
+ * @brief Gets the timestamp of the last event.
  *
- * @returns Timestamp of the last event that triggered the @ref nrf_802154_hp_timer_timestamp_task_get
- *          task.
+ * @returns Timestamp of the last event that triggered
+ *          the @ref nrf_802154_hp_timer_timestamp_task_get task.
  *  
  */
 uint32_t nrf_802154_hp_timer_timestamp_get(void);

@@ -45,24 +45,26 @@
  */
 
 /**
- * @brief Function for starting the CSMA-CA procedure for the transmission of a given frame.
+ * @brief Starts the CSMA-CA procedure for the transmission of a given frame.
  *
- * If the CSMA-CA procedure is successful and the frame is transmitted, the @sa nrf_802154_tx_started()
- * function is called. If the procedure failed and the frame cannot be transmitted due to busy
- * channel, the @sa nrf_802154_transmit_failed() function is called.
+ * If the CSMA-CA procedure is successful and the frame is transmitted,
+ * the @ref nrf_802154_tx_started() function is called. If the procedure failed and the frame
+ * cannot be transmitted due to busy channel, the @ref nrf_802154_transmit_failed() function
+ * is called.
  *
- * @note CSMA-CA does not time out automatically when waiting for ACK. Waiting for ACK must be timed out
- *       by the next layer. The ACK timeout timer must start when the @sa nrf_802154_tx_started()
- *       function is called.
+ * @note CSMA-CA does not time out automatically when waiting for ACK. Waiting for ACK must be
+ *       timed out by the next layer. The ACK timeout timer must start when
+ *       the @ref nrf_802154_tx_started() function is called.
  *
- * @param[in]  p_data    Pointer to a buffer the contains PHR and PSDU of the frame that is to be transmitted.
+ * @param[in]  p_data    Pointer to a buffer the contains PHR and PSDU of the frame
+ *                       that is to be transmitted.
  */
 void nrf_802154_csma_ca_start(const uint8_t * p_data);
 
 /**
- * @brief Function for aborting the ongoing CSMA-CA procedure.
+ * @brief Aborts the ongoing CSMA-CA procedure.
  *
- * @note Do not call this function during the execution of @sa nrf_802154_csma_ca_start 
+ * @note Do not call this function during the execution of @ref nrf_802154_csma_ca_start 
  *       (from ISR with higher priority), as it will result in an unrecoverable runtime error.
  *
  * If CSMA-CA is not running during the call, this function does nothing and returns true.
@@ -76,9 +78,10 @@ void nrf_802154_csma_ca_start(const uint8_t * p_data);
 bool nrf_802154_csma_ca_abort(nrf_802154_term_t term_lvl, req_originator_t req_orig);
 
 /**
- * @brief Function for handling a TX failed event.
+ * @brief Handles a TX failed event.
  *
- * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the frame that was not transmitted.
+ * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the frame
+ *                      that was not transmitted.
  * @param[in]  error    Cause of failed transmission.
  *
  * @retval  true   TX failed event is to be propagated to the MAC layer.
@@ -88,9 +91,10 @@ bool nrf_802154_csma_ca_abort(nrf_802154_term_t term_lvl, req_originator_t req_o
 bool nrf_802154_csma_ca_tx_failed_hook(const uint8_t * p_frame, nrf_802154_tx_error_t error);
 
 /**
- * @brief Function for handling a TX started event.
+ * @brief Handles a TX started event.
  *
- * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the frame that is being transmitted.
+ * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the frame
+ *                      that is being transmitted.
  *
  * @retval  true   TX started event is to be propagated to the MAC layer.
  * @retval  false  TX started event is not to be propagated to the MAC layer. It is handled

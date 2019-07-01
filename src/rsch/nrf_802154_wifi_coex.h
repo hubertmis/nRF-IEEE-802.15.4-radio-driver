@@ -53,7 +53,7 @@ extern "C" {
  */
 
 /**
- * @brief Function for initializing the Wi-fi Coexistence module.
+ * @brief Initializes the Wi-fi Coexistence module.
  *
  * @note This function must be called once, before any other function from this module.
  *
@@ -61,13 +61,13 @@ extern "C" {
 void nrf_802154_wifi_coex_init(void);
 
 /**
- * @brief Function for deinitializing the Wi-fi Coexistence module.
+ * @brief Deinitializes the Wi-fi Coexistence module.
  *
  */
 void nrf_802154_wifi_coex_uninit(void);
 
 /**
- * @brief Function for requesting the given priority from the Wi-fi Coexistence module.
+ * @brief Requests the given priority from the Wi-fi Coexistence module.
  *
  * @note The approval of the requested priority is notified asynchronously by the
  *       @ref nrf_802154_wifi_coex_prio_changed call.
@@ -78,7 +78,7 @@ void nrf_802154_wifi_coex_uninit(void);
 void nrf_802154_wifi_coex_prio_req(rsch_prio_t priority);
 
 /**
- * @brief Function for getting the priority denial event address.
+ * @brief Gets the priority denial event address.
  *
  * Get the address of a hardware event that notifies about the denial of a previously approved
  * priority.
@@ -88,7 +88,7 @@ void nrf_802154_wifi_coex_prio_req(rsch_prio_t priority);
 void * nrf_802154_wifi_coex_deny_event_addr_get(void);
 
 /**
- * @brief Function for notifying about the approved priority change.
+ * @brief Notifies about the approved priority change.
  *
  * The Wi-fi Coexistence module calls this function to notify the RSCH of the currently approved
  * priority level.

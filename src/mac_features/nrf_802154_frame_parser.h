@@ -57,7 +57,7 @@ typedef struct
 } nrf_802154_frame_parser_mhr_data_t;
 
 /**
- * @brief Function for determining if the destination address is extended.
+ * @brief Determines if the destination address is extended.
  *
  * @param[in]   p_frame   Pointer to a frame to be checked.
  *
@@ -67,11 +67,11 @@ typedef struct
 bool nrf_802154_frame_parser_dst_addr_is_extended(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the destination address from the provided frame.
+ * @brief Gets the destination address from the provided frame.
  *
  * @param[in]   p_frame             Pointer to a frame.
- * @param[out]  p_dst_addr_extended Pointer to a value, which is true if the destination address is extended.
- *                                  Otherwise, it is false.
+ * @param[out]  p_dst_addr_extended Pointer to a value, which is true if the destination address
+ *                                  is extended. Otherwise, it is false.
  *
  * @returns  Pointer to the first byte of the destination address in @p p_frame.
  *           NULL if the destination address cannot be retrieved.
@@ -80,18 +80,19 @@ const uint8_t * nrf_802154_frame_parser_dst_addr_get(const uint8_t * p_frame,
                                                      bool          * p_dst_addr_extended);
 
 /**
- * @brief Function for getting the offset of the destination address field in the provided frame.
+ * @brief Gets the offset of the destination address field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
- * @returns  Offset in bytes of the destination address field, including one byte of the frame length.
+ * @returns  Offset in bytes of the destination address field, including one byte
+ *           of the frame length.
  * @returns  Zero if the destination address cannot be retrieved.
  *
  */
 uint8_t nrf_802154_frame_parser_dst_addr_offset_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the destination PAN ID from the provided frame.
+ * @brief Gets the destination PAN ID from the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
@@ -102,18 +103,19 @@ uint8_t nrf_802154_frame_parser_dst_addr_offset_get(const uint8_t * p_frame);
 const uint8_t * nrf_802154_frame_parser_dst_panid_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the offset of the destination PAN ID field in the provided frame.
+ * @brief Gets the offset of the destination PAN ID field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
- * @returns  Offset in bytes of the destination PAN ID field, including one byte of the frame length.
+ * @returns  Offset in bytes of the destination PAN ID field, including one byte
+ *           of the frame length.
  * @returns  Zero in case the destination PAN ID cannot be retrieved.
  *
  */
 uint8_t nrf_802154_frame_parser_dst_panid_offset_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the offset of the end of the destination address fields.
+ * @brief Gets the offset of the end of the destination address fields.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
@@ -122,7 +124,7 @@ uint8_t nrf_802154_frame_parser_dst_panid_offset_get(const uint8_t * p_frame);
 uint8_t nrf_802154_frame_parser_dst_addr_end_offset_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for determining if the source address is extended.
+ * @brief Determines if the source address is extended.
  *
  * @param[in]   p_frame   Pointer to a frame to check.
  *
@@ -133,7 +135,7 @@ uint8_t nrf_802154_frame_parser_dst_addr_end_offset_get(const uint8_t * p_frame)
 bool nrf_802154_frame_parser_src_addr_is_extended(const uint8_t * p_frame);
 
 /**
- * @brief Function for determining if the source address is short.
+ * @brief Determines if the source address is short.
  *
  * @param[in]   p_frame   Pointer to a frame to check.
  *
@@ -144,7 +146,7 @@ bool nrf_802154_frame_parser_src_addr_is_extended(const uint8_t * p_frame);
 bool nrf_802154_frame_parser_src_addr_is_short(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the source address from the provided frame.
+ * @brief Gets the source address from the provided frame.
  *
  * @param[in]   p_frame             Pointer to a frame.
  * @param[out]  p_src_addr_extended Pointer to a value, which is true if source address is extended.
@@ -158,7 +160,7 @@ const uint8_t * nrf_802154_frame_parser_src_addr_get(const uint8_t * p_frame,
                                                      bool          * p_src_addr_extended);
 
 /**
- * @brief Function for getting the offset of the source address field in the provided frame.
+ * @brief Gets the offset of the source address field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
@@ -169,18 +171,18 @@ const uint8_t * nrf_802154_frame_parser_src_addr_get(const uint8_t * p_frame,
 uint8_t nrf_802154_frame_parser_src_addr_offset_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the source PAN ID from the provided frame.
+ * @brief Gets the source PAN ID from the provided frame.
  *
  * @param[in]   p_frame   Pointer to a frame.
  *
  * @returns  Pointer to the first byte of the source PAN ID in @p p_frame.
- * @returns  NULL if the source PAN ID cannot be retrieved or if is compressed.
+ * @returns  NULL if the source PAN ID cannot be retrieved or if it is compressed.
  *
  */
 const uint8_t * nrf_802154_frame_parser_src_panid_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the offset of the source PAN ID field in the provided frame.
+ * @brief Gets the offset of the source PAN ID field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
@@ -191,10 +193,11 @@ const uint8_t * nrf_802154_frame_parser_src_panid_get(const uint8_t * p_frame);
 uint8_t nrf_802154_frame_parser_src_panid_offset_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the pointer and the details of MHR parts of a given frame.
+ * @brief Gets the pointer and the details of MHR parts of a given frame.
  *
  * @param[in]  p_frame   Pointer to a frame to parse.
- * @param[out] p_fields  Pointer to a structure that contains pointers and details of the parsed frame.
+ * @param[out] p_fields  Pointer to a structure that contains pointers and details
+ *                       of the parsed frame.
  *
  * @retval true   Frame parsed correctly.
  * @retval false  Parse error. @p p_fields values are invalid.
@@ -204,18 +207,18 @@ bool nrf_802154_frame_parser_mhr_parse(const uint8_t                      * p_fr
                                        nrf_802154_frame_parser_mhr_data_t * p_fields);
 
 /**
- * @brief Function for getting the security control field in the provided frame.
+ * @brief Gets the security control field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
  * @returns  Pointer to the first byte of the security control field in @p p_frame.
- * @returns  NULL if the security control cannot be retrieved (that is, the security control is not enabled).
+ * @returns  NULL if the security control cannot be retrieved (that is, security is not enabled).
  *
  */
 const uint8_t * nrf_802154_frame_parser_sec_ctrl_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the offset of the first byte after the addressing fields in MHR.
+ * @brief Gets the offset of the first byte after the addressing fields in MHR.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
@@ -224,40 +227,40 @@ const uint8_t * nrf_802154_frame_parser_sec_ctrl_get(const uint8_t * p_frame);
 uint8_t nrf_802154_frame_parser_addressing_end_offset_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the offset of the security control field in the provided frame.
+ * @brief Gets the offset of the security control field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
  * @returns  Offset in bytes of the security control field, including one byte of the frame length.
- * @returns  Zero if the security control cannot be retrieved (that is, the security control is not enabled).
+ * @returns  Zero if the security control cannot be retrieved (that is, security is not enabled).
  *
  */
 uint8_t nrf_802154_frame_parser_sec_ctrl_offset_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the key identifier field in the provided frame.
+ * @brief Gets the key identifier field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
  * @returns  Pointer to the first byte of the key identifier field in @p p_frame.
- * @returns  NULL if the key identifier cannot be retrieved (that is, the security control is not enabled).
+ * @returns  NULL if the key identifier cannot be retrieved (that is, security is not enabled).
  *
  */
 const uint8_t * nrf_802154_frame_parser_key_id_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the offset of the key identifier field in the provided frame.
+ * @brief Gets the offset of the key identifier field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
  * @returns  Offset in bytes of the key identifier field, including one byte of the frame length.
- * @returns  Zero if the key identifier cannot be retrieved (that is, the security control is not enabled).
+ * @returns  Zero if the key identifier cannot be retrieved (that is, security is not enabled).
  *
  */
 uint8_t nrf_802154_frame_parser_key_id_offset_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for determining if the sequence number suppression bit is set.
+ * @brief Determines if the sequence number suppression bit is set.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
@@ -268,7 +271,7 @@ uint8_t nrf_802154_frame_parser_key_id_offset_get(const uint8_t * p_frame);
 bool nrf_802154_frame_parser_dsn_suppress_bit_is_set(const uint8_t * p_frame);
 
 /**
- * @brief Function for determining if the IE present bit is set.
+ * @brief Determines if the IE present bit is set.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
@@ -279,7 +282,7 @@ bool nrf_802154_frame_parser_dsn_suppress_bit_is_set(const uint8_t * p_frame);
 bool nrf_802154_frame_parser_ie_present_bit_is_set(const uint8_t * p_frame);
 
 /**
- * @brief Function for determining if the Ack Request (AR) bit is set.
+ * @brief Determines if the Ack Request (AR) bit is set.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
@@ -290,7 +293,7 @@ bool nrf_802154_frame_parser_ie_present_bit_is_set(const uint8_t * p_frame);
 bool nrf_802154_frame_parser_ar_bit_is_set(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the IE header field in the provided frame.
+ * @brief Gets the IE header field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *
@@ -301,7 +304,7 @@ bool nrf_802154_frame_parser_ar_bit_is_set(const uint8_t * p_frame);
 const uint8_t * nrf_802154_frame_parser_ie_header_get(const uint8_t * p_frame);
 
 /**
- * @brief Function for getting the offset of the IE header field in the provided frame.
+ * @brief Gets the offset of the IE header field in the provided frame.
  *
  * @param[in]   p_frame  Pointer to a frame.
  *

@@ -31,14 +31,12 @@
 /**
  * @brief Module that provides the timer scheduling functionality for the 802.15.4 driver.
  *
- * Use the timer module to implement the strict timing features specified in the IEEE 802.15.4, like:
+ * Use the timer scheduler module to implement the strict timing features specified in the IEEE 802.15.4, like:
  * * CSL
  * * Timing out when waiting for ACK frames
  * * CSMA/CA
  * * Inter-frame spacing: SIFS, LIFS (AIFS is implemented without using the timer module)
  *
- * @note The current implementation supports only a single one-shot timer. It can be extended to support
- *       timer scheduling and repetitive timers if needed.
  */
 
 #ifndef NRF_802154_TIMER_SCHED_H_
@@ -60,7 +58,7 @@ extern "C" {
  */
 
 /**
- * @brief Type of function called when the timer starts.
+ * @brief Type of function called when the timer expires.
  *
  * @param[inout]  p_context  Pointer to user-defined memory location. Can be NULL.
  */
@@ -76,43 +74,43 @@ typedef struct nrf_802154_timer_s nrf_802154_timer_t;
  */
 struct nrf_802154_timer_s
 {
-    uint32_t                    t0;        ///< Base time of the timer [탎].
-    uint32_t                    dt;        ///< Timer expiration delta from @p t0 [탎].
+    uint32_t                    t0;        ///< Base time of the timer, in microseconds.
+    uint32_t                    dt;        ///< Timer expiration delta from @p t0, in microseconds.
     nrf_802154_timer_callback_t callback;  ///< Callback function called when timer expires.
     void                      * p_context; ///< User-defined context passed to the callback function.
     nrf_802154_timer_t        * p_next;    ///< Pointer to the next running timer.
 };
 
 /**
- * @brief Function for initializing the timer scheduler.
+ * @brief Initializes the timer scheduler.
  */
 void nrf_802154_timer_sched_init(void);
 
 /**
- * @brief Function for deinitializing the timer scheduler.
+ * @brief Deinitializes the timer scheduler.
  */
 void nrf_802154_timer_sched_deinit(void);
 
 /**
- * @brief Function for getting the current time.
+ * @brief Gets the current time.
  *
- * This function can be used to set the base time in the @sa nrf_802154_timer_t structure.
+ * This function can be used to set the base time in the @ref nrf_802154_timer_t structure.
  *
- * @return Current time in microseconds [탎].
+ * @return Current time in microseconds.
  */
 uint32_t nrf_802154_timer_sched_time_get(void);
 
 /**
- * @brief Function for getting the granularity of the timer that runs the timer scheduler.
+ * @brief Gets the granularity of the timer that runs the timer scheduler.
  *
- * @return Granularity of the timer in microseconds [탎].
+ * @return Granularity of the timer, in microseconds.
  */
 uint32_t nrf_802154_timer_sched_granularity_get(void);
 
 /**
- * @brief Function for checking if the given time is in the future.
+ * @brief Checks if the given time is in the future.
  *
- * @param[in]  now  Current time. @sa nrf_802154_timer_sched_time_get().
+ * @param[in]  now  Current time. @ref nrf_802154_timer_sched_time_get().
  * @param[in]  t0   Base of time compared with @p now.
  * @param[in]  dt   Time delta from @p t0 compared with @p now.
  *
@@ -122,25 +120,25 @@ uint32_t nrf_802154_timer_sched_granularity_get(void);
 bool nrf_802154_timer_sched_time_is_in_future(uint32_t now, uint32_t t0, uint32_t dt);
 
 /**
- * @brief Function for getting timer time that remains to expiration.
+ * @brief Gets timer time that remains to expiration.
  *
  * @param[in]  p_timer   Pointer to the timer to check the remaining time.
  *
- * @retval time     Remaining time [탎].
- * @retval 0        Timer has already expired.
+ * @returns Remaining time in microseconds, or zero if the timer has already expired.
  *
  */
 uint32_t nrf_802154_timer_sched_remaining_time_get(const nrf_802154_timer_t * p_timer);
 
 /**
- * @brief Function for starting the given timer and adding it to the scheduler.
+ * @brief Starts the given timer and adds it to the scheduler.
  *
- * @note Fields @p t0, @p dt, @p callback and @p p_context are to be filled in @p p_timer before calling this
- *       function. The @p callback field cannot be NULL.
+ * @note Fields @p t0, @p dt, @p callback and @p p_context must be filled in @p p_timer before
+ *       calling this function. The @p callback field cannot be NULL.
  *
- * @note Due to the timer granularity, the callback function cannot be called exactly at the specified time.
- *       Use @p round_up to specify if the given timer should expire before or after the time given in
- *       the @p p_timer structure. The @p dt field of the @p p_timer is updated with the rounded-up value.
+ * @note Due to the timer granularity, the callback function cannot be called exactly
+ *       at the specified time. Use @p round_up to specify if the given timer should expire before
+ *       or after the time given in the @p p_timer structure. The @p dt field of the @p p_timer
+ *       is updated with the rounded-up value.
  *
  * @param[inout]  p_timer   Pointer to the timer to be started and added to the scheduler.
  * @param[in]     round_up  True if the timer is to expire after the specified time.
@@ -149,15 +147,17 @@ uint32_t nrf_802154_timer_sched_remaining_time_get(const nrf_802154_timer_t * p_
 void nrf_802154_timer_sched_add(nrf_802154_timer_t * p_timer, bool round_up);
 
 /**
- * @brief Function for stopping the given timer and removing it from the scheduler.
+ * @brief Stops the given timer and removes it from the scheduler.
  *
- * @param[in,out]   p_timer         Pointer to the timer to be stopped and removed from the scheduler.
- * @param[out]      p_was_running   Inform a caller if the timer was running. Pass NULL if irrelevant.
+ * @param[in,out]   p_timer         Pointer to the timer to be stopped and removed
+ *                                  from the scheduler.
+ * @param[out]      p_was_running   Inform a caller if the timer was running.
+ *                                  Pass NULL if irrelevant.
  */
 void nrf_802154_timer_sched_remove(nrf_802154_timer_t * p_timer, bool * p_was_running);
 
 /**
- * @brief Function for checking if the given timer is already scheduled.
+ * @brief Checks if the given timer is already scheduled.
  *
  * @param[in]  p_timer  Pointer to the timer to check.
  *
