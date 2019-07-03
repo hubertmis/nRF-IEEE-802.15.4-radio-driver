@@ -212,7 +212,7 @@ bool nrf_802154_core_continuous_carrier(nrf_802154_term_t term_lvl);
  * the receiver is started if requested.
  *
  * @note This function must be called from a critical section context. It must not be interrupted
- *       by the radio event handler or a Radio Scheduler notification.
+ *       by the radio event handler or by a Radio Scheduler notification.
  *
  * @param[in]  p_data  Pointer to buffer that has been freed.
  */

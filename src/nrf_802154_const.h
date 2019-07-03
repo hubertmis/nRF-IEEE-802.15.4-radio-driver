@@ -146,7 +146,7 @@
 #define ED_RESULT_FACTOR             4                                            ///< Factor needed to calculate the ED result based on the data from the RADIO peripheral.
 #define ED_RESULT_MAX                0xff                                         ///< Maximal ED result.
 
-#define BROADCAST_ADDRESS            ((uint8_t[SHORT_ADDRESS_SIZE]) {0xff, 0xff}) ///< Broadcast Short Address.
+#define BROADCAST_ADDRESS            ((uint8_t[SHORT_ADDRESS_SIZE]) {0xff, 0xff}) ///< Broadcast short address.
 
 typedef enum
 {

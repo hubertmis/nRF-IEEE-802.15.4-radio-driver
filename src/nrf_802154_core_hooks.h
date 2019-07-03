@@ -50,7 +50,7 @@
 /**
  * @brief Processes hooks for the termination request.
  *
- * @param[in]     term_lvl  Termination level of request that terminates the current operation.
+ * @param[in]     term_lvl  Termination level of the request that terminates the current operation.
  * @param[in]     req_orig  Module that originates this request.
  *
  * @retval true   All procedures are aborted.

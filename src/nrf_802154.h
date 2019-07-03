@@ -59,7 +59,7 @@ extern "C" {
 /**
  * @brief Initializes the 802.15.4 driver.
  *
- * This function initializes the RADIO peripheral in the Sleep state.
+ * This function initializes the RADIO peripheral in the sleep state.
  *
  * @note This function is to be called once, before any other functions from this module.
  */

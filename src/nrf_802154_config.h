@@ -522,7 +522,7 @@ extern "C" {
  * Indicates whether the notifications of the started transmissions are to be enabled in the driver.
  *
  * @note This feature is enabled by default if the ACK timeout feature or CSMA-CA is enabled.
- *       These features depend on notifications of the transmission start.
+ *       These features depend on the notifications of the transmission start.
  */
 #ifndef NRF_802154_TX_STARTED_NOTIFY_ENABLED
 #if NRF_802154_ACK_TIMEOUT_ENABLED || NRF_802154_CSMA_CA_ENABLED
