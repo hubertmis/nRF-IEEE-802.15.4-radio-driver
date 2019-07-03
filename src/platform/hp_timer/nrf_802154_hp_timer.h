@@ -134,7 +134,7 @@ uint32_t nrf_802154_hp_timer_timestamp_task_get(void);
  *
  * @returns Timestamp of the last event that triggered
  *          the @ref nrf_802154_hp_timer_timestamp_task_get task.
- *  
+ *
  */
 uint32_t nrf_802154_hp_timer_timestamp_get(void);
 

@@ -310,7 +310,7 @@ const uint8_t * nrf_802154_frame_parser_ie_header_get(const uint8_t * p_frame);
  *
  * @returns  Offset in bytes of the IE header field, including one byte of the frame length.
  * @returns  Zero if the IE header cannot be retrieved (that is, the IE header is not present).
- * 
+ *
  */
 uint8_t nrf_802154_frame_parser_ie_header_offset_get(const uint8_t * p_frame);
 
