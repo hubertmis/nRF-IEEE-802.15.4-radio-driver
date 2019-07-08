@@ -101,7 +101,7 @@ bool nrf_802154_critical_section_is_nested(void);
 /**
  * @brief Gets the current IRQ priority.
  *
- * @return IRQ priority
+ * @returns IRQ priority
  */
 uint32_t nrf_802154_critical_section_active_vector_priority_get(void);
 

@@ -95,8 +95,8 @@
 
 #define PHR_OFFSET                   0                                            ///< Offset of the PHY header in a frame.
 
-#define SECURITY_ENABLED_OFFSET      1                                            ///< Byte containing the Security enabled bit.
-#define SECURITY_ENABLED_BIT         0x08                                         ///< Bits containing the Security enabled field.
+#define SECURITY_ENABLED_OFFSET      1                                            ///< Byte containing the "Security enabled" bit.
+#define SECURITY_ENABLED_BIT         0x08                                         ///< Bits containing the "Security enabled" field.
 #define SECURITY_LEVEL_MASK          0x07                                         ///< Mask of bits containing the Security level field.
 #define SECURITY_LEVEL_MIC_32        0x01                                         ///< Bits containing the 32-bit Message Integrity Code (0b001).
 #define SECURITY_LEVEL_MIC_64        0x02                                         ///< Bits containing the 64-bit Message Integrity Code (0b010).

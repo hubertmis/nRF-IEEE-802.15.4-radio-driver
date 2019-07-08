@@ -140,9 +140,8 @@ extern void nrf_raal_timeslot_started(void);
  * If RAAL is in the continuous mode, the next timeslot is indicated again by
  * the @p nrf_raal_timeslot_started function.
  *
- * This method is not to be called if @p nrf_raal_continuous_mode_exit has been called. The radio
- * driver will assume that the timeslot has been finished after the @p nrf_raal_continuous_mode_exit
- * call.
+ * The radio driver will assume that the timeslot has been finished after
+ * the @p nrf_raal_continuous_mode_exit call.
  *
  * @note Because the radio driver must stop any operation on the RADIO peripheral within
  *       NRF_RAAL_MAX_CLEAN_UP_TIME_US microseconds, this method is to be called with high

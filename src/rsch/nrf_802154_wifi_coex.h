@@ -83,7 +83,7 @@ void nrf_802154_wifi_coex_prio_req(rsch_prio_t priority);
  * Get the address of a hardware event that notifies about the denial of a previously approved
  * priority.
  *
- * @return Address of the priority denial event.
+ * @returns Address of the priority denial event.
  */
 void * nrf_802154_wifi_coex_deny_event_addr_get(void);
 

@@ -96,7 +96,7 @@ void nrf_802154_channel_set(uint8_t channel);
 /**
  * @brief Gets the channel on which the radio operates.
  *
- * @return  Channel number (11-26).
+ * @returns  Channel number (11-26).
  */
 uint8_t nrf_802154_channel_get(void);
 
@@ -113,7 +113,7 @@ void nrf_802154_tx_power_set(int8_t power);
 /**
  * @brief Gets the currently set transmit power.
  *
- * @return Currently used transmit power in dBm.
+ * @returns Currently used transmit power, in dBm.
  */
 int8_t nrf_802154_tx_power_get(void);
 

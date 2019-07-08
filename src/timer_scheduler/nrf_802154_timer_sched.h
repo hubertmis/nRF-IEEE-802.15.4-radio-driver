@@ -96,14 +96,14 @@ void nrf_802154_timer_sched_deinit(void);
  *
  * This function can be used to set the base time in the @ref nrf_802154_timer_t structure.
  *
- * @return Current time in microseconds.
+ * @returns Current time in microseconds [us].
  */
 uint32_t nrf_802154_timer_sched_time_get(void);
 
 /**
  * @brief Gets the granularity of the timer that runs the timer scheduler.
  *
- * @return Granularity of the timer, in microseconds.
+ * @returns Granularity of the timer, in microseconds [us].
  */
 uint32_t nrf_802154_timer_sched_granularity_get(void);
 

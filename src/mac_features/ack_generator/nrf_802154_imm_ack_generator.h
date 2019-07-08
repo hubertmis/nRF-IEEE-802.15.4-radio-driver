@@ -29,7 +29,7 @@
  */
 
 /**
- * @brief Module that contains an immediate acknowledgement (Imm-Ack) generator
+ * @brief Module that contains an immediate acknowledgement (Imm-ACK) generator
  * for the 802.15.4 radio driver.
  *
  */

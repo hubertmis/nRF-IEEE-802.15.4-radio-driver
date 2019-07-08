@@ -31,7 +31,7 @@
 /**
  * @brief Module that contains an ACK data generator for the nRF 802.15.4 radio driver.
  *
- * @note  The current implementation supports setting pending bit and IEs in 802.15.4-2015 Enh-Ack frames.
+ * @note  The current implementation supports setting pending bit and IEs in 802.15.4-2015 Enh-ACK frames.
  */
 
 #ifndef NRF_802154_ACK_DATA_H

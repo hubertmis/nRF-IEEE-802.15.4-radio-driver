@@ -89,7 +89,7 @@ void nrf_802154_core_deinit(void);
 /**
  * @brief Gets the current state of the nRF 802.15.4 driver.
  *
- * @return  Current state of the 802.15.4 driver.
+ * @returns  Current state of the 802.15.4 driver.
  */
 radio_state_t nrf_802154_core_state_get(void);
 

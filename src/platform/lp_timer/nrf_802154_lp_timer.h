@@ -105,7 +105,7 @@ void nrf_802154_lp_timer_critical_section_exit(void);
  * @ref nrf_802154_lp_timer_init(). This is the only requirement that must be met before using this
  * function.
  *
- * @return Current time in microseconds.
+ * @returns Current time in microseconds.
  */
 uint32_t nrf_802154_lp_timer_time_get(void);
 
@@ -114,7 +114,7 @@ uint32_t nrf_802154_lp_timer_time_get(void);
  *
  * This function can be used to round up or round down the time calculations.
  *
- * @return Timer granularity in microseconds.
+ * @returns Timer granularity in microseconds.
  */
 uint32_t nrf_802154_lp_timer_granularity_get(void);
 
@@ -178,8 +178,8 @@ void nrf_802154_lp_timer_sync_stop(void);
 /**
  * @brief Gets the event used to synchronize this timer with the HP Timer.
  *
- * @return  Address of the peripheral register corresponding to the event
- *          to be used for the timer synchronization.
+ * @returns  Address of the peripheral register corresponding to the event
+ *           to be used for the timer synchronization.
  * 
  */
 uint32_t nrf_802154_lp_timer_sync_event_get(void);
@@ -187,7 +187,7 @@ uint32_t nrf_802154_lp_timer_sync_event_get(void);
 /**
  * @brief Gets the timestamp of the synchronization event.
  *
- * @return  Timestamp of the synchronization event.
+ * @returns  Timestamp of the synchronization event.
  */
 uint32_t nrf_802154_lp_timer_sync_time_get(void);
 

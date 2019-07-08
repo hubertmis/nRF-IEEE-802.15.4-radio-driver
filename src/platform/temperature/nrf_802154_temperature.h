@@ -67,7 +67,7 @@ void nrf_802154_temperature_deinit(void);
 /**
  * @brief Gets the current temperature.
  *
- * @return Current temperature [C].
+ * @returns Current temperature, in centigrades (C).
  */
 int8_t nrf_802154_temperature_get(void);
 

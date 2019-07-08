@@ -98,7 +98,7 @@ void nrf_802154_pib_pan_coord_set(bool enabled);
 /**
  * @brief Gets the currently used channel.
  *
- * @return  Channel number used by the driver.
+ * @returns  Channel number used by the driver.
  */
 uint8_t nrf_802154_pib_channel_get(void);
 

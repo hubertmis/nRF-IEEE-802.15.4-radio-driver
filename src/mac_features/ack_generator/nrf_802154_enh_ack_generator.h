@@ -29,7 +29,7 @@
  */
 
 /**
- * @brief Module that contains an enhanced acknowledgement (Enh-Ack) generator
+ * @brief Module that contains an enhanced acknowledgement (Enh-ACK) generator
  * for the 802.15.4 radio driver.
  *
  */

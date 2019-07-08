@@ -170,7 +170,7 @@ void nrf_fem_control_ppi_disable(nrf_fem_control_pin_t pin);
  *
  * @param[in] pin The pin controlled by Frontend Module that is to be activated.
  *
- * @return    @p Pin activation delay in microseconds.
+ * @returns    @p Pin activation delay in microseconds.
  *
  */
 uint32_t nrf_fem_control_delay_get(nrf_fem_control_pin_t pin);
