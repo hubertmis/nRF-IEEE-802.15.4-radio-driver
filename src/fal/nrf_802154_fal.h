@@ -50,7 +50,7 @@ extern "C" {
  * @param[in]  channel  Ignored.
  * @param[in]  power    TX power in dbm.
  *
- * @returns Value of 'power'.
+ * @returns Value of 'power' argument.
  */
 int8_t nrf_802154_fal_tx_power_get(const uint8_t channel, const int8_t power);
 

@@ -66,7 +66,7 @@ typedef uint8_t nrf_802154_tx_error_t;
 #define NRF_802154_TX_ERROR_NO_MEM          0x03 // !< No receive buffer is available to receive an ACK.
 #define NRF_802154_TX_ERROR_TIMESLOT_ENDED  0x04 // !< Radio timeslot ended during the transmission procedure.
 #define NRF_802154_TX_ERROR_NO_ACK          0x05 // !< ACK frame was not received during the timeout period.
-#define NRF_802154_TX_ERROR_ABORTED         0x06 // !< Procedure was aborted by the operation of another driver with the FORCE priority.
+#define NRF_802154_TX_ERROR_ABORTED         0x06 // !< Procedure was aborted by another operation with the FORCE priority.
 #define NRF_802154_TX_ERROR_TIMESLOT_DENIED 0x07 // !< Transmission did not start due to a denied timeslot request.
 
 /**
@@ -80,7 +80,7 @@ typedef uint8_t nrf_802154_rx_error_t;
 #define NRF_802154_RX_ERROR_INVALID_DEST_ADDR       0x03 // !< Received a frame with a mismatched destination address.
 #define NRF_802154_RX_ERROR_RUNTIME                 0x04 // !< Runtime error occurred (for example, CPU was held for too long).
 #define NRF_802154_RX_ERROR_TIMESLOT_ENDED          0x05 // !< Radio timeslot ended during the frame reception.
-#define NRF_802154_RX_ERROR_ABORTED                 0x06 // !< Procedure was aborted by the operation of another driver with the FORCE priority.
+#define NRF_802154_RX_ERROR_ABORTED                 0x06 // !< Procedure was aborted by another operation with the FORCE priority.
 #define NRF_802154_RX_ERROR_DELAYED_TIMESLOT_DENIED 0x07 // !< Delayed reception request was rejected due to a denied timeslot request.
 #define NRF_802154_RX_ERROR_DELAYED_TIMEOUT         0x08 // !< Frame not received during the delayed reception timeslot.
 #define NRF_802154_RX_ERROR_INVALID_LENGTH          0x09 // !< Received a frame with invalid length.
@@ -91,14 +91,14 @@ typedef uint8_t nrf_802154_rx_error_t;
  */
 typedef uint8_t nrf_802154_ed_error_t;
 
-#define NRF_802154_ED_ERROR_ABORTED 0x01 // !< Procedure was aborted by the operation of another driver with the FORCE priority.
+#define NRF_802154_ED_ERROR_ABORTED 0x01 // !< Procedure was aborted by another operation with the FORCE priority.
 
 /**
  * @brief Possible errors during the CCA procedure.
  */
 typedef uint8_t nrf_802154_cca_error_t;
 
-#define NRF_802154_CCA_ERROR_ABORTED 0x01 // !< Procedure was aborted by the operation of another driver with the FORCE priority.
+#define NRF_802154_CCA_ERROR_ABORTED 0x01 // !< Procedure was aborted by another operation with the FORCE priority.
 
 /**
  * @brief Possible errors during sleep procedure call.

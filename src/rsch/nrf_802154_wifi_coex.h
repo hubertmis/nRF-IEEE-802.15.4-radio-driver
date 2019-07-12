@@ -29,7 +29,7 @@
  */
 
 /**
- * @brief Module that defines the Wi-fi coexistence module.
+ * @brief Module that defines the Wi-Fi coexistence module.
  *
  */
 
@@ -43,17 +43,17 @@ extern "C" {
 #endif
 
 /**
- * @defgroup nrf_wifi_coex Wi-fi Coexistence
+ * @defgroup nrf_wifi_coex Wi-Fi Coexistence
  * @{
  * @ingroup nrf_802154
- * @brief The Wi-fi Coexistence module.
+ * @brief The Wi-Fi Coexistence module.
  *
- * The Wi-fi Coexistence module is a client of the PTA (defined in the 802.15.2). It manages GPIO
+ * The Wi-Fi Coexistence module is a client of the PTA (defined in the 802.15.2). It manages GPIO
  * to assert pins and respond to pin state changes.
  */
 
 /**
- * @brief Initializes the Wi-fi Coexistence module.
+ * @brief Initializes the Wi-Fi Coexistence module.
  *
  * @note This function must be called once, before any other function from this module.
  *
@@ -61,13 +61,13 @@ extern "C" {
 void nrf_802154_wifi_coex_init(void);
 
 /**
- * @brief Deinitializes the Wi-fi Coexistence module.
+ * @brief Deinitializes the Wi-Fi Coexistence module.
  *
  */
 void nrf_802154_wifi_coex_uninit(void);
 
 /**
- * @brief Requests the given priority from the Wi-fi Coexistence module.
+ * @brief Requests the given priority from the Wi-Fi Coexistence module.
  *
  * @note The approval of the requested priority is notified asynchronously by the
  *       @ref nrf_802154_wifi_coex_prio_changed call.
@@ -90,7 +90,7 @@ void * nrf_802154_wifi_coex_deny_event_addr_get(void);
 /**
  * @brief Notifies about the approved priority change.
  *
- * The Wi-fi Coexistence module calls this function to notify the RSCH of the currently approved
+ * The Wi-Fi Coexistence module calls this function to notify the RSCH of the currently approved
  * priority level.
  *
  * @param[in]  priority  The approved priority level.

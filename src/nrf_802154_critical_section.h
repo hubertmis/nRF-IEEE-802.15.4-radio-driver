@@ -106,12 +106,12 @@ bool nrf_802154_critical_section_is_nested(void);
 uint32_t nrf_802154_critical_section_active_vector_priority_get(void);
 
 /**
- * @brief Function called to enter a critical section in the RSCH module.
+ * @brief Function for entering a critical section in the RSCH module.
  */
 extern void nrf_802154_critical_section_rsch_enter(void);
 
 /**
- * @brief Function called to exit a critical section in the RSCH module.
+ * @brief Function for exiting a critical section in the RSCH module.
  */
 extern void nrf_802154_critical_section_rsch_exit(void);
 

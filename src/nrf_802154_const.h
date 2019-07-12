@@ -42,7 +42,7 @@
 #define ACK_HEADER_WITH_PENDING      0x12                                         ///< The first byte of an ACK frame containing a pending bit.
 #define ACK_HEADER_WITHOUT_PENDING   0x02                                         ///< The first byte of an ACK frame without a pending bit.
 
-#define ACK_REQUEST_OFFSET           1                                            ///< Byte containing an ACK request bit (+1 for frame length byte).
+#define ACK_REQUEST_OFFSET           1                                            ///< Byte containing the ACK request bit (+1 for frame length byte).
 #define ACK_REQUEST_BIT              (1 << 5)                                     ///< ACK request bit.
 
 #define DEST_ADDR_TYPE_OFFSET        2                                            ///< Byte containing the destination address type (+1 for the frame length byte).
@@ -134,9 +134,9 @@
 #define EXTENDED_ADDRESS_SIZE        8                                            ///< Size of the Extended Mac Address.
 #define SHORT_ADDRESS_SIZE           2                                            ///< Size of the Short Mac Address.
 
-#define TURNAROUND_TIME              192UL                                        ///< aTurnaroundTime, in microseconds (us).
-#define CCA_TIME                     128UL                                        ///< aCcaTime, in microseconds (us).
-#define UNIT_BACKOFF_PERIOD          (TURNAROUND_TIME + CCA_TIME)                 ///< aUnitBackoffPeriod, in microseconds (us).
+#define TURNAROUND_TIME              192UL                                        ///< RX-to-TX or TX-to-RX turnaround time (aTurnaroundTime), in microseconds (us).
+#define CCA_TIME                     128UL                                        ///< Time required to perform CCA detection (aCcaTime), in microseconds (us).
+#define UNIT_BACKOFF_PERIOD          (TURNAROUND_TIME + CCA_TIME)                 ///< Number of symbols in the basic time period used by CSMA-CA algorithm (aUnitBackoffPeriod), in (us).
 
 #define PHY_US_PER_SYMBOL            16                                           ///< Duration of a single symbol in microseconds (us).
 #define PHY_SYMBOLS_PER_OCTET        2                                            ///< Number of symbols in a single byte (octet).

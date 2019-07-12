@@ -59,7 +59,7 @@ typedef enum
 
     // Receive
     RADIO_STATE_RX,                 ///< The receiver is enabled and it is receiving frames.
-    RADIO_STATE_TX_ACK,             ///< The received frame and the transmitting ACK.
+    RADIO_STATE_TX_ACK,             ///< The frame is received and the ACK is being transmitted.
 
     // Transmit
     RADIO_STATE_CCA_TX,             ///< Performing CCA followed by the frame transmission.
@@ -77,12 +77,12 @@ typedef enum
 } radio_state_t;
 
 /**
- * @brief Initialize the 802.15.4 driver core.
+ * @brief Initializes the 802.15.4 driver core.
  */
 void nrf_802154_core_init(void);
 
 /**
- * @brief Deinitialize the 802.15.4 driver core.
+ * @brief Deinitializes the 802.15.4 driver core.
  */
 void nrf_802154_core_deinit(void);
 

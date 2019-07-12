@@ -168,7 +168,7 @@ void nrf_802154_swi_receive(nrf_802154_term_t              term_lvl,
  *
  * @param[in]   term_lvl         Termination level of this request. Selects procedures to abort.
  * @param[in]   req_orig         Module that originates this request.
- * @param[in]   p_data           Pointer to a buffer containing PHR and PSDU of the frame to be
+ * @param[in]   p_data           Pointer to a buffer that contains PHR and PSDU of the frame to be
  *                               transmitted.
  * @param[in]   cca              If the driver should perform the CCA procedure before transmission.
  * @param[in]   immediate        If true, the driver schedules transmission immediately or never;

@@ -65,7 +65,7 @@ void nrf_802154_notification_init(void);
 /**
  * @brief Notifies the next higher layer that a frame was received.
  *
- * @param[in]  p_data  Pointer to a buffer containing PHR and PSDU of the received frame.
+ * @param[in]  p_data  Pointer to a buffer that contains PHR and PSDU of the received frame.
  * @param[in]  power   RSSI measured during the frame reception.
  * @param[in]  lqi     LQI indicating measured link quality during the frame reception.
  */
@@ -81,8 +81,8 @@ void nrf_802154_notify_receive_failed(nrf_802154_rx_error_t error);
 /**
  * @brief Notifies the next higher layer that a frame was transmitted.
  *
- * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the transmitted frame.
- * @param[in]  p_ack    Pointer to a buffer containing PHR and PSDU of ACK frame. NULL if ACK was
+ * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the transmitted frame.
+ * @param[in]  p_ack    Pointer to a buffer that contains PHR and PSDU of ACK frame. NULL if ACK was
  *                      not requested.
  * @param[in]  power    RSSI of the received frame or 0 if ACK was not requested.
  * @param[in]  lqi      LQI of the received frame of 0 if ACK was not requested.

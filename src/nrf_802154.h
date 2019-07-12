@@ -68,7 +68,7 @@ void nrf_802154_init(void);
 /**
  * @brief Deinitializes the 802.15.4 driver.
  *
- * This function deinitializes the RADIO peripheral and reset it to the default state.
+ * This function deinitializes the RADIO peripheral and resets it to the default state.
  */
 void nrf_802154_deinit(void);
 
@@ -206,7 +206,7 @@ void nrf_802154_short_address_set(const uint8_t * p_short_address);
  */
 
 /**
- * @brief  Calculates dBm from the energy level received during the energy detection procedure.
+ * @brief  Converts the energy level received during the energy detection procedure to a dBm value.
  *
  * @param[in]  energy_level  Energy level passed by @ref nrf_802154_energy_detected.
  *
@@ -215,7 +215,7 @@ void nrf_802154_short_address_set(const uint8_t * p_short_address);
 int8_t nrf_802154_dbm_from_energy_level_calculate(uint8_t energy_level);
 
 /**
- * @brief  Calculates the CCA energy detection threshold value from a given dBm level.
+ * @brief  Converts a given dBm level to a CCA energy detection threshold value.
  *
  * @param[in]  dbm  Energy level in dBm used to calculate the CCAEDTHRES value.
  *
@@ -551,7 +551,7 @@ extern void nrf_802154_tx_ack_started(const uint8_t * p_data);
  *       | <---------------------------- PHR -----------------------------------> |
  * @endverbatim
  *
- * @param[in]  p_data  Pointer to a buffer containing PHR and PSDU of the received frame.
+ * @param[in]  p_data  Pointer to a buffer that contains PHR and PSDU of the received frame.
  *                     The first byte in the buffer is the length of the frame (PHR). The following
  *                     bytes contain the frame itself (PSDU). The length byte (PHR) includes FCS.
  *                     FCS is already verified by the hardware and may be modified by the hardware.
@@ -570,7 +570,7 @@ extern void nrf_802154_received_raw(uint8_t * p_data, int8_t power, uint8_t lqi)
  *       the timestamp may be invalid. This erroneous situation is indicated by
  *       the @ref NRF_802154_NO_TIMESTAMP value of the @p time parameter.
  *
- * @param[in]  p_data  Pointer to a buffer containing PHR and PSDU of the received frame.
+ * @param[in]  p_data  Pointer to a buffer that contains PHR and PSDU of the received frame.
  *                     The first byte in the buffer is the length of the frame (PHR). The following
  *                     bytes contain the frame itself (PSDU). The length byte (PHR) includes FCS.
  *                     FCS is already verified by the hardware and may be modified by the hardware.
@@ -605,8 +605,8 @@ extern void nrf_802154_received_timestamp_raw(uint8_t * p_data,
  *       | <------------------ length -----------------------------> |
  * @endverbatim
  *
- * @param[in]  p_data  Pointer to a buffer containing only the payload of the received frame (PSDU
- *                     without FCS).
+ * @param[in]  p_data  Pointer to a buffer that contains only the payload of the received frame
+ *                     (PSDU without FCS).
  * @param[in]  length  Length of the received payload.
  * @param[in]  power   RSSI of the received frame.
  * @param[in]  lqi     LQI of the received frame.
@@ -622,8 +622,8 @@ extern void nrf_802154_received(uint8_t * p_data, uint8_t length, int8_t power, 
  *       the timestamp may be invalid. This erroneous situation is indicated by
  *       the @ref NRF_802154_NO_TIMESTAMP value of the @p time parameter.
  *
- * @param[in]  p_data  Pointer to a buffer containing only the payload of the received frame (PSDU
- *                     without FCS).
+ * @param[in]  p_data  Pointer to a buffer that contains only the payload of the received frame
+ *                     (PSDU without FCS).
  * @param[in]  length  Length of the received payload.
  * @param[in]  power   RSSI of the received frame.
  * @param[in]  lqi     LQI of the received frame.
@@ -654,7 +654,8 @@ extern void nrf_802154_receive_failed(nrf_802154_rx_error_t error);
  *       @ref nrf_802154_transmitted is not called.
  * @note This function should be very short to prevent dropping frames by the driver.
  *
- * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the frame being transmitted.
+ * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the frame being
+ *                      transmitted.
  */
 extern void nrf_802154_tx_started(const uint8_t * p_frame);
 
@@ -671,12 +672,12 @@ extern void nrf_802154_tx_started(const uint8_t * p_frame);
  * @note The buffer pointed to by @p p_ack may be modified by the function handler (and other
  *       modules) until @ref nrf_802154_buffer_free_raw is called.
  *
- * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the transmitted frame.
- * @param[in]  p_ack    Pointer to a buffer containing PHR and PSDU of the received ACK. The first
- *                      byte in the buffer is the length of the frame (PHR). The following bytes
- *                      contain the ACK frame itself (PSDU). The length byte (PHR) includes FCS.
- *                      FCS is already verified by the hardware and may be modified by the hardware.
- *                      If ACK was not requested, @p p_ack is set to NULL.
+ * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the transmitted frame.
+ * @param[in]  p_ack    Pointer to a buffer that contains PHR and PSDU of the received ACK. 
+ *                      The first byte in the buffer is the length of the frame (PHR). The following
+ *                      bytes contain the ACK frame itself (PSDU). The length byte (PHR) includes
+ *                      FCS. FCS is already verified by the hardware and may be modified by the
+ *                      hardware. If ACK was not requested, @p p_ack is set to NULL.
  * @param[in]  power    RSSI of the received frame or 0 if ACK was not requested.
  * @param[in]  lqi      LQI of the received frame or 0 if ACK was not requested.
  */
@@ -697,12 +698,12 @@ extern void nrf_802154_transmitted_raw(const uint8_t * p_frame,
  * @note Including a timestamp for received frames uses resources like CPU time and memory. If the
  *       timestamp is not required, use @ref nrf_802154_received instead.
  *
- * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the transmitted frame.
- * @param[in]  p_ack    Pointer to a buffer containing PHR and PSDU of the received ACK. The first
- *                      byte in the buffer is the length of the frame (PHR). The following bytes
- *                      contain the ACK frame itself (PSDU). The length byte (PHR) includes FCS.
- *                      FCS is already verified by the hardware and may be modified by the hardware.
- *                      If ACK was not requested, @p p_ack is set to NULL.
+ * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the transmitted frame.
+ * @param[in]  p_ack    Pointer to a buffer that contains PHR and PSDU of the received ACK.
+ *                      The first byte in the buffer is the length of the frame (PHR). The following
+ *                      bytes contain the ACK frame itself (PSDU). The length byte (PHR) includes
+ *                      FCS. FCS is already verified by the hardware and may be modified by the
+ *                      hardware. If ACK was not requested, @p p_ack is set to NULL.
  * @param[in]  power    RSSI of the received frame or 0 if ACK was not requested.
  * @param[in]  lqi      LQI of the received frame or 0 if ACK was not requested.
  * @param[in]  time     Timestamp taken when the last symbol of ACK is received or 0 if ACK was not
@@ -730,8 +731,8 @@ extern void nrf_802154_transmitted_timestamp_raw(const uint8_t * p_frame,
  * @note The next higher layer must handle either @ref nrf_802154_transmitted or
  *       @ref nrf_802154_transmitted_raw. It should not handle both functions.
  *
- * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the transmitted frame.
- * @param[in]  p_ack    Pointer to a buffer containing only the received ACK payload (PSDU
+ * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the transmitted frame.
+ * @param[in]  p_ack    Pointer to a buffer that contains only the received ACK payload (PSDU
  *                      excluding FCS).
  *                      If ACK was not requested, @p p_ack is set to NULL.
  * @param[in]  length   Length of the received ACK payload or 0 if ACK was not requested.
@@ -780,7 +781,7 @@ extern void nrf_802154_transmitted_timestamp(const uint8_t * p_frame,
  *
  * This function is called if the transmission procedure fails.
  *
- * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the frame that was not
+ * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the frame that was not
  *                      transmitted.
  * @param[in]  error    Reason of the failure.
  */
@@ -951,7 +952,7 @@ bool nrf_802154_promiscuous_get(void);
  * @note The auto ACK is enabled by default.
  *
  * If the auto ACK is enabled, the driver prepares and sends ACK frames automatically
- * a TurnaroundTime (192 us) after the proper frame is received. The driver sets the sequence number
+ * aTurnaroundTime (192 us) after the proper frame is received. The driver sets the sequence number
  * in the ACK frame and a pending bit according to the auto pending bit feature settings.
  * When the auto ACK is enabled, the driver notifies the next higher layer about the received frame
  * after the ACK frame is transmitted.
