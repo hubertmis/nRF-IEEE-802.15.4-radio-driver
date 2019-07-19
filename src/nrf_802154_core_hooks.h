@@ -54,7 +54,7 @@
  * @param[in]     req_orig  Module that originates this request.
  *
  * @retval true   All procedures are aborted.
- * @retval false  There is an ongoing procedure that cannot be aborted due to a too low @p priority.
+ * @retval false  There is an ongoing procedure that cannot be aborted due to a too low @p term_lvl.
  */
 bool nrf_802154_core_hooks_terminate(nrf_802154_term_t term_lvl, req_originator_t req_orig);
 

@@ -89,7 +89,7 @@ void nrf_802154_pib_auto_ack_set(bool enabled);
 bool nrf_802154_pib_pan_coord_get(void);
 
 /**
- * @brief Notifies the driver that the radio is configured as the PAN coordinator.
+ * @brief Configures the device as the PAN coordinator.
  *
  * @param[in]  enabled  If the radio is configured as the PAN coordinator.
  */

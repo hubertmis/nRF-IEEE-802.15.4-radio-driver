@@ -82,7 +82,7 @@ void nrf_802154_notify_receive_failed(nrf_802154_rx_error_t error);
  * @brief Notifies the next higher layer that a frame was transmitted.
  *
  * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the transmitted frame.
- * @param[in]  p_ack    Pointer to a buffer that contains PHR and PSDU of ACK frame. NULL if ACK was
+ * @param[in]  p_ack    Pointer to a buffer that containsthat contains PHR and PSDU of ACK frame. NULL if ACK was
  *                      not requested.
  * @param[in]  power    RSSI of the received frame or 0 if ACK was not requested.
  * @param[in]  lqi      LQI of the received frame of 0 if ACK was not requested.
@@ -95,7 +95,7 @@ void nrf_802154_notify_transmitted(const uint8_t * p_frame,
 /**
  * @brief Notifies the next higher layer that a frame was not transmitted.
  *
- * @param[in]  p_frame  Pointer to a buffer containing PHR and PSDU of the frame that failed
+ * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the frame that failed
  *                      the transmission operation.
  * @param[in]  error    An error code indicating the reason of the failure.
  */

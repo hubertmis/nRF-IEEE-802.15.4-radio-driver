@@ -99,7 +99,7 @@ void nrf_802154_timer_coord_timestamp_prepare(uint32_t event_addr);
  * this function returns false.
  *
  * @param[out]  p_timestamp  Precise absolute timestamp of the recently prepared event,
- * in microseconds (us).
+ *                           in microseconds (us).
  *
  * @retval true   Timestamp is available.
  * @retval false  Timestamp is unavailable.

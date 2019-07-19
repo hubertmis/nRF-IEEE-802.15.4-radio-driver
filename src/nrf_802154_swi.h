@@ -55,7 +55,9 @@ extern "C" {
 void nrf_802154_swi_init(void);
 
 /**
- * @brief Notifies the next higher layer that a frame was received from the SWI priority level.
+ * @brief Notifies the next higher layer that a frame was received.
+ *
+ * The notification is triggered from the SWI priority level.
  *
  * @param[in]  p_data  Pointer to a buffer that contains PHR and PSDU of the received frame.
  * @param[in]  power   RSSI measured during the frame reception.
@@ -71,7 +73,9 @@ void nrf_802154_swi_notify_received(uint8_t * p_data, int8_t power, uint8_t lqi)
 void nrf_802154_swi_notify_receive_failed(nrf_802154_rx_error_t error);
 
 /**
- * @brief Notifies the next higher layer that a frame was transmitted from the SWI priority level.
+ * @brief Notifies the next higher layer that a frame was transmitted
+ *
+ * The notification is triggered from the SWI priority level.
  *
  * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the transmitted frame.
  * @param[in]  p_ack    Pointer to a buffer that contains PHR and PSDU of ACK frame. NULL if ACK was
@@ -111,21 +115,27 @@ void nrf_802154_swi_notify_energy_detected(uint8_t result);
 void nrf_802154_swi_notify_energy_detection_failed(nrf_802154_ed_error_t error);
 
 /**
- * @brief Notifies the next higher layer that the CCA procedure ended from the SWI priority level.
+ * @brief Notifies the next higher layer that the CCA procedure ended.
+ *
+ * The notification is triggered from the SWI priority level.
  *
  * @param[in]  channel_free  If a free channel was detected.
  */
 void nrf_802154_swi_notify_cca(bool channel_free);
 
 /**
- * @brief Notifies the next higher layer that the CCA procedure failed from the SWI priority level.
+ * @brief Notifies the next higher layer that the CCA procedure failed.
+ *
+ * The notification is triggered from the SWI priority level.
  *
  * @param[in]  error  Reason of the CCA failure.
  */
 void nrf_802154_swi_notify_cca_failed(nrf_802154_cca_error_t error);
 
 /**
- * @brief Requests a stop of the HF clock from the SWI priority level.
+ * @brief Requests a stop of the HF clock.
+ *
+ * The notification is triggered from the SWI priority level.
  *
  * @note This function is to be called through notification module to prevent calling it from
  *       the arbiter context.
@@ -141,7 +151,7 @@ void nrf_802154_swi_hfclk_stop(void);
 void nrf_802154_swi_hfclk_stop_terminate(void);
 
 /**
- * @brief Requests entering the sleep state from the SWI priority.
+ * @brief Requests entering the @ref RADIO_STATE_SLEEP state from the SWI priority.
  *
  * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[out]  p_result  Result of entering the sleep state.
@@ -149,7 +159,7 @@ void nrf_802154_swi_hfclk_stop_terminate(void);
 void nrf_802154_swi_sleep(nrf_802154_term_t term_lvl, bool * p_result);
 
 /**
- * @brief Requests entering the receive state from the SWI priority.
+ * @brief Requests entering the @ref RADIO_STATE_RX state from the SWI priority.
  *
  * @param[in]   term_lvl         Termination level of this request. Selects procedures to abort.
  * @param[in]   req_orig         Module that originates this request.
@@ -164,7 +174,7 @@ void nrf_802154_swi_receive(nrf_802154_term_t              term_lvl,
                             bool                         * p_result);
 
 /**
- * @biref Requests entering the transmit state from the SWI priority.
+ * @biref Requests entering the @ref RADIO_STATE_TX state from the SWI priority.
  *
  * @param[in]   term_lvl         Termination level of this request. Selects procedures to abort.
  * @param[in]   req_orig         Module that originates this request.
@@ -188,7 +198,7 @@ void nrf_802154_swi_transmit(nrf_802154_term_t              term_lvl,
                              bool                         * p_result);
 
 /**
- * @brief Requests entering the energy detection state from the SWI priority.
+ * @brief Requests entering the @ref RADIO_STATE_ED state from the SWI priority.
  *
  * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[in]   time_us   Requested duration of the energy detection procedure.
@@ -199,7 +209,7 @@ void nrf_802154_swi_energy_detection(nrf_802154_term_t term_lvl,
                                      bool            * p_result);
 
 /**
- * @brief Requests entering the CCA state from the SWI priority.
+ * @brief Requests entering the @ref RADIO_STATE_CCA state from the SWI priority.
  *
  * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[out]  p_result  Result of entering the CCA state.
@@ -207,7 +217,7 @@ void nrf_802154_swi_energy_detection(nrf_802154_term_t term_lvl,
 void nrf_802154_swi_cca(nrf_802154_term_t term_lvl, bool * p_result);
 
 /**
- * @brief Requests entering the continuous carrier state from the SWI priority.
+ * @brief Requests entering the @ref RADIO_STATE_CONTINUOUS_CARRIER state from the SWI priority.
  *
  * @param[in]   term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[out]  p_result  Result of entering the continuous carrier state.

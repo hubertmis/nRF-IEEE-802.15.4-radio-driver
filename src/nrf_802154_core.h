@@ -67,7 +67,7 @@ typedef enum
     RADIO_STATE_RX_ACK,             ///< Receiving ACK after the transmitted frame.
 
     // Energy Detection
-    RADIO_STATE_ED,                 ///< Performing the Energy Detection procedure.
+    RADIO_STATE_ED,                 ///< Performing the energy detection procedure.
 
     // CCA
     RADIO_STATE_CCA,                ///< Performing the CCA procedure.
@@ -98,10 +98,7 @@ radio_state_t nrf_802154_core_state_get(void);
  **************************************************************************************************/
 
 /**
- * @brief Requests the transition to the sleep state.
- *
- * @note This function must be called from a critical section context. It must not be interrupted
- *       by the radio event handler or a Radio Scheduler notification.
+ * @brief Requests the transition to the @ref RADIO_STATE_SLEEP state.
  *
  * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *
@@ -111,18 +108,15 @@ radio_state_t nrf_802154_core_state_get(void);
 bool nrf_802154_core_sleep(nrf_802154_term_t term_lvl);
 
 /**
- * @brief Requests the transition to the receive state.
- *
- * @note This function must be called from a critical section context. It must not be interrupted
- *       by the radio event handler or a Radio Scheduler notification.
+ * @brief Requests the transition to the @ref RADIO_STATE_RX state.
  *
  * @param[in]  term_lvl         Termination level of this request. Selects procedures to abort.
  * @param[in]  req_orig         Module that originates this request.
  * @param[in]  notify_function  Function called to notify the status of this procedure. May be NULL.
  * @param[in]  notify_abort     If abort notification is to be triggered.
  *
- * @retval  true   Entering RECEIVE state succeeded.
- * @retval  false  Entering RECEIVE state failed (the driver is performing other procedure).
+ * @retval  true   Entering the receive state succeeded.
+ * @retval  false  Entering the receive state failed (the driver is performing other procedure).
  */
 bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
                              req_originator_t               req_orig,
@@ -130,10 +124,7 @@ bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
                              bool                           notify_abort);
 
 /**
- * @brief Requests the transition to the transmit state.
- *
- * @note This function must be called from a critical section context. It must not be interrupted
- *       by the radio event handler or a Radio Scheduler notification.
+ * @brief Requests the transition to the @ref RADIO_STATE_TX state.
  *
  * @param[in]  term_lvl         Termination level of this request. Selects procedures to abort.
  * @param[in]  req_orig         Module that originates this request.
@@ -141,7 +132,7 @@ bool nrf_802154_core_receive(nrf_802154_term_t              term_lvl,
  * @param[in]  cca              If the driver is to perform CCA procedure before transmission.
  * @param[in]  immediate        If true, the driver schedules transmission immediately or never.
  *                              If false, the transmission may be postponed until
- *                              the TX preconditions met are met.
+ *                              the TX preconditions are met.
  * @param[in]  notify_function  Function called to notify the status of this procedure. May be NULL.
  *
  * @retval  true   Entering the transmit state succeeded.
@@ -155,14 +146,10 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
                               nrf_802154_notification_func_t notify_function);
 
 /**
- * @brief Requests the transition to the energy detection state.
+ * @brief Requests the transition to the @ref RADIO_STATE_ED state.
  *
- * @note This function must be called from a critical section context. It must not be interrupted
- *       by the radio event handler or a Radio Scheduler notification.
- *
- * @note This function must be called when the driver is in the sleep or the receive state.
- *       When the energy detection procedure is finished, the driver transitions
- *       to the receive state.
+ * When the energy detection procedure is finished, the driver transitions
+ * to the @ref RADIO_STATE_RX state.
  *
  * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[in]  time_us   Minimal time of energy detection procedure.
@@ -174,10 +161,7 @@ bool nrf_802154_core_transmit(nrf_802154_term_t              term_lvl,
 bool nrf_802154_core_energy_detection(nrf_802154_term_t term_lvl, uint32_t time_us);
 
 /**
- * @brief Requests the transition to the CCA state.
- *
- * @note This function must be called from a critical section context. It must not be interrupted
- *       by the radio event handler or a Radio Scheduler notification.
+ * @brief Requests the transition to the @ref RADIO_STATE_CCA state.
  *
  * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *
@@ -187,10 +171,9 @@ bool nrf_802154_core_energy_detection(nrf_802154_term_t term_lvl, uint32_t time_
 bool nrf_802154_core_cca(nrf_802154_term_t term_lvl);
 
 /**
- * @brief Requests the transition to the continuous carrier state.
+ * @brief Requests the transition to the @ref RADIO_STATE_CONTINUOUS_CARRIER state.
  *
- * @note This function must be called from a critical section context. It must not be interrupted
- *       by the radio event handler or a Radio Scheduler notification.
+ * When the CCA procedure is finished, the driver transitions to the @ref RADIO_STATE_RX state.
  *
  * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *
@@ -211,9 +194,6 @@ bool nrf_802154_core_continuous_carrier(nrf_802154_term_t term_lvl);
  * If the core receives this notification, it changes the internal state to make sure
  * the receiver is started if requested.
  *
- * @note This function must be called from a critical section context. It must not be interrupted
- *       by the radio event handler or by a Radio Scheduler notification.
- *
  * @param[in]  p_data  Pointer to buffer that has been freed.
  */
 bool nrf_802154_core_notify_buffer_free(uint8_t * p_data);
@@ -221,8 +201,10 @@ bool nrf_802154_core_notify_buffer_free(uint8_t * p_data);
 /**
  * @brief Notifies the core module that the next higher layer requested the change of the channel.
  *
- * The core is expected to update the frequency register of the peripheral and, if it is in the receive state, the
- * receiver should be disabled and enabled again to use the new channel.
+ * The core is expected to update the frequency register of the peripheral and, if it is
+ * in the @ref RADIO_STATE_RX or in the @ref RADIO_STATE_CONTINUOUS_CARRIER state, the transceiver
+ * is disabled and enabled again to use the new channel.
+ *
  */
 bool nrf_802154_core_channel_update(void);
 

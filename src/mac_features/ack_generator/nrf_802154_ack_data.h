@@ -31,7 +31,7 @@
 /**
  * @brief Module that contains an ACK data generator for the nRF 802.15.4 radio driver.
  *
- * @note  The current implementation supports setting pending bit and IEs in 802.15.4-2015 Enh-ACK frames.
+ * @note  The current implementation supports setting pending bit and IEs in 802.15.4-2015 Enh-Ack frames.
  */
 
 #ifndef NRF_802154_ACK_DATA_H
@@ -61,7 +61,7 @@ void nrf_802154_ack_data_enable(bool enabled);
  *
  * @param[in]  p_addr    Pointer to the address that is to be added to the list.
  * @param[in]  extended  Indication if @p p_addr is an extended address or a short address.
- * @param[in]  data_type Type of data to be set. Refer to the nrf_802154_ack_data_t type.
+ * @param[in]  data_type Type of data to be set. Refer to the @ref nrf_802154_ack_data_t type.
  * @param[in]  p_data    Pointer to the data to be set.
  * @param[in]  data_len  Length of the @p p_data buffer.
  *

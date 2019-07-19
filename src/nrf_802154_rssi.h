@@ -41,8 +41,9 @@
  */
 
 /**
- * @brief Gets the RSSISAMPLE temperature correction value for the temperature provided
- * by the platform.
+ * @brief Gets the RSSISAMPLE temperature correction value.
+ *
+ * The correction value is based on the last temperature value reported by the platform.
  *
  * @returns RSSISAMPLE temperature correction value (Errata 153).
  */

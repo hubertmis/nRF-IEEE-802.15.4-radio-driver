@@ -42,7 +42,7 @@
 #define ACK_HEADER_WITH_PENDING      0x12                                         ///< The first byte of an ACK frame containing a pending bit.
 #define ACK_HEADER_WITHOUT_PENDING   0x02                                         ///< The first byte of an ACK frame without a pending bit.
 
-#define ACK_REQUEST_OFFSET           1                                            ///< Byte containing the ACK request bit (+1 for frame length byte).
+#define ACK_REQUEST_OFFSET           1                                            ///< Byte containing the ACK request bit (+1 for the frame length byte).
 #define ACK_REQUEST_BIT              (1 << 5)                                     ///< ACK request bit.
 
 #define DEST_ADDR_TYPE_OFFSET        2                                            ///< Byte containing the destination address type (+1 for the frame length byte).
@@ -95,8 +95,8 @@
 
 #define PHR_OFFSET                   0                                            ///< Offset of the PHY header in a frame.
 
-#define SECURITY_ENABLED_OFFSET      1                                            ///< Byte containing the "Security enabled" bit.
-#define SECURITY_ENABLED_BIT         0x08                                         ///< Bits containing the "Security enabled" field.
+#define SECURITY_ENABLED_OFFSET      1                                            ///< Byte containing the Security Enabled bit.
+#define SECURITY_ENABLED_BIT         0x08                                         ///< Bits containing the Security Enabled field.
 #define SECURITY_LEVEL_MASK          0x07                                         ///< Mask of bits containing the Security level field.
 #define SECURITY_LEVEL_MIC_32        0x01                                         ///< Bits containing the 32-bit Message Integrity Code (0b001).
 #define SECURITY_LEVEL_MIC_64        0x02                                         ///< Bits containing the 64-bit Message Integrity Code (0b010).

@@ -86,7 +86,7 @@ bool nrf_802154_csma_ca_abort(nrf_802154_term_t term_lvl, req_originator_t req_o
  *
  * @retval  true   TX failed event is to be propagated to the MAC layer.
  * @retval  false  TX failed event is not to be propagated to the MAC layer. It is handled
- *                 internally.
+ *                 internally in the CSMA-CA module.
  */
 bool nrf_802154_csma_ca_tx_failed_hook(const uint8_t * p_frame, nrf_802154_tx_error_t error);
 
@@ -98,7 +98,7 @@ bool nrf_802154_csma_ca_tx_failed_hook(const uint8_t * p_frame, nrf_802154_tx_er
  *
  * @retval  true   TX started event is to be propagated to the MAC layer.
  * @retval  false  TX started event is not to be propagated to the MAC layer. It is handled
- *                 internally.
+ *                 internally in the CSMA-CA module.
  */
 bool nrf_802154_csma_ca_tx_started_hook(const uint8_t * p_frame);
 

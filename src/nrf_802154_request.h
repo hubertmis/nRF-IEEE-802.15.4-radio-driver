@@ -55,7 +55,7 @@ extern "C" {
 void nrf_802154_request_init(void);
 
 /**
- * @brief Requests entering the sleep state for the driver.
+ * @brief Requests entering the @ref RADIO_STATE_SLEEP state for the driver.
  *
  * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *
@@ -65,7 +65,7 @@ void nrf_802154_request_init(void);
 bool nrf_802154_request_sleep(nrf_802154_term_t term_lvl);
 
 /**
- * @brief Requests entering the receive state for the driver.
+ * @brief Requests entering the @ref RADIO_STATE_RX state for the driver.
  *
  * @param[in]  term_lvl         Termination level of this request. Selects procedures to abort.
  * @param[in]  req_orig         Module that originates this request.
@@ -81,7 +81,7 @@ bool nrf_802154_request_receive(nrf_802154_term_t              term_lvl,
                                 bool                           notify_abort);
 
 /**
- * @brief Request entering the transmit state for the driver.
+ * @brief Request entering the @ref RADIO_STATE_TX state for the driver.
  *
  * @param[in]  term_lvl         Termination level of this request. Selects procedures to abort.
  * @param[in]  req_orig         Module that originates this request.
@@ -103,7 +103,7 @@ bool nrf_802154_request_transmit(nrf_802154_term_t              term_lvl,
                                  nrf_802154_notification_func_t notify_function);
 
 /**
- * @brief Requests entering the energy detection state.
+ * @brief Requests entering the @ref RADIO_STATE_ED state.
  *
  * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  * @param[in]  time_us   Requested duration of the energy detection procedure.
@@ -114,7 +114,7 @@ bool nrf_802154_request_transmit(nrf_802154_term_t              term_lvl,
 bool nrf_802154_request_energy_detection(nrf_802154_term_t term_lvl, uint32_t time_us);
 
 /**
- * @brief Requests entering the CCA state.
+ * @brief Requests entering the @ref RADIO_STATE_CCA state.
  *
  * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *
@@ -124,7 +124,7 @@ bool nrf_802154_request_energy_detection(nrf_802154_term_t term_lvl, uint32_t ti
 bool nrf_802154_request_cca(nrf_802154_term_t term_lvl);
 
 /**
- * @brief Requests entering the continuous carrier state.
+ * @brief Requests entering the @ref RADIO_STATE_CONTINUOUS_CARRIER state.
  *
  * @param[in]  term_lvl  Termination level of this request. Selects procedures to abort.
  *

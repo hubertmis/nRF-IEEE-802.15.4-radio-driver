@@ -59,7 +59,7 @@ extern "C" {
 /**
  * @brief Initializes the 802.15.4 driver.
  *
- * This function initializes the RADIO peripheral in the sleep state.
+ * This function initializes the RADIO peripheral in the @ref RADIO_STATE_SLEEP state.
  *
  * @note This function is to be called once, before any other functions from this module.
  */
@@ -248,7 +248,7 @@ uint32_t nrf_802154_first_symbol_timestamp_get(uint32_t end_timestamp, uint8_t p
 nrf_802154_state_t nrf_802154_state_get(void);
 
 /**
- * @brief Changes the radio state to sleep.
+ * @brief Changes the radio state to the @ref RADIO_STATE_SLEEP state.
  *
  * The sleep state is the lowest power state. In this state, the radio cannot transmit or receive
  * frames. It is the only state in which the driver releases the high-frequency clock and does not
@@ -263,7 +263,7 @@ nrf_802154_state_t nrf_802154_state_get(void);
 bool nrf_802154_sleep(void);
 
 /**
- * @brief Changes the radio state to sleep if the radio is idle.
+ * @brief Changes the radio state to the @ref RADIO_STATE_SLEEP state if the radio is idle.
  *
  * The sleep state is the lowest power state. In this state, the radio cannot transmit or receive
  * frames. It is the only state in which the driver releases the high-frequency clock and does not
@@ -278,22 +278,22 @@ bool nrf_802154_sleep(void);
 nrf_802154_sleep_error_t nrf_802154_sleep_if_idle(void);
 
 /**
- * @brief Changes the radio state to receive.
+ * @brief Changes the radio state to @ref RADIO_STATE_RX.
  *
  * In the receive state, the radio receives frames and may automatically send ACK frames when
  * appropriate. The received frame is reported to the higher layer by a call to
  * @ref nrf_802154_received.
  *
- * @retval  true   The radio enters receive state.
- * @retval  false  The driver could not enter receive state.
+ * @retval  true   The radio enters the receive state.
+ * @retval  false  The driver could not enter the receive state.
  */
 bool nrf_802154_receive(void);
 
 /**
  * @brief Requests reception at the specified time.
  *
- * This function works as a delayed version of @sref nrf_802154_receive. It does not
- * block delayed reception, but puts it in a queue using the Radio Scheduler module.
+ * This function works as a delayed version of @ref nrf_802154_receive. It is asynchronous.
+ * It queues the delayed reception using the Radio Scheduler module.
  * If the delayed reception cannot be performed (@ref nrf_802154_receive_at would return false)
  * or the requested reception timeslot is denied, @ref nrf_drv_radio802154_receive_failed is called
  * with the @ref NRF_802154_RX_ERROR_DELAYED_TIMESLOT_DENIED argument.
@@ -331,7 +331,7 @@ bool nrf_802154_receive_at_cancel(void);
 
 #if NRF_802154_USE_RAW_API
 /**
- * @brief Changes the radio state to transmit.
+ * @brief Changes the radio state to @ref RADIO_STATE_TX.
  *
  * @note If the CPU is halted or interrupted while this function is executed,
  *       @ref nrf_802154_transmitted or @ref nrf_802154_transmit_failed can be called before this
@@ -419,8 +419,11 @@ bool nrf_802154_transmit(const uint8_t * p_data, uint8_t length, bool cca);
  * @note This function is implemented in a zero-copy fashion. It passes the given buffer pointer to
  *       the RADIO peripheral.
  *
- * This function works as a delayed version of @sref nrf_802154_transmit_raw. It does not
- * block delayed reception, but puts it in a queue using the Radio Scheduler module.
+ * This function works as a delayed version of @ref nrf_802154_transmit_raw. It is asynchronous.
+ * It queues the delayed transmission using the Radio Scheduler module and performs it
+ * at the specified time.
+ * 
+ * If the delayed transmission is successfully performed, @ref nrf_802154_transmitted is called.
  * If the delayed transmission cannot be performed (@ref nrf_802154_transmit_raw would return false)
  * or the requested transmission timeslot is denied, @ref nrf_802154_transmit_failed with the
  * @ref NRF_802154_TX_ERROR_TIMESLOT_DENIED argument is called.
@@ -481,7 +484,7 @@ bool nrf_802154_transmit_at_cancel(void);
  *       procedure is carried out is not less than the requested @p time_us.
  *
  * @param[in]  time_us   Duration of energy detection procedure. The given value is rounded up to
- *                       multiplication of 8 s (128 us).
+ *                       multiplication of 8 symbols (128 us).
  *
  * @retval  true   The energy detection procedure was scheduled.
  * @retval  false  The driver could not schedule the energy detection procedure.
@@ -489,7 +492,7 @@ bool nrf_802154_transmit_at_cancel(void);
 bool nrf_802154_energy_detection(uint32_t time_us);
 
 /**
- * @brief Changes the radio state to CCA.
+ * @brief Changes the radio state to @ref RADIO_STATE_CCA.
  *
  * @note @ref nrf_802154_cca_done can be called before this function returns a result.
  *
@@ -508,9 +511,6 @@ bool nrf_802154_cca(void);
  *       selected channel. This function is to be called only during radio tests. Do not
  *       use it during normal device operation.
  *  
- * @note This function works correctly only with a single-PHY arbiter. Do not use it with
- *       any other arbiter.
- *
  * @retval  true   The continuous carrier procedure was scheduled.
  * @retval  false  The driver could not schedule the continuous carrier procedure.
  */
@@ -897,7 +897,7 @@ bool nrf_802154_buffer_free_immediately(uint8_t * p_data);
 /**
  * @brief Begins the RSSI measurement.
  *
- * @note This function is to be called in the receive state.
+ * @note This function is to be called in the @ref RADIO_STATE_RX state.
  *
  * The result will be available after 8 us and can be read by
  * @ref nrf_802154_rssi_last_get.
@@ -952,8 +952,8 @@ bool nrf_802154_promiscuous_get(void);
  * @note The auto ACK is enabled by default.
  *
  * If the auto ACK is enabled, the driver prepares and sends ACK frames automatically
- * aTurnaroundTime (192 us) after the proper frame is received. The driver sets the sequence number
- * in the ACK frame and a pending bit according to the auto pending bit feature settings.
+ * aTurnaroundTime (192 us) after the proper frame is received. The driver prepares an ACK frame
+ * according to the data provided by @ref nrf_802154_ack_data_set.
  * When the auto ACK is enabled, the driver notifies the next higher layer about the received frame
  * after the ACK frame is transmitted.
  * If the auto ACK is disabled, the driver does not transmit ACK frames. It notifies the next higher
@@ -996,7 +996,7 @@ bool nrf_802154_pan_coord_get(void);
  * @param[in]  extended  If the given address is an extended MAC address or a short MAC address.
  * @param[in]  p_data    Pointer to the buffer containing data to be set.
  * @param[in]  length    Length of @p p_data.
- * @param[in]  data_type Type of data to be set. Refer to the nrf_802154_ack_data_t type.
+ * @param[in]  data_type Type of data to be set. Refer to the @ref nrf_802154_ack_data_t type.
  *
  * @retval True   Address successfully added to the list.
  * @retval False  Not enough memory to store this address in the list.

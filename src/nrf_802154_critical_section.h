@@ -53,9 +53,6 @@ void nrf_802154_critical_section_init(void);
 /**
  * @brief Function for entering a critical section in the 802.15.4 driver.
  *
- * @note Entering a critical section may be prohibited at the given time.
- *       If the critical section is not entered, the request will not be proceeded.
- *
  * @retval true   The critical section is entered.
  * @retval false  The critical section could not be entered.
  */
@@ -72,7 +69,7 @@ void nrf_802154_critical_section_exit(void);
  * With this function, the critical section is entered regardless of whether
  * it has been already entered before.
  *
- * This function is intended to be used by RADIO IRQ handler and RAAL notifications handlers to
+ * This function is intended to be used by RADIO IRQ handler and RSCH notifications handlers to
  * prevent interrupting of these procedures by FSM requests from higher priority IRQ handlers.
  */
 void nrf_802154_critical_section_forcefully_enter(void);
