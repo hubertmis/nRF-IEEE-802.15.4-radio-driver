@@ -901,8 +901,11 @@ bool nrf_802154_buffer_free_immediately(uint8_t * p_data);
  *
  * The result will be available after 8 us and can be read by
  * @ref nrf_802154_rssi_last_get.
+ *
+ * @retval true  RSSI measurement successfully requested.
+ * @retval false RSSI measurement cannot be scheduled at the moment.
  */
-void nrf_802154_rssi_measure(void);
+bool nrf_802154_rssi_measure(void);
 
 /**
  * @brief Gets the result of the last RSSI measurement.

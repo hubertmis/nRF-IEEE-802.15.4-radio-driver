@@ -243,6 +243,16 @@ void nrf_802154_swi_channel_update(bool * p_result);
 void nrf_802154_swi_cca_cfg_update(bool * p_result);
 
 /**
+ * @brief Notifies the core module that the next higher layer requested the RSSI measurement.
+ */
+void nrf_802154_swi_rssi_measure(bool * p_result);
+
+/**
+ * @brief Gets the last RSSI measurement result from the core module.
+ */
+void nrf_802154_swi_rssi_measurement_get(int8_t * p_rssi, bool * p_result);
+
+/**
  *@}
  **/
 
