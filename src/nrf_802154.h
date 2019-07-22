@@ -973,7 +973,7 @@ void nrf_802154_auto_ack_set(bool enabled);
 bool nrf_802154_auto_ack_get(void);
 
 /**
- * @brief Notifies the driver that the radio is configured as the PAN coordinator.
+ * @brief Configures the device as the PAN coordinator.
  *
  * @note That information is used for packet filtering.
  *
