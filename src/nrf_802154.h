@@ -377,7 +377,7 @@ bool nrf_802154_transmit_raw(const uint8_t * p_data, bool cca);
  * @note If the CPU is halted or interrupted while this function is executed,
  *       @ref nrf_802154_transmitted or @ref nrf_802154_transmit_failed must be called before this
  *       function returns a result.
- *  
+ *
  * @note This function copies the given buffer. It maintains an internal buffer, which is used to
  *       make a frame copy. To prevent unnecessary memory consumption and to perform zero-copy
  *       transmission, use @ref nrf_802154_transmit_raw instead.
@@ -422,7 +422,7 @@ bool nrf_802154_transmit(const uint8_t * p_data, uint8_t length, bool cca);
  * This function works as a delayed version of @ref nrf_802154_transmit_raw. It is asynchronous.
  * It queues the delayed transmission using the Radio Scheduler module and performs it
  * at the specified time.
- * 
+ *
  * If the delayed transmission is successfully performed, @ref nrf_802154_transmitted is called.
  * If the delayed transmission cannot be performed (@ref nrf_802154_transmit_raw would return false)
  * or the requested transmission timeslot is denied, @ref nrf_802154_transmit_failed with the
@@ -510,7 +510,7 @@ bool nrf_802154_cca(void);
  * @note When the radio is emitting continuous carrier signals, it blocks all transmissions on the
  *       selected channel. This function is to be called only during radio tests. Do not
  *       use it during normal device operation.
- *  
+ *
  * @retval  true   The continuous carrier procedure was scheduled.
  * @retval  false  The driver could not schedule the continuous carrier procedure.
  */
@@ -673,7 +673,7 @@ extern void nrf_802154_tx_started(const uint8_t * p_frame);
  *       modules) until @ref nrf_802154_buffer_free_raw is called.
  *
  * @param[in]  p_frame  Pointer to a buffer that contains PHR and PSDU of the transmitted frame.
- * @param[in]  p_ack    Pointer to a buffer that contains PHR and PSDU of the received ACK. 
+ * @param[in]  p_ack    Pointer to a buffer that contains PHR and PSDU of the received ACK.
  *                      The first byte in the buffer is the length of the frame (PHR). The following
  *                      bytes contain the ACK frame itself (PSDU). The length byte (PHR) includes
  *                      FCS. FCS is already verified by the hardware and may be modified by the

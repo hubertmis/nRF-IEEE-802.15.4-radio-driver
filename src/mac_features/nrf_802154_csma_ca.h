@@ -64,7 +64,7 @@ void nrf_802154_csma_ca_start(const uint8_t * p_data);
 /**
  * @brief Aborts the ongoing CSMA-CA procedure.
  *
- * @note Do not call this function during the execution of @ref nrf_802154_csma_ca_start 
+ * @note Do not call this function during the execution of @ref nrf_802154_csma_ca_start
  *       (from ISR with higher priority), as it will result in an unrecoverable runtime error.
  *
  * If CSMA-CA is not running during the call, this function does nothing and returns true.

@@ -44,7 +44,7 @@
 void nrf_802154_imm_ack_generator_init(void);
 
 /** Creates an Immediate ACK in response to the provided frame.
- *  
+ *
  *  This function creates an Immediate ACK frame and inserts it into a radio buffer.
  *
  * @param [in]  p_frame  Pointer to the buffer that contains PHR and PSDU of the frame
