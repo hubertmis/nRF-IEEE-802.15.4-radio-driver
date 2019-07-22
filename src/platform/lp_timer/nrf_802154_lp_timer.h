@@ -101,7 +101,7 @@ void nrf_802154_lp_timer_critical_section_exit(void);
 /**
  * @brief Gets the current time.
  *
- * @pre Before getting the current time, the timer must be initialized with 
+ * @pre Before getting the current time, the timer must be initialized with
  * @ref nrf_802154_lp_timer_init(). This is the only requirement that must be met before using this
  * function.
  *
@@ -180,7 +180,7 @@ void nrf_802154_lp_timer_sync_stop(void);
  *
  * @returns  Address of the peripheral register corresponding to the event
  *           to be used for the timer synchronization.
- * 
+ *
  */
 uint32_t nrf_802154_lp_timer_sync_event_get(void);
 
