@@ -115,7 +115,7 @@ void nrf_802154_swi_notify_energy_detected(uint8_t result);
 void nrf_802154_swi_notify_energy_detection_failed(nrf_802154_ed_error_t error);
 
 /**
- * @brief Notifies the next higher layer that the CCA procedure ended.
+ * @brief Notifies the next higher layer that the Clear Channel Assessment (CCA) procedure ended.
  *
  * The notification is triggered from the SWI priority level.
  *
@@ -124,7 +124,7 @@ void nrf_802154_swi_notify_energy_detection_failed(nrf_802154_ed_error_t error);
 void nrf_802154_swi_notify_cca(bool channel_free);
 
 /**
- * @brief Notifies the next higher layer that the CCA procedure failed.
+ * @brief Notifies the next higher layer that the Clear Channel Assessment (CCA) procedure failed.
  *
  * The notification is triggered from the SWI priority level.
  *
