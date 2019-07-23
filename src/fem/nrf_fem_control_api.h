@@ -85,9 +85,9 @@ extern "C" {
  */
 typedef struct
 {
-    uint8_t enable      : 1; /**< Enable toggling for this amplifier. */
-    uint8_t active_high : 1; /**< Set the pin to be active high. */
-    uint8_t gpio_pin    : 6; /**< Set the GPIO pin to be toggled for this amplifier. */
+    uint8_t enable      : 1; /**< Enable/disable this amplifier. */
+    uint8_t active_high : 1; /**< GPIO pin active state for this amplifier. */
+    uint8_t gpio_pin    : 6; /**< GPIO pin to be toggled for this amplifier. */
 } nrf_fem_control_pa_lna_cfg_t;
 
 /**
@@ -127,14 +127,14 @@ typedef enum
  *
  * @note Do not call this function when the radio is in use.
  *
- * @param[in] p_cfg Pointer to the PA & LNA GPIO toggle configuration.
+ * @param[in] p_cfg     Pointer to the PA & LNA GPIO toggle configuration.
  *
  */
 void nrf_fem_control_cfg_set(const nrf_fem_control_cfg_t * p_cfg);
 
 /**@brief Gets the PA & LNA GPIO toggle configuration.
  *
- * @param[out] p_cfg Pointer to the structure for the PA & LNA GPIO toggle configuration.
+ * @param[out] p_cfg    Pointer to the structure for the PA & LNA GPIO toggle configuration.
  *
  */
 void nrf_fem_control_cfg_get(nrf_fem_control_cfg_t * p_cfg);
@@ -161,16 +161,16 @@ void nrf_fem_control_ppi_enable(nrf_fem_control_pin_t pin, nrf_timer_cc_channel_
 
 /**@brief Clears the PPI configuration used to activate one of Frontend Module pins.
  *
- * @param[in] pin              Pin controlled by Frontend Module to be disconnected from the PPI.
+ * @param[in] pin   Pin controlled by Frontend Module to be disconnected from the PPI.
  *
  */
 void nrf_fem_control_ppi_disable(nrf_fem_control_pin_t pin);
 
 /**@brief Calculates the target time for a timer that activates one of the Frontend Module pins.
  *
- * @param[in] pin The pin controlled by Frontend Module that is to be activated.
+ * @param[in] pin   Pin controlled by Frontend Module that is to be activated.
  *
- * @return    @p Pin activation delay in microseconds.
+ * @returns     Activation delay of @p pin in microseconds.
  *
  */
 uint32_t nrf_fem_control_delay_get(nrf_fem_control_pin_t pin);
@@ -193,16 +193,16 @@ void nrf_fem_control_timer_set(nrf_fem_control_pin_t  pin,
 
 /**@brief Clears the timer configuration after the deactivation of one of the Frontend Module pins.
  *
- * @param[in] pin              Pin controlled by Frontend Module to be deactivated.
- * @param[in] short_mask       Mask of timer shortcuts to be disabled.
+ * @param[in] pin           Pin controlled by Frontend Module to be deactivated.
+ * @param[in] short_mask    Mask of timer shortcuts to be disabled.
  *
  */
 void nrf_fem_control_timer_reset(nrf_fem_control_pin_t pin, nrf_timer_short_mask_t short_mask);
 
 /**@brief Sets up a PPI fork task necessary for one of the Frontend Module pins.
  *
- * @param[in] pin              Pin controlled by Frontend Module that was deactivated.
- * @param[in] ppi_channel      PPI channel to connect the fork task to.
+ * @param[in] pin           Pin controlled by Frontend Module that was deactivated.
+ * @param[in] ppi_channel   PPI channel to connect the fork task to.
  *
  */
 void nrf_fem_control_ppi_fork_setup(nrf_fem_control_pin_t pin,
@@ -211,10 +211,10 @@ void nrf_fem_control_ppi_fork_setup(nrf_fem_control_pin_t pin,
 
 /**@brief Sets up a PPI task necessary for one of the Frontend Module pins.
  *
- * @param[in] pin              Pin controlled by Frontend Module that was deactivated.
- * @param[in] ppi_channel      PPI channel to connect the task to.
- * @param[in] event_addr       Address of the event to be connected to the PPI.
- * @param[in] task_addr        Address of the task to be connected to the PPI.
+ * @param[in] pin           Pin controlled by Frontend Module that was deactivated.
+ * @param[in] ppi_channel   PPI channel to connect the task to.
+ * @param[in] event_addr    Address of the event to be connected to the PPI.
+ * @param[in] task_addr     Address of the task to be connected to the PPI.
  *
  */
 void nrf_fem_control_ppi_task_setup(nrf_fem_control_pin_t pin,
@@ -224,20 +224,20 @@ void nrf_fem_control_ppi_task_setup(nrf_fem_control_pin_t pin,
 
 /**@brief Clears a PPI fork task configuration for one of the Frontend Module pins.
  *
- * @param[in] pin              Pin controlled by Frontend Module that was deactivated.
- * @param[in] ppi_channel      PPI channel to disconnect the fork task from.
+ * @param[in] pin           Pin controlled by Frontend Module that was deactivated.
+ * @param[in] ppi_channel   PPI channel to disconnect the fork task from.
  *
  */
 void nrf_fem_control_ppi_fork_clear(nrf_fem_control_pin_t pin, nrf_ppi_channel_t ppi_channel);
 
 /**@brief Sets up a PPI task and a PPI fork that set or clear Frontend Module pins on a given event.
  *
- * @param[in] ppi_channel      PPI channel to connect the task and fork to.
- * @param[in] event_addr       Address of the event to be connected to the PPI.
- * @param[in] lna_pin_set      If true, the Low Noise Amplifier pin will be set on @p event_addr.
- *                             Otherwise, it will be cleared.
- * @param[in] pa_pin_set       If true, the Power Amplifier pin will be set on @p event_addr.
- *                             Otherwise, it will be cleared.
+ * @param[in] ppi_channel   PPI channel to connect the task and fork to.
+ * @param[in] event_addr    Address of the event to be connected to the PPI.
+ * @param[in] lna_pin_set   If true, the Low Noise Amplifier pin will be set on @p event_addr.
+ *                          Otherwise, it will be cleared.
+ * @param[in] pa_pin_set    If true, the Power Amplifier pin will be set on @p event_addr.
+ *                          Otherwise, it will be cleared.
  *
  */
 void nrf_fem_control_ppi_pin_task_setup(nrf_ppi_channel_t ppi_channel,

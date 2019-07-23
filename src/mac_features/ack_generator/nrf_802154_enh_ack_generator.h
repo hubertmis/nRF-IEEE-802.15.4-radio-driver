@@ -43,8 +43,9 @@
 /** Initializes the Enhanced ACK generator module. */
 void nrf_802154_enh_ack_generator_init(void);
 
-/** Creates an Enhanced ACK in response to the provided frame and inserts it
- *  into an appropriate radio buffer.
+/** Creates an Enhanced ACK in response to the provided frame.
+ *
+ * This function creates an Enhanced ACK frame and inserts it into a radio buffer.
  *
  * @param [in]  p_frame  Pointer to the buffer that contains PHR and PSDU of the frame
  *                       to respond to.

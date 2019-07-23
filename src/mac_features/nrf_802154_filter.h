@@ -52,7 +52,7 @@
  * @brief Verifies if the given part of the frame is valid.
  *
  * This function is called a few times for each received frame. The first call is after the FCF
- * is received (PSDU length is 1 - @p p_num_bytes value is 1). The subsequent calls are performed
+ * is received (PSDU length is 2 and @p p_num_bytes value is 3). The subsequent calls are performed
  * when the number of bytes requested by the previous call is available. The iteration ends
  * when the function does not request any more bytes to check.
  * If the verified part of the function is correct, this function returns true and sets

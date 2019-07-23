@@ -96,14 +96,14 @@ void nrf_802154_timer_sched_deinit(void);
  *
  * This function can be used to set the base time in the @ref nrf_802154_timer_t structure.
  *
- * @return Current time in microseconds.
+ * @returns Current time in microseconds [us].
  */
 uint32_t nrf_802154_timer_sched_time_get(void);
 
 /**
  * @brief Gets the granularity of the timer that runs the timer scheduler.
  *
- * @return Granularity of the timer, in microseconds.
+ * @returns Granularity of the timer, in microseconds [us].
  */
 uint32_t nrf_802154_timer_sched_granularity_get(void);
 
@@ -132,12 +132,12 @@ uint32_t nrf_802154_timer_sched_remaining_time_get(const nrf_802154_timer_t * p_
 /**
  * @brief Starts the given timer and adds it to the scheduler.
  *
- * @note Fields @p t0, @p dt, @p callback and @p p_context must be filled in @p p_timer before
- *       calling this function. The @p callback field cannot be NULL.
+ * @note Fields @c t0, @c dt, @c callback and @c p_context must be filled in @p p_timer before
+ *       calling this function. The @c callback field cannot be NULL.
  *
  * @note Due to the timer granularity, the callback function cannot be called exactly
  *       at the specified time. Use @p round_up to specify if the given timer should expire before
- *       or after the time given in the @p p_timer structure. The @p dt field of the @p p_timer
+ *       or after the time given in the @p p_timer structure. The @c dt field of the @p p_timer
  *       is updated with the rounded-up value.
  *
  * @param[inout]  p_timer   Pointer to the timer to be started and added to the scheduler.

@@ -78,8 +78,8 @@ void nrf_802154_ack_timeout_transmitted_hook(const uint8_t * p_frame);
  * @param[in]  error    Cause of failed transmission.
  *
  * @retval  true   TX failed event is to be propagated to the MAC layer.
- * @retval  false  TX failed event is not to be propagated to the MAC layer. It is to be handled
- *                 internally.
+ * @retval  false  TX failed event is not to be propagated to the MAC layer. It is handled
+ *                 internally in the ACK timeout module.
  */
 bool nrf_802154_ack_timeout_tx_failed_hook(const uint8_t * p_frame, nrf_802154_tx_error_t error);
 
@@ -90,7 +90,7 @@ bool nrf_802154_ack_timeout_tx_failed_hook(const uint8_t * p_frame, nrf_802154_t
  *
  * @retval  true   TX started event is to be propagated to the MAC layer.
  * @retval  false  TX started event is not to be propagated to the MAC layer. It is handled
- *                 internally.
+ *                 internally in the ACK timeout module.
  */
 bool nrf_802154_ack_timeout_tx_started_hook(const uint8_t * p_frame);
 

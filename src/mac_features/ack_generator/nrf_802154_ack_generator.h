@@ -41,9 +41,7 @@
 /** Initializes the ACK generator module. */
 void nrf_802154_ack_generator_init(void);
 
-/** Creates an ACK in response to the provided frame and inserts it into an appropriate
- *  radio buffer.
- *
+/** Creates an ACK in response to the provided frame and inserts it into a radio buffer.
  *
  * @param [in]  p_frame  Pointer to the buffer that contains PHR and PSDU of the frame
  *                       to respond to.

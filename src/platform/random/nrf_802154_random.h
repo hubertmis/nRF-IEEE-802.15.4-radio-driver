@@ -67,7 +67,7 @@ void nrf_802154_random_deinit(void);
 /**
  * @brief Gets a pseudo-random number.
  *
- * @return Pseudo-random number.
+ * @returns Pseudo-random number.
  */
 uint32_t nrf_802154_random_get(void);
 
