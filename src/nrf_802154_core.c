@@ -198,12 +198,12 @@ typedef struct
 
 #endif  // !NRF_802154_DISABLE_BCC_MATCHING
 #if NRF_802154_TX_STARTED_NOTIFY_ENABLED
-    bool tx_started   : 1; ///< If requested transmission has started.
+    bool tx_started   : 1; ///< If the requested transmission has started.
 
 #endif  // NRF_802154_TX_STARTED_NOTIFY_ENABLED
     bool rssi_started : 1;
 } nrf_802154_flags_t;
-static nrf_802154_flags_t m_flags;               ///< Flags used to store current driver state.
+static nrf_802154_flags_t m_flags;               ///< Flags used to store the current driver state.
 
 static volatile bool m_rsch_timeslot_is_granted; ///< State of the RSCH timeslot.
 
@@ -232,7 +232,7 @@ static void rx_flags_clear(void)
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
 }
 
-/** Request the RSSI measurement */
+/** Request the RSSI measurement. */
 static void rssi_measure(void)
 {
     m_flags.rssi_started = true;
@@ -240,7 +240,7 @@ static void rssi_measure(void)
     nrf_radio_task_trigger(NRF_RADIO_TASK_RSSISTART);
 }
 
-/** Wait for the RSSI measurement */
+/** Wait for the RSSI measurement. */
 static void rssi_measurement_wait(void)
 {
     while (!nrf_radio_event_check(NRF_RADIO_EVENT_RSSIEND))
@@ -249,7 +249,7 @@ static void rssi_measurement_wait(void)
     }
 }
 
-/** Get result of the last RSSI measurement.
+/** Get the result of the last RSSI measurement.
  *
  * @returns  Result of the last RSSI measurement in dBm.
  */
@@ -1381,7 +1381,7 @@ static void rx_init(bool disabled_was_triggered)
 
     // Clear filtering flag
     rx_flags_clear();
-    // Clear RSSI measurement flag
+    // Clear the RSSI measurement flag.
     m_flags.rssi_started = false;
 
     nrf_radio_txpower_set(nrf_802154_pib_tx_power_get());

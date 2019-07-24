@@ -239,8 +239,8 @@ typedef struct
         {
             int8_t * p_rssi;                              ///< RSSI measurement result.
             bool   * p_result;                            ///< RSSI measurement status.
-        } rssi_get;                                       ///< RSSI measurement result getter details.
-    } data;                                               ///< Request data depending on it's type.
+        } rssi_get;                                       ///< Details of the getter that retrieves the RSSI measurement result.
+    } data;                                               ///< Request data depending on its type.
 } nrf_802154_req_data_t;
 
 static nrf_802154_ntf_data_t m_ntf_queue[NTF_QUEUE_SIZE]; ///< Notification queue.

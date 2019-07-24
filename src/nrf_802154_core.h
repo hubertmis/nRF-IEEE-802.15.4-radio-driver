@@ -215,7 +215,7 @@ bool nrf_802154_core_channel_update(void);
 bool nrf_802154_core_cca_cfg_update(void);
 
 /**
- * @brief Notifies the Core module that next higher layer requested the RSSI measurement.
+ * @brief Notifies the core module that the next higher layer requested the RSSI measurement.
  */
 bool nrf_802154_core_rssi_measure(void);
 
