@@ -3100,7 +3100,7 @@ bool nrf_802154_core_rssi_measure(void)
 
     if (result)
     {
-        if (timeslot_is_granted() && m_state == RADIO_STATE_RX)
+        if (timeslot_is_granted() && (m_state == RADIO_STATE_RX))
         {
             rssi_measure();
         }
@@ -3117,17 +3117,26 @@ bool nrf_802154_core_rssi_measure(void)
 
 bool nrf_802154_core_last_rssi_measurement_get(int8_t * p_rssi)
 {
-    bool result = m_flags.rssi_started && critical_section_enter_and_verify_timeslot_length();
+    bool result = m_flags.rssi_started;
 
     if (result)
     {
-        if (timeslot_is_granted())
-        {
-            rssi_measurement_wait();
-            *p_rssi = rssi_last_measurement_get();
-        }
+        result = critical_section_enter_and_verify_timeslot_length();
 
-        nrf_802154_critical_section_exit();
+        if (result)
+        {
+            if (timeslot_is_granted())
+            {
+                rssi_measurement_wait();
+                *p_rssi = rssi_last_measurement_get();
+            }
+            else
+            {
+                result = false;
+            }
+
+            nrf_802154_critical_section_exit();
+        }
     }
 
     return result;

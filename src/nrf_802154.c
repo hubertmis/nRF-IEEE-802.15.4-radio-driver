@@ -527,7 +527,7 @@ bool nrf_802154_buffer_free_immediately(uint8_t * p_data)
 
 #endif // NRF_802154_USE_RAW_API
 
-bool nrf_802154_rssi_measure(void)
+bool nrf_802154_rssi_measure_begin(void)
 {
     return nrf_802154_request_rssi_measure();
 }
