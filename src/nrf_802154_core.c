@@ -2778,21 +2778,12 @@ bool nrf_802154_core_sleep(nrf_802154_term_t term_lvl)
     {
         if ((m_state != RADIO_STATE_SLEEP) && (m_state != RADIO_STATE_FALLING_ASLEEP))
         {
-            if (critical_section_can_be_processed_now())
-            {
-                result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
+            result = current_operation_terminate(term_lvl, REQ_ORIG_CORE, true);
 
-                if (result)
-                {
-                    state_set(RADIO_STATE_FALLING_ASLEEP);
-                    falling_asleep_init();
-                }
-            }
-            else
+            if (result)
             {
-                nrf_radio_reset();
-                state_set(RADIO_STATE_SLEEP);
-                sleep_init();
+                state_set(RADIO_STATE_FALLING_ASLEEP);
+                falling_asleep_init();
             }
         }
 
