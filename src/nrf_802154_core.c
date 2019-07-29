@@ -3108,26 +3108,29 @@ bool nrf_802154_core_rssi_measure(void)
 
 bool nrf_802154_core_last_rssi_measurement_get(int8_t * p_rssi)
 {
-    bool result = m_flags.rssi_started;
+    bool result       = false;
+    bool rssi_started = m_flags.rssi_started;
+    bool in_crit_sect = false;
 
-    if (result)
+    if (rssi_started)
     {
-        result = critical_section_enter_and_verify_timeslot_length();
+        in_crit_sect = critical_section_enter_and_verify_timeslot_length();
+    }
 
-        if (result)
+    if (rssi_started && in_crit_sect)
+    {
+        // Checking if a timeslot is granted is valid only in a critical section
+        if (timeslot_is_granted())
         {
-            if (timeslot_is_granted())
-            {
-                rssi_measurement_wait();
-                *p_rssi = rssi_last_measurement_get();
-            }
-            else
-            {
-                result = false;
-            }
-
-            nrf_802154_critical_section_exit();
+            rssi_measurement_wait();
+            *p_rssi = rssi_last_measurement_get();
+            result  = true;
         }
+    }
+
+    if (in_crit_sect)
+    {
+        nrf_802154_critical_section_exit();
     }
 
     return result;
