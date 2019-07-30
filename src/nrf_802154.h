@@ -1012,6 +1012,20 @@ bool nrf_802154_ack_data_set(const uint8_t * p_addr,
                              uint8_t         data_type);
 
 /**
+ * @brief Removes the address of a peer node for which the ACK data is set.
+ *
+ * The ACK data that was previously set for the given address is automatically removed.
+ *
+ * @param[in]  p_addr    Array of bytes containing the address of the node (little-endian).
+ * @param[in]  extended  If the given address is an extended MAC address or a short MAC address.
+ * @param[in]  data_type Type of data to be removed. Refer to the @ref nrf_802154_ack_data_t type.
+ *
+ * @retval True   Address removed from the list.
+ * @retval False  Address not found in the list.
+ */
+bool nrf_802154_ack_data_clear(const uint8_t * p_addr, bool extended, uint8_t data_type);
+
+/**
  * @brief Enables or disables setting a pending bit in automatically transmitted ACK frames.
  *
  * @note Setting a pending bit in automatically transmitted ACK frames is enabled by default.
