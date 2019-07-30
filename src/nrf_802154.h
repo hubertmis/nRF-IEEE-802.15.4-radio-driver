@@ -899,10 +899,14 @@ bool nrf_802154_buffer_free_immediately(uint8_t * p_data);
  *
  * @note This function is to be called in the @ref RADIO_STATE_RX state.
  *
- * The result will be available after 8 us and can be read by
- * @ref nrf_802154_rssi_last_get.
+ * The result will be available after the measurement process is finished. The result can be read by
+ * @ref nrf_802154_rssi_last_get. Check the documentation of the RADIO peripheral to check
+ * the duration of the RSSI measurement procedure.
+ *
+ * @retval true  RSSI measurement successfully requested.
+ * @retval false RSSI measurement cannot be scheduled at the moment.
  */
-void nrf_802154_rssi_measure(void);
+bool nrf_802154_rssi_measure_begin(void);
 
 /**
  * @brief Gets the result of the last RSSI measurement.

@@ -52,6 +52,7 @@
 #include "nrf_802154_revision.h"
 #include "nrf_802154_rssi.h"
 #include "nrf_802154_rx_buffer.h"
+#include "nrf_802154_utils.h"
 #include "nrf_802154_timer_coord.h"
 #include "nrf_802154_types.h"
 #include "nrf_egu.h"
@@ -197,11 +198,12 @@ typedef struct
 
 #endif  // !NRF_802154_DISABLE_BCC_MATCHING
 #if NRF_802154_TX_STARTED_NOTIFY_ENABLED
-    bool tx_started : 1; ///< If requested transmission has started.
+    bool tx_started   : 1; ///< If the requested transmission has started.
 
 #endif  // NRF_802154_TX_STARTED_NOTIFY_ENABLED
+    bool rssi_started : 1;
 } nrf_802154_flags_t;
-static nrf_802154_flags_t m_flags;               ///< Flags used to store current driver state.
+static nrf_802154_flags_t m_flags;               ///< Flags used to store the current driver state.
 
 static volatile bool m_rsch_timeslot_is_granted; ///< State of the RSCH timeslot.
 
@@ -230,9 +232,26 @@ static void rx_flags_clear(void)
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
 }
 
-/** Get result of last RSSI measurement.
+/** Request the RSSI measurement. */
+static void rssi_measure(void)
+{
+    m_flags.rssi_started = true;
+    nrf_radio_event_clear(NRF_RADIO_EVENT_RSSIEND);
+    nrf_radio_task_trigger(NRF_RADIO_TASK_RSSISTART);
+}
+
+/** Wait for the RSSI measurement. */
+static void rssi_measurement_wait(void)
+{
+    while (!nrf_radio_event_check(NRF_RADIO_EVENT_RSSIEND))
+    {
+        nrf_802154_busy_wait();
+    }
+}
+
+/** Get the result of the last RSSI measurement.
  *
- * @returns  Result of last RSSI measurement [dBm].
+ * @returns  Result of the last RSSI measurement in dBm.
  */
 static int8_t rssi_last_measurement_get(void)
 {
@@ -1362,6 +1381,8 @@ static void rx_init(bool disabled_was_triggered)
 
     // Clear filtering flag
     rx_flags_clear();
+    // Clear the RSSI measurement flag.
+    m_flags.rssi_started = false;
 
     nrf_radio_txpower_set(nrf_802154_pib_tx_power_get());
 
@@ -1927,6 +1948,8 @@ static void irq_crcok_state_rx(void)
     uint8_t * p_received_data = mp_current_rx_buffer->data;
     uint32_t  ints_to_disable = 0;
     uint32_t  ints_to_enable  = 0;
+
+    m_flags.rssi_started = true;
 
 #if NRF_802154_DISABLE_BCC_MATCHING
     uint8_t               num_data_bytes      = PHR_SIZE + FCF_SIZE;
@@ -3056,6 +3079,57 @@ bool nrf_802154_core_cca_cfg_update(void)
             cca_configuration_update();
         }
 
+        nrf_802154_critical_section_exit();
+    }
+
+    return result;
+}
+
+bool nrf_802154_core_rssi_measure(void)
+{
+    bool result = critical_section_enter_and_verify_timeslot_length();
+
+    if (result)
+    {
+        if (timeslot_is_granted() && (m_state == RADIO_STATE_RX))
+        {
+            rssi_measure();
+        }
+        else
+        {
+            result = false;
+        }
+
+        nrf_802154_critical_section_exit();
+    }
+
+    return result;
+}
+
+bool nrf_802154_core_last_rssi_measurement_get(int8_t * p_rssi)
+{
+    bool result       = false;
+    bool rssi_started = m_flags.rssi_started;
+    bool in_crit_sect = false;
+
+    if (rssi_started)
+    {
+        in_crit_sect = critical_section_enter_and_verify_timeslot_length();
+    }
+
+    if (rssi_started && in_crit_sect)
+    {
+        // Checking if a timeslot is granted is valid only in a critical section
+        if (timeslot_is_granted())
+        {
+            rssi_measurement_wait();
+            *p_rssi = rssi_last_measurement_get();
+            result  = true;
+        }
+    }
+
+    if (in_crit_sect)
+    {
         nrf_802154_critical_section_exit();
     }
 

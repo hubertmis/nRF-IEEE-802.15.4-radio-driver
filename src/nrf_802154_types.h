@@ -139,6 +139,12 @@ typedef uint8_t nrf_802154_ack_data_t;
 #define NRF_802154_ACK_DATA_IE          0x01
 
 /**
+ * @brief RSSI measurement results.
+ */
+
+#define NRF_802154_RSSI_INVALID INT8_MAX
+
+/**
  *@}
  **/
 

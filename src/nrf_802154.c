@@ -527,13 +527,21 @@ bool nrf_802154_buffer_free_immediately(uint8_t * p_data)
 
 #endif // NRF_802154_USE_RAW_API
 
+bool nrf_802154_rssi_measure_begin(void)
+{
+    return nrf_802154_request_rssi_measure();
+}
+
 int8_t nrf_802154_rssi_last_get(void)
 {
-    uint8_t negative_dbm = nrf_radio_rssi_sample_get();
+    int8_t result = 0;
 
-    negative_dbm = nrf_802154_rssi_sample_corrected_get(negative_dbm);
+    if (!nrf_802154_request_rssi_measurement_get(&result))
+    {
+        result = NRF_802154_RSSI_INVALID;
+    }
 
-    return -(int8_t)negative_dbm;
+    return result;
 }
 
 bool nrf_802154_promiscuous_get(void)

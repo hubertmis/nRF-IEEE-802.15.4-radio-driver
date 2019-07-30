@@ -214,6 +214,18 @@ bool nrf_802154_core_channel_update(void);
  */
 bool nrf_802154_core_cca_cfg_update(void);
 
+/**
+ * @brief Notifies the core module that the next higher layer requested the RSSI measurement.
+ */
+bool nrf_802154_core_rssi_measure(void);
+
+/**
+ * @brief Gets the last RSSI measurement.
+ *
+ * @param[out]  p_rssi  RSSI measurement value in dBm.
+ */
+bool nrf_802154_core_last_rssi_measurement_get(int8_t * p_rssi);
+
 #if !NRF_802154_INTERNAL_IRQ_HANDLING
 /**
  * @brief Notifies the core module that there is a pending IRQ to be handled.
