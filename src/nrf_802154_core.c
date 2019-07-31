@@ -246,7 +246,8 @@ static void rssi_measurement_wait(void)
 {
     while (!nrf_radio_event_check(NRF_RADIO_EVENT_RSSIEND))
     {
-        nrf_802154_busy_wait();
+        // Intentionally empty: This function is called from a critical section.
+        // WFE would not be waken up by a RADIO event.
     }
 }
 
