@@ -55,6 +55,7 @@
 #include "nrf_802154_utils.h"
 #include "nrf_802154_timer_coord.h"
 #include "nrf_802154_types.h"
+#include "nrf_802154_utils.h"
 #include "nrf_egu.h"
 #include "nrf_ppi.h"
 #include "nrf_radio.h"
@@ -245,7 +246,8 @@ static void rssi_measurement_wait(void)
 {
     while (!nrf_radio_event_check(NRF_RADIO_EVENT_RSSIEND))
     {
-        nrf_802154_busy_wait();
+        // Intentionally empty: This function is called from a critical section.
+        // WFE would not be waken up by a RADIO event.
     }
 }
 
@@ -586,6 +588,9 @@ static void nrf_radio_reset(void)
 /** Initialize interrupts for radio peripheral. */
 static void irq_init(void)
 {
+#if !NRF_IS_IRQ_PRIORITY_ALLOWED(NRF_802154_IRQ_PRIORITY)
+#error NRF_802154_IRQ_PRIORITY value out of the allowed range.
+#endif
     NVIC_SetPriority(RADIO_IRQn, NRF_802154_IRQ_PRIORITY);
     NVIC_ClearPendingIRQ(RADIO_IRQn);
 }

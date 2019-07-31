@@ -63,6 +63,10 @@
         (ticks) * (NRF_802154_US_PER_S >> NRF_802154_FREQUENCY_US_PER_S_GCD_BITS), \
         (NRF_802154_RTC_FREQUENCY >> NRF_802154_FREQUENCY_US_PER_S_GCD_BITS))
 
+/** Checks if the given IRQ priority is within the range implemented by the MCU. */
+#define NRF_IS_IRQ_PRIORITY_ALLOWED(priority) \
+    (((priority) >= 0) && ((priority) < (1U << (__NVIC_PRIO_BITS))))
+
 /**@brief Macro to get the number of elements in an array.
  *
  * @param[in] X   Array.

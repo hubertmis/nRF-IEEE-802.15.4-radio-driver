@@ -305,7 +305,7 @@ extern "C" {
  *
  */
 #ifndef NRF_802154_CLOCK_IRQ_PRIORITY
-#define NRF_802154_CLOCK_IRQ_PRIORITY 10
+#define NRF_802154_CLOCK_IRQ_PRIORITY 7
 #endif
 
 /**

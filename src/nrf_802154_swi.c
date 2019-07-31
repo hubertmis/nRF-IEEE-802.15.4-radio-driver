@@ -44,6 +44,7 @@
 #include "nrf_802154_config.h"
 #include "nrf_802154_core.h"
 #include "nrf_802154_rx_buffer.h"
+#include "nrf_802154_utils.h"
 #include "nrf_egu.h"
 #include "platform/clock/nrf_802154_clock.h"
 
@@ -447,6 +448,9 @@ void nrf_802154_swi_init(void)
 
     nrf_egu_int_enable(SWI_EGU, NTF_INT | HFCLK_STOP_INT | REQ_INT);
 
+#if !NRF_IS_IRQ_PRIORITY_ALLOWED(NRF_802154_SWI_PRIORITY)
+#error NRF_802154_SWI_PRIORITY value out of the allowed range.
+#endif
     NVIC_SetPriority(SWI_IRQn, NRF_802154_SWI_PRIORITY);
     NVIC_ClearPendingIRQ(SWI_IRQn);
     NVIC_EnableIRQ(SWI_IRQn);
