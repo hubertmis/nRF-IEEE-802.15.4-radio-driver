@@ -49,7 +49,6 @@
 #include "nrf_802154_notification.h"
 #include "nrf_802154_pib.h"
 #include "nrf_802154_procedures_duration.h"
-#include "nrf_802154_revision.h"
 #include "nrf_802154_rssi.h"
 #include "nrf_802154_rx_buffer.h"
 #include "nrf_802154_utils.h"
@@ -97,17 +96,6 @@
 #define PPI_CRCERROR_COUNTER_CLEAR PPI_CH6                ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
 #endif  // NRF_802154_DISABLE_BCC_MATCHING
 
-/// Workaround for missing PHYEND event in older chip revision.
-static inline uint32_t short_phyend_disable_mask_get(void)
-{
-    if (nrf_802154_revision_has_phyend_event())
-    {
-        return NRF_RADIO_SHORT_PHYEND_DISABLE_MASK;
-    }
-
-    return NRF_RADIO_SHORT_END_DISABLE_MASK;
-}
-
 #if NRF_802154_DISABLE_BCC_MATCHING
 #define SHORT_ADDRESS_BCSTART 0UL
 #else // NRF_802154_DISABLE_BCC_MATCHING
@@ -125,16 +113,16 @@ static inline uint32_t short_phyend_disable_mask_get(void)
 #define SHORTS_RX_FREE_BUFFER   (NRF_RADIO_SHORT_RXREADY_START_MASK)
 
 #define SHORTS_TX_ACK           (NRF_RADIO_SHORT_TXREADY_START_MASK | \
-                                 short_phyend_disable_mask_get())
+                                 NRF_RADIO_SHORT_PHYEND_DISABLE_MASK)
 
 #define SHORTS_CCA_TX           (NRF_RADIO_SHORT_RXREADY_CCASTART_MASK | \
                                  NRF_RADIO_SHORT_CCABUSY_DISABLE_MASK |  \
                                  NRF_RADIO_SHORT_CCAIDLE_TXEN_MASK |     \
                                  NRF_RADIO_SHORT_TXREADY_START_MASK |    \
-                                 short_phyend_disable_mask_get())
+                                 NRF_RADIO_SHORT_PHYEND_DISABLE_MASK)
 
 #define SHORTS_TX               (NRF_RADIO_SHORT_TXREADY_START_MASK | \
-                                 short_phyend_disable_mask_get())
+                                 NRF_RADIO_SHORT_PHYEND_DISABLE_MASK)
 
 #define SHORTS_RX_ACK           (NRF_RADIO_SHORT_ADDRESS_RSSISTART_MASK | \
                                  NRF_RADIO_SHORT_END_DISABLE_MASK)
@@ -1128,8 +1116,8 @@ static void tx_ack_terminate(void)
 
     if (timeslot_is_granted())
     {
-        ints_to_disable = nrf_802154_revision_has_phyend_event() ?
-                          NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK;
+        ints_to_disable = NRF_RADIO_INT_PHYEND_MASK;
+
 #if NRF_802154_TX_STARTED_NOTIFY_ENABLED
         ints_to_disable |= NRF_RADIO_INT_ADDRESS_MASK;
 #endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
@@ -1155,9 +1143,8 @@ static void tx_terminate(void)
 
     if (timeslot_is_granted())
     {
-        ints_to_disable = nrf_802154_revision_has_phyend_event() ?
-                          NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK;
-        ints_to_disable |= NRF_RADIO_INT_CCABUSY_MASK;
+        ints_to_disable = NRF_RADIO_INT_PHYEND_MASK | NRF_RADIO_INT_CCABUSY_MASK;
+
 #if NRF_802154_TX_STARTED_NOTIFY_ENABLED
         ints_to_disable |= NRF_RADIO_INT_ADDRESS_MASK;
 #endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
@@ -1634,16 +1621,8 @@ static bool tx_init(const uint8_t * p_data, bool cca, bool disabled_was_triggere
     nrf_radio_shorts_set(cca ? SHORTS_CCA_TX : SHORTS_TX);
 
     // Enable IRQs
-    if (nrf_802154_revision_has_phyend_event())
-    {
-        nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-        ints_to_enable |= NRF_RADIO_INT_PHYEND_MASK;
-    }
-    else
-    {
-        nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-        ints_to_enable |= NRF_RADIO_INT_END_MASK;
-    }
+    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+    ints_to_enable |= NRF_RADIO_INT_PHYEND_MASK;
 
     if (cca)
     {
@@ -2175,16 +2154,8 @@ static void irq_crcok_state_rx(void)
                 ints_to_disable |= NRF_RADIO_INT_CRCOK_MASK;
                 nrf_radio_int_disable(ints_to_disable);
 
-                if (nrf_802154_revision_has_phyend_event())
-                {
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
-                    ints_to_enable = NRF_RADIO_INT_PHYEND_MASK;
-                }
-                else
-                {
-                    nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-                    ints_to_enable = NRF_RADIO_INT_END_MASK;
-                }
+                nrf_radio_event_clear(NRF_RADIO_EVENT_PHYEND);
+                ints_to_enable = NRF_RADIO_INT_PHYEND_MASK;
 
 #if NRF_802154_TX_STARTED_NOTIFY_ENABLED
                 nrf_radio_event_clear(NRF_RADIO_EVENT_ADDRESS);
@@ -2285,8 +2256,7 @@ static void irq_phyend_state_tx_ack(void)
     nrf_radio_bcc_set(BCC_INIT);
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
 
-    ints_to_disable = nrf_802154_revision_has_phyend_event() ?
-                      NRF_RADIO_INT_PHYEND_MASK : NRF_RADIO_INT_END_MASK;
+    ints_to_disable = NRF_RADIO_INT_PHYEND_MASK;
 
 #if NRF_802154_TX_STARTED_NOTIFY_ENABLED
     ints_to_disable |= NRF_RADIO_INT_ADDRESS_MASK;
@@ -2408,12 +2378,9 @@ static void irq_phyend_state_tx_frame(void)
         ints_to_disable |= NRF_RADIO_INT_ADDRESS_MASK;
 #endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
 
-        if (nrf_802154_revision_has_phyend_event())
-        {
-            ints_to_disable |= NRF_RADIO_INT_PHYEND_MASK;
-            nrf_radio_event_clear(NRF_RADIO_EVENT_END);
-            ints_to_enable |= NRF_RADIO_INT_END_MASK;
-        }
+        ints_to_disable |= NRF_RADIO_INT_PHYEND_MASK;
+        nrf_radio_event_clear(NRF_RADIO_EVENT_END);
+        ints_to_enable |= NRF_RADIO_INT_END_MASK;
 
         nrf_radio_int_disable(ints_to_disable);
 
@@ -2703,8 +2670,7 @@ static void irq_handler(void)
         nrf_802154_log(EVENT_TRACE_EXIT, FUNCTION_EVENT_CRCOK);
     }
 
-    if (nrf_802154_revision_has_phyend_event() &&
-        nrf_radio_int_enable_check(NRF_RADIO_INT_PHYEND_MASK) &&
+    if (nrf_radio_int_enable_check(NRF_RADIO_INT_PHYEND_MASK) &&
         nrf_radio_event_check(NRF_RADIO_EVENT_PHYEND))
     {
         nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_EVENT_PHYEND);
@@ -2736,23 +2702,6 @@ static void irq_handler(void)
 
         switch (m_state)
         {
-            case RADIO_STATE_TX_ACK:
-                if (!nrf_802154_revision_has_phyend_event())
-                {
-                    irq_phyend_state_tx_ack();
-                }
-
-                break;
-
-            case RADIO_STATE_CCA_TX:
-            case RADIO_STATE_TX:
-                if (!nrf_802154_revision_has_phyend_event())
-                {
-                    irq_phyend_state_tx_frame();
-                }
-
-                break;
-
             case RADIO_STATE_RX_ACK: // Ended receiving of ACK.
                 irq_end_state_rx_ack();
                 break;

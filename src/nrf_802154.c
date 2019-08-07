@@ -51,7 +51,6 @@
 #include "nrf_802154_pib.h"
 #include "nrf_802154_priority_drop.h"
 #include "nrf_802154_request.h"
-#include "nrf_802154_revision.h"
 #include "nrf_802154_rssi.h"
 #include "nrf_802154_rx_buffer.h"
 #include "nrf_802154_timer_coord.h"
@@ -214,7 +213,6 @@ void nrf_802154_init(void)
     nrf_802154_priority_drop_init();
     nrf_802154_random_init();
     nrf_802154_request_init();
-    nrf_802154_revision_init();
     nrf_802154_rsch_crit_sect_init();
     nrf_802154_rsch_init();
     nrf_802154_rx_buffer_init();
