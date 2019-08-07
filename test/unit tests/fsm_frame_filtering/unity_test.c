@@ -46,7 +46,6 @@
 #include "mock_nrf_802154_pib.h"
 #include "mock_nrf_802154_priority_drop.h"
 #include "mock_nrf_802154_procedures_duration.h"
-#include "mock_nrf_802154_revision.h"
 #include "mock_nrf_802154_rsch.h"
 #include "mock_nrf_802154_rssi.h"
 #include "mock_nrf_802154_rx_buffer.h"
@@ -258,7 +257,6 @@ static void mock_tx_terminate(void)
 
     m_rsch_timeslot_is_granted = true;
 
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_PHYEND_MASK  |
                                  NRF_RADIO_INT_CCABUSY_MASK |
                                  NRF_RADIO_INT_ADDRESS_MASK);
@@ -361,7 +359,6 @@ static void mock_ack_requested_rx(void)
 
     nrf_802154_ack_generator_create_ExpectAndReturn(m_test_rx_buffer.data, p_ack);
     nrf_radio_packetptr_set_Expect(p_ack);
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_shorts_set_Expect(NRF_RADIO_SHORT_TXREADY_START_MASK |
                                 NRF_RADIO_SHORT_PHYEND_DISABLE_MASK);
     nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_TXREADY);
@@ -387,7 +384,6 @@ static void mock_ack_requested_rx(void)
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_BCMATCH_MASK  |
                                  NRF_RADIO_INT_CRCERROR_MASK |
                                  NRF_RADIO_INT_CRCOK_MASK);
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_PHYEND);
     nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_ADDRESS);
     nrf_radio_int_enable_Expect(NRF_RADIO_INT_PHYEND_MASK | NRF_RADIO_INT_ADDRESS_MASK);
@@ -440,7 +436,6 @@ static void mock_ack_requested_tx(void)
     nrf_radio_packetptr_set_Expect(m_test_rx_buffer.data);
 
 
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_END);
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_CCABUSY_MASK |
                                  NRF_RADIO_INT_ADDRESS_MASK |

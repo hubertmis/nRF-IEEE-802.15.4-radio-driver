@@ -44,7 +44,6 @@
 #include "mock_nrf_802154_pib.h"
 #include "mock_nrf_802154_priority_drop.h"
 #include "mock_nrf_802154_procedures_duration.h"
-#include "mock_nrf_802154_revision.h"
 #include "mock_nrf_802154_rsch.h"
 #include "mock_nrf_802154_rssi.h"
 #include "mock_nrf_802154_rx_buffer.h"
@@ -365,7 +364,6 @@ static void verify_transmit_begin_periph_setup(bool cca)
     verify_setting_tx_power();
     verify_setting_tx_packet_ptr();
 
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
 
     if (cca)
     {
@@ -381,7 +379,6 @@ static void verify_transmit_begin_periph_setup(bool cca)
                                     NRF_RADIO_SHORT_PHYEND_DISABLE_MASK);
     }
 
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_PHYEND);
     if (cca)
     {
@@ -455,11 +452,9 @@ void test_transmit_begin_ShallPrepareHardwareToTransmit(void)
     verify_setting_tx_power();
     verify_setting_tx_packet_ptr();
 
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_shorts_set_Expect(NRF_RADIO_SHORT_TXREADY_START_MASK |
                                 NRF_RADIO_SHORT_PHYEND_DISABLE_MASK);
 
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_PHYEND);
     nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_ADDRESS);
     nrf_radio_int_enable_Expect(NRF_RADIO_INT_PHYEND_MASK | NRF_RADIO_INT_ADDRESS_MASK);
@@ -502,133 +497,11 @@ void test_transmit_begin_ShallPrepareHardwareToTransmit(void)
     tx_init(m_tx_buffer, false, false);
 }
 
-void test_transmit_begin_ShallEnableEndEventIfPhyendIsNotAvailable(void)
-{
-    uint32_t event_addr;
-    uint32_t task_addr1;
-    uint32_t task_addr2;
-
-    verify_timeslot_request(false, true);
-
-    verify_setting_tx_power();
-    verify_setting_tx_packet_ptr();
-
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(false);
-    nrf_radio_shorts_set_Expect(NRF_RADIO_SHORT_TXREADY_START_MASK |
-                                NRF_RADIO_SHORT_END_DISABLE_MASK);
-
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(false);
-    nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_END);
-    nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_ADDRESS);
-    nrf_radio_int_enable_Expect(NRF_RADIO_INT_END_MASK | NRF_RADIO_INT_ADDRESS_MASK);
-
-    task_addr1 = rand();
-    event_addr = rand();
-
-    nrf_802154_fal_pa_configuration_set_ExpectAndReturn(&m_activate_tx_cc0, NULL, NRF_SUCCESS);
-    nrf_timer_shorts_enable_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
-
-    nrf_egu_event_address_get_ExpectAndReturn(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT, (uint32_t *)event_addr);
-    nrf_timer_task_address_get_ExpectAndReturn(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_START, (uint32_t *)task_addr1);
-    nrf_ppi_channel_endpoint_setup_Expect(PPI_EGU_TIMER_START, event_addr, task_addr1);
-    nrf_ppi_channel_enable_Expect(PPI_EGU_TIMER_START);
-
-    nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
-
-    task_addr2 = rand();
-    nrf_ppi_task_address_get_ExpectAndReturn(PPI_CHGRP0_DIS_TASK, (uint32_t *)task_addr2);
-    task_addr1 = rand();
-    nrf_radio_task_address_get_ExpectAndReturn(NRF_RADIO_TASK_TXEN, task_addr1);
-    event_addr = rand();
-    nrf_egu_event_address_get_ExpectAndReturn(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT, (uint32_t *)event_addr);
-    nrf_ppi_channel_and_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, event_addr, task_addr1, task_addr2);
-
-    task_addr1 = rand();
-    nrf_egu_task_address_get_ExpectAndReturn(NRF_802154_SWI_EGU_INSTANCE, EGU_TASK, (uint32_t *)task_addr1);
-    event_addr = rand();
-    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_DISABLED, event_addr);
-    nrf_ppi_channel_endpoint_setup_Expect(PPI_DISABLED_EGU, event_addr, task_addr1);
-
-    nrf_ppi_channel_include_in_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
-
-    nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
-    nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
-
-    nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
-
-    tx_init(m_tx_buffer, false, false);
-}
-
 // Basic peripheral setup if CCA is performed
 
 void test_transmit_begin_ShallPrepareHardwareToCcaAndTransmit(void)
 {
     verify_transmit_begin_periph_setup(true);
-
-    nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
-
-    tx_init(m_tx_buffer, true, false);
-}
-
-void test_transmit_begin_ShallEnableEndEventIfCcaRequestedAndPhyendIsNotAvailable(void)
-{
-    uint32_t event_addr;
-    uint32_t task_addr1;
-    uint32_t task_addr2;
-
-    verify_timeslot_request(true, true);
-
-    verify_setting_tx_power();
-    verify_setting_tx_packet_ptr();
-
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(false);
-    nrf_radio_shorts_set_Expect(NRF_RADIO_SHORT_RXREADY_CCASTART_MASK |
-                                NRF_RADIO_SHORT_CCABUSY_DISABLE_MASK  |
-                                NRF_RADIO_SHORT_CCAIDLE_TXEN_MASK     |
-                                NRF_RADIO_SHORT_TXREADY_START_MASK    |
-                                NRF_RADIO_SHORT_END_DISABLE_MASK);
-
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(false);
-    nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_END);
-    nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_CCABUSY);
-    nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_ADDRESS);
-    nrf_radio_int_enable_Expect(NRF_RADIO_INT_END_MASK     |
-                                NRF_RADIO_INT_CCABUSY_MASK |
-                                NRF_RADIO_INT_ADDRESS_MASK);
-
-    // Set timer and PPIs for FEM
-    event_addr = rand();
-    task_addr1 = rand();
-
-    nrf_802154_fal_lna_configuration_set_ExpectAndReturn(&m_activate_rx_cc0, &m_ccaidle, NRF_SUCCESS);
-    nrf_802154_fal_pa_configuration_set_ExpectAndReturn(&m_ccaidle, NULL, NRF_SUCCESS);
-    nrf_timer_shorts_enable_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
-
-    nrf_egu_event_address_get_ExpectAndReturn(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT, (uint32_t *)event_addr);
-    nrf_timer_task_address_get_ExpectAndReturn(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_START, (uint32_t *)task_addr1);
-    nrf_ppi_channel_endpoint_setup_Expect(PPI_EGU_TIMER_START, event_addr, task_addr1);
-    nrf_ppi_channel_enable_Expect(PPI_EGU_TIMER_START);
-
-    nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
-
-    task_addr2 = rand();
-    nrf_ppi_task_address_get_ExpectAndReturn(PPI_CHGRP0_DIS_TASK, (uint32_t *)task_addr2);
-    task_addr1 = rand();
-    nrf_radio_task_address_get_ExpectAndReturn(NRF_RADIO_TASK_RXEN, task_addr1);
-    event_addr = rand();
-    nrf_egu_event_address_get_ExpectAndReturn(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT, (uint32_t *)event_addr);
-    nrf_ppi_channel_and_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, event_addr, task_addr1, task_addr2);
-
-    task_addr1 = rand();
-    nrf_egu_task_address_get_ExpectAndReturn(NRF_802154_SWI_EGU_INSTANCE, EGU_TASK, (uint32_t *)task_addr1);
-    event_addr = rand();
-    nrf_radio_event_address_get_ExpectAndReturn(NRF_RADIO_EVENT_DISABLED, event_addr);
-    nrf_ppi_channel_endpoint_setup_Expect(PPI_DISABLED_EGU, event_addr, task_addr1);
-
-    nrf_ppi_channel_include_in_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
-
-    nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
-    nrf_ppi_channel_enable_Expect(PPI_DISABLED_EGU);
 
     nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
 
@@ -704,7 +577,6 @@ static void verify_tx_terminate_periph_reset(bool in_timeslot)
 
     if (in_timeslot)
     {
-        nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
         nrf_radio_int_disable_Expect(NRF_RADIO_INT_CCABUSY_MASK |
                                      NRF_RADIO_INT_PHYEND_MASK  |
                                      NRF_RADIO_INT_ADDRESS_MASK);
@@ -724,37 +596,6 @@ void test_tx_terminate_ShallNotModifyRadioRegistersOutOfTimeslot(void)
 void test_tx_terminate_ShallResetPeriphAndTriggerDisableTask(void)
 {
     verify_tx_terminate_periph_reset(true);
-
-    tx_terminate();
-}
-
-void test_tx_terminate_ShallDisableEndEventIfPhyendIsNotAvailable(void)
-{
-    nrf_ppi_channel_disable_Expect(PPI_DISABLED_EGU);
-    nrf_ppi_channel_disable_Expect(PPI_EGU_RAMP_UP);
-
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
-    nrf_timer_shorts_disable_Expect(NRF_802154_TIMER_INSTANCE,
-                             NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
-                             NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
-
-    nrf_802154_fal_pa_configuration_clear_ExpectAndReturn(&m_activate_tx_cc0, NULL, NRF_SUCCESS);
-
-    nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
-    nrf_ppi_channel_disable_Expect(PPI_EGU_TIMER_START);
-
-    nrf_ppi_channel_remove_from_group_Expect(PPI_EGU_RAMP_UP, PPI_CHGRP0);
-    nrf_ppi_fork_endpoint_setup_Expect(PPI_EGU_RAMP_UP, 0);
-
-    m_rsch_timeslot_is_granted = true;
-
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(false);
-    nrf_radio_int_disable_Expect(NRF_RADIO_INT_CCABUSY_MASK |
-                                 NRF_RADIO_INT_END_MASK  |
-                                 NRF_RADIO_INT_ADDRESS_MASK);
-    nrf_radio_shorts_set_Expect(0);
-    nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_CCASTOP);
-    nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
 
     tx_terminate();
 }
@@ -799,7 +640,6 @@ static void verify_phyend_ack_req_periph_setup(uint32_t shorts, bool buffer_free
         nrf_radio_packetptr_set_Expect(m_rx_buffer.data);
     }
 
-    nrf_802154_revision_has_phyend_event_ExpectAndReturn(true);
     nrf_radio_event_clear_Expect(NRF_RADIO_EVENT_END);
     nrf_radio_int_disable_Expect(NRF_RADIO_INT_CCABUSY_MASK |
                                  NRF_RADIO_INT_ADDRESS_MASK |
