@@ -40,28 +40,16 @@ extern "C" {
  */
 
 /** Time in microseconds when PA GPIO is activated before the radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE  23
+#define NRF_FEM_PA_TIME_IN_ADVANCE          23
 
 /** Time in microseconds when LNA GPIO is activated before the radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE 5
-
-#if defined(NRF52840_XXAA) || \
-    defined(NRF52840_AAAA) || \
-    defined(NRF52840_AABA) || \
-    defined(NRF52840_AACX) || \
-    defined(NRF52811_XXAA)
+#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
 
 /** Radio ramp-up time in TX mode, in microseconds. */
 #define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
 
 /** Radio ramp-up time in RX mode, in microseconds. */
 #define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-#error "Device not supported."
-
-#endif
 
 #ifdef __cplusplus
 }
