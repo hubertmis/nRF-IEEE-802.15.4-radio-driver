@@ -70,7 +70,7 @@
 #include "mac_features/ack_generator/nrf_802154_ack_data.h"
 
 #if ENABLE_FEM
-#include "fem/nrf_fem_control_api.h"
+#include "fem/nrf_fem_protocol_api.h"
 #endif
 
 #define RAW_LENGTH_OFFSET  0
@@ -244,14 +244,45 @@ void nrf_802154_radio_irq_handler(void)
 #endif // !NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
 
 #if ENABLE_FEM
-void nrf_802154_fem_control_cfg_set(const nrf_802154_fem_control_cfg_t * p_cfg)
+void nrf_802154_fem_control_cfg_set(nrf_802154_fem_control_cfg_t const * const p_cfg)
 {
-    nrf_fem_control_cfg_set(p_cfg);
+    nrf_fem_interface_config_t config = NRF_802154_FAL_DEFAULT_SETTINGS;
+
+    config.lna_pin_config.active_high  = p_cfg->lna_cfg.active_high;
+    config.lna_pin_config.enable       = p_cfg->lna_cfg.enable;
+    config.lna_pin_config.gpio_pin     = p_cfg->lna_cfg.gpio_pin;
+    config.lna_pin_config.gpiote_ch_id = p_cfg->lna_gpiote_ch_id;
+
+    config.pa_pin_config.active_high  = p_cfg->pa_cfg.active_high;
+    config.pa_pin_config.enable       = p_cfg->pa_cfg.enable;
+    config.pa_pin_config.gpio_pin     = p_cfg->pa_cfg.gpio_pin;
+    config.pa_pin_config.gpiote_ch_id = p_cfg->pa_gpiote_ch_id;
+
+    config.ppi_ch_id_set = p_cfg->ppi_ch_id_set;
+    config.ppi_ch_id_clr = p_cfg->ppi_ch_id_clr;
+
+    nrf_fem_interface_configuration_set(&config);
 }
 
 void nrf_802154_fem_control_cfg_get(nrf_802154_fem_control_cfg_t * p_cfg)
 {
-    nrf_fem_control_cfg_get(p_cfg);
+    nrf_fem_interface_config_t config;
+
+    nrf_fem_interface_configuration_get(&config);
+
+    p_cfg->lna_cfg.active_high = config.lna_pin_config.active_high;
+    p_cfg->lna_cfg.enable      = config.lna_pin_config.enable;
+    p_cfg->lna_cfg.gpio_pin    = config.lna_pin_config.gpio_pin;
+
+    p_cfg->pa_cfg.active_high = config.pa_pin_config.active_high;
+    p_cfg->pa_cfg.enable      = config.pa_pin_config.enable;
+    p_cfg->pa_cfg.gpio_pin    = config.pa_pin_config.gpio_pin;
+
+    p_cfg->lna_gpiote_ch_id = config.lna_pin_config.gpiote_ch_id;
+    p_cfg->pa_gpiote_ch_id  = config.pa_pin_config.gpiote_ch_id;
+
+    p_cfg->ppi_ch_id_clr = config.ppi_ch_id_clr;
+    p_cfg->ppi_ch_id_set = config.ppi_ch_id_set;
 }
 
 #endif // ENABLE_FEM

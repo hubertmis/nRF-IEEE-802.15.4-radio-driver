@@ -57,10 +57,11 @@
 #include "nrf_802154_types.h"
 #include "nrf_802154_utils.h"
 #include "nrf_egu.h"
+#include "nrf_error.h"
 #include "nrf_ppi.h"
 #include "nrf_radio.h"
 #include "nrf_timer.h"
-#include "fem/nrf_fem_control_api.h"
+#include "fem/nrf_fem_protocol_api.h"
 #include "mac_features/nrf_802154_delayed_trx.h"
 #include "mac_features/nrf_802154_filter.h"
 #include "mac_features/nrf_802154_frame_parser.h"
@@ -188,6 +189,41 @@ static uint32_t        m_ed_time_left; ///< Remaining time of the current energy
 static uint8_t         m_ed_result;    ///< Result of the current energy detection procedure.
 
 static volatile radio_state_t m_state; ///< State of the radio driver.
+
+/// Common parameters for the FAL handling.
+static const nrf_802154_fal_event_t m_deactivate_on_disable =
+{.type         = NRF_802154_FAL_EVENT_TYPE_GENERIC,
+ .override_ppi =
+     false,
+ .event.generic.register_address =
+     ((uint32_t)NRF_RADIO_BASE + (uint32_t)NRF_RADIO_EVENT_DISABLED)};
+
+static const nrf_802154_fal_event_t m_activate_rx_cc0 =
+{.type                         = NRF_802154_FAL_EVENT_TYPE_TIMER,
+ .override_ppi                 = false,
+ .event.timer.p_timer_instance =
+     NRF_802154_TIMER_INSTANCE,
+ .event.timer.compare_channel_mask = 1 <<
+                                     NRF_TIMER_CC_CHANNEL0,
+        .event.timer.counter_value =
+         NRF_FEM_RADIO_RX_STARTUP_LATENCY_US};
+
+static const nrf_802154_fal_event_t m_activate_tx_cc0 =
+{.type                         = NRF_802154_FAL_EVENT_TYPE_TIMER,
+ .override_ppi                 = false,
+ .event.timer.p_timer_instance =
+     NRF_802154_TIMER_INSTANCE,
+ .event.timer.compare_channel_mask = 1 <<
+                                     NRF_TIMER_CC_CHANNEL0,
+        .event.timer.counter_value =
+         NRF_FEM_RADIO_TX_STARTUP_LATENCY_US};
+
+static const nrf_802154_fal_event_t m_ccaidle =
+{.type                           = NRF_802154_FAL_EVENT_TYPE_GENERIC,
+ .override_ppi                   = true,
+ .ppi_ch_id                      = PPI_CCAIDLE_FEM,
+ .event.generic.register_address =
+     ((uint32_t)NRF_RADIO_BASE + (uint32_t)NRF_RADIO_EVENT_CCAIDLE)};
 
 typedef struct
 {
@@ -784,96 +820,126 @@ static void ppis_for_egu_and_ramp_up_set(nrf_radio_task_t ramp_up_task, bool sel
 }
 
 /** Configure FEM to set LNA at appropriate time. */
-static void fem_for_lna_set(nrf_timer_cc_channel_t cc_channel,
-                            nrf_timer_short_mask_t short_mask)
+static void fem_for_lna_set(void)
 {
-    nrf_fem_control_ppi_enable(NRF_FEM_CONTROL_LNA_PIN, cc_channel);
-    nrf_fem_control_timer_set(NRF_FEM_CONTROL_LNA_PIN, cc_channel, short_mask);
-    nrf_fem_control_ppi_task_setup(NRF_FEM_CONTROL_LNA_PIN,
-                                   PPI_EGU_TIMER_START,
-                                   (uint32_t)nrf_egu_event_address_get(
-                                       NRF_802154_SWI_EGU_INSTANCE,
-                                       EGU_EVENT),
-                                   (uint32_t)nrf_timer_task_address_get(
-                                       NRF_802154_TIMER_INSTANCE,
-                                       NRF_TIMER_TASK_START));
+    if (nrf_802154_fal_lna_configuration_set(&m_activate_rx_cc0, NULL) == NRF_SUCCESS)
+    {
+        uint32_t event_addr = (uint32_t)nrf_egu_event_address_get(NRF_802154_SWI_EGU_INSTANCE,
+                                                                  EGU_EVENT);
+        uint32_t task_addr = (uint32_t)nrf_timer_task_address_get(NRF_802154_TIMER_INSTANCE,
+                                                                  NRF_TIMER_TASK_START);
+
+        nrf_timer_shorts_enable(m_activate_rx_cc0.event.timer.p_timer_instance,
+                                NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+        nrf_ppi_channel_endpoint_setup(PPI_EGU_TIMER_START, event_addr, task_addr);
+        nrf_ppi_channel_enable(PPI_EGU_TIMER_START);
+    }
 }
 
 /** Reset FEM configuration for LNA.
  *
  * @param[in]  timer_short_mask  Mask of shorts that should be disabled on FEM timer.
  */
-static void fem_for_lna_reset(nrf_timer_short_mask_t timer_short_mask)
+static void fem_for_lna_reset(void)
 {
-    nrf_fem_control_ppi_disable(NRF_FEM_CONTROL_LNA_PIN);
-    nrf_fem_control_timer_reset(NRF_FEM_CONTROL_LNA_PIN, timer_short_mask);
+    nrf_802154_fal_lna_configuration_clear(&m_activate_rx_cc0, NULL);
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+    nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
     nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
 }
 
 /** Configure FEM to set PA at appropriate time. */
 static void fem_for_pa_set(void)
 {
-    nrf_fem_control_ppi_enable(NRF_FEM_CONTROL_PA_PIN, NRF_TIMER_CC_CHANNEL2);
-    nrf_fem_control_timer_set(NRF_FEM_CONTROL_PA_PIN,
-                              NRF_TIMER_CC_CHANNEL2,
-                              NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
-    nrf_fem_control_ppi_fork_setup(NRF_FEM_CONTROL_PA_PIN,
-                                   PPI_EGU_RAMP_UP,
-                                   (uint32_t)nrf_timer_task_address_get(
-                                       NRF_802154_TIMER_INSTANCE,
-                                       NRF_TIMER_TASK_START));
+    if (nrf_802154_fal_pa_configuration_set(&m_activate_tx_cc0, NULL) == NRF_SUCCESS)
+    {
+        uint32_t event_addr = (uint32_t)nrf_egu_event_address_get(NRF_802154_SWI_EGU_INSTANCE,
+                                                                  EGU_EVENT);
+        uint32_t task_addr = (uint32_t)nrf_timer_task_address_get(NRF_802154_TIMER_INSTANCE,
+                                                                  NRF_TIMER_TASK_START);
+
+        nrf_timer_shorts_enable(m_activate_tx_cc0.event.timer.p_timer_instance,
+                                NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+        nrf_ppi_channel_endpoint_setup(PPI_EGU_TIMER_START, event_addr, task_addr);
+        nrf_ppi_channel_enable(PPI_EGU_TIMER_START);
+    }
 }
 
 /** Reset FEM configuration for PA. */
 static void fem_for_pa_reset(void)
 {
-    nrf_fem_control_ppi_disable(NRF_FEM_CONTROL_PA_PIN);
-    nrf_fem_control_timer_reset(NRF_FEM_CONTROL_PA_PIN, NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
-    nrf_fem_control_ppi_fork_clear(NRF_FEM_CONTROL_PA_PIN, PPI_EGU_RAMP_UP);
+    nrf_802154_fal_pa_configuration_clear(&m_activate_tx_cc0, NULL);
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+    nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
+    nrf_802154_fal_deactivate_now(NRF_802154_FAL_PA);
 }
 
 /** Configure FEM for TX procedure. */
 static void fem_for_tx_set(bool cca)
 {
+    bool success;
+
     if (cca)
     {
-        nrf_fem_control_ppi_enable(NRF_FEM_CONTROL_LNA_PIN, NRF_TIMER_CC_CHANNEL0);
-        nrf_fem_control_timer_set(NRF_FEM_CONTROL_LNA_PIN,
-                                  NRF_TIMER_CC_CHANNEL0,
-                                  NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
-        nrf_fem_control_ppi_pin_task_setup(PPI_CCAIDLE_FEM,
-                                           (uint32_t)nrf_radio_event_address_get(
-                                               NRF_RADIO_EVENT_CCAIDLE),
-                                           false,
-                                           true);
+        bool pa_set  = false;
+        bool lna_set = false;
+
+        if (nrf_802154_fal_lna_configuration_set(&m_activate_rx_cc0, &m_ccaidle) == NRF_SUCCESS)
+        {
+            lna_set = true;
+        }
+
+        if (nrf_802154_fal_pa_configuration_set(&m_ccaidle, NULL) == NRF_SUCCESS)
+        {
+            pa_set = true;
+        }
+
+        success = pa_set || lna_set;
+
     }
     else
     {
-        nrf_fem_control_ppi_enable(NRF_FEM_CONTROL_PA_PIN, NRF_TIMER_CC_CHANNEL1);
-        nrf_fem_control_timer_set(NRF_FEM_CONTROL_PA_PIN,
-                                  NRF_TIMER_CC_CHANNEL1,
-                                  NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
+        success = (nrf_802154_fal_pa_configuration_set(&m_activate_tx_cc0, NULL) == NRF_SUCCESS);
     }
 
-    nrf_fem_control_ppi_task_setup(NRF_FEM_CONTROL_ANY_PIN,
-                                   PPI_EGU_TIMER_START,
-                                   (uint32_t)nrf_egu_event_address_get(
-                                       NRF_802154_SWI_EGU_INSTANCE,
-                                       EGU_EVENT),
-                                   (uint32_t)nrf_timer_task_address_get(
-                                       NRF_802154_TIMER_INSTANCE,
-                                       NRF_TIMER_TASK_START));
+    if (success)
+    {
+        nrf_timer_shorts_enable(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+
+        uint32_t egu_event_addr = (uint32_t)nrf_egu_event_address_get(NRF_802154_SWI_EGU_INSTANCE,
+                                                                      EGU_EVENT);
+        uint32_t timer_task_addr = (uint32_t)nrf_timer_task_address_get(NRF_802154_TIMER_INSTANCE,
+                                                                        NRF_TIMER_TASK_START);
+
+        nrf_ppi_channel_endpoint_setup(PPI_EGU_TIMER_START, egu_event_addr, timer_task_addr);
+        nrf_ppi_channel_enable(PPI_EGU_TIMER_START);
+    }
 }
 
 /** Reset FEM for TX procedure. */
 static void fem_for_tx_reset(bool disable_ppi_egu_timer_start)
 {
-    nrf_fem_control_ppi_disable(NRF_FEM_CONTROL_ANY_PIN);
-    nrf_fem_control_timer_reset(NRF_FEM_CONTROL_ANY_PIN,
-                                (nrf_timer_short_mask_t)(NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
-                                                         NRF_TIMER_SHORT_COMPARE1_STOP_MASK));
-    nrf_fem_control_ppi_fork_clear(NRF_FEM_CONTROL_ANY_PIN, PPI_CCAIDLE_FEM);
-    nrf_ppi_channel_disable(PPI_CCAIDLE_FEM);
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+    nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE,
+                             NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
+                             NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
+
+    switch (m_state)
+    {
+        case RADIO_STATE_CCA_TX:
+            nrf_802154_fal_pa_configuration_clear(&m_activate_rx_cc0, &m_ccaidle);
+            break;
+
+        case RADIO_STATE_TX:
+            nrf_802154_fal_pa_configuration_clear(&m_activate_tx_cc0, NULL);
+            break;
+
+        default:
+            assert(false);
+            break;
+    }
+
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     if (disable_ppi_egu_timer_start)
     {
@@ -990,8 +1056,9 @@ static void rx_terminate(void)
     nrf_ppi_channel_disable(PPI_CRCERROR_COUNTER_CLEAR);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
-    nrf_fem_control_ppi_disable(NRF_FEM_CONTROL_LNA_PIN);
-
+    // Disable LNA
+    nrf_802154_fal_lna_configuration_clear(&m_activate_rx_cc0, NULL);
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
 
 #if NRF_802154_DISABLE_BCC_MATCHING
@@ -1003,8 +1070,7 @@ static void rx_terminate(void)
     // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
     nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE,
-                             NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
-                             NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
+                             NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
 
 #if NRF_802154_DISABLE_BCC_MATCHING
     // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
@@ -1040,7 +1106,9 @@ static void tx_ack_terminate(void)
     nrf_ppi_channel_disable(PPI_CRCOK_DIS_PPI);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
-    nrf_fem_control_ppi_disable(NRF_FEM_CONTROL_PA_PIN);
+    // Disable PA
+    nrf_802154_fal_pa_configuration_clear(&m_activate_tx_cc0, NULL);
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
 #if !NRF_802154_DISABLE_BCC_MATCHING
@@ -1050,8 +1118,7 @@ static void tx_ack_terminate(void)
     // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
     nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE,
-                             NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
-                             NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
+                             NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
 
 #if NRF_802154_DISABLE_BCC_MATCHING
     // Anomaly 78: use SHUTDOWN instead of STOP and CLEAR.
@@ -1110,7 +1177,7 @@ static void rx_ack_terminate(void)
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
 
-    fem_for_lna_reset(NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
+    fem_for_lna_reset();
 
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
@@ -1134,7 +1201,7 @@ static void ed_terminate(void)
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
 
-    fem_for_lna_reset(NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+    fem_for_lna_reset();
 
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
@@ -1154,7 +1221,7 @@ static void cca_terminate(void)
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
     nrf_ppi_channel_disable(PPI_EGU_RAMP_UP);
 
-    fem_for_lna_reset(NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+    fem_for_lna_reset();
 
     nrf_ppi_channel_remove_from_group(PPI_EGU_RAMP_UP, PPI_CHGRP0);
     nrf_ppi_fork_endpoint_setup(PPI_EGU_RAMP_UP, 0);
@@ -1374,10 +1441,8 @@ static void falling_asleep_init(void)
 /** Initialize RX operation. */
 static void rx_init(bool disabled_was_triggered)
 {
-    bool     free_buffer;
-    int32_t  ints_to_enable = 0;
-    uint32_t lna_target_time;
-    uint32_t pa_target_time;
+    bool    free_buffer;
+    int32_t ints_to_enable = 0;
 
     if (!timeslot_is_granted())
     {
@@ -1421,21 +1486,25 @@ static void rx_init(bool disabled_was_triggered)
     nrf_radio_int_enable(ints_to_enable);
 
     // Set FEM
-    nrf_fem_control_ppi_enable(NRF_FEM_CONTROL_LNA_PIN, NRF_TIMER_CC_CHANNEL0);
-    lna_target_time = nrf_fem_control_delay_get(NRF_FEM_CONTROL_LNA_PIN);
-    pa_target_time  = nrf_fem_control_delay_get(NRF_FEM_CONTROL_PA_PIN);
-
-    // Set TIMER to transmit ACK
     nrf_timer_shorts_enable(NRF_802154_TIMER_INSTANCE,
-                            NRF_TIMER_SHORT_COMPARE0_STOP_MASK |
-                            NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
-    nrf_timer_cc_write(NRF_802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, lna_target_time);
+                            NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+
+    uint32_t delta_time;
+
+    if (nrf_802154_fal_lna_configuration_set(&m_activate_rx_cc0, NULL) == NRF_SUCCESS)
+    {
+        delta_time = nrf_timer_cc_read(NRF_802154_TIMER_INSTANCE,
+                                       NRF_TIMER_CC_CHANNEL0);
+    }
+    else
+    {
+        delta_time = 1;
+        nrf_timer_cc_write(NRF_802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, delta_time);
+    }
+
     nrf_timer_cc_write(NRF_802154_TIMER_INSTANCE,
                        NRF_TIMER_CC_CHANNEL1,
-                       lna_target_time + ACK_IFS - TXRU_TIME - EVENT_LAT);
-    nrf_timer_cc_write(NRF_802154_TIMER_INSTANCE,
-                       NRF_TIMER_CC_CHANNEL2,
-                       lna_target_time + ACK_IFS - TXRU_TIME - EVENT_LAT + pa_target_time);
+                       delta_time + ACK_IFS - TXRU_TIME - EVENT_LAT);
 
 #if NRF_802154_DISABLE_BCC_MATCHING
     nrf_timer_shorts_enable(NRF_802154_COUNTER_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE1_STOP_MASK);
@@ -1624,7 +1693,7 @@ static void ed_init(bool disabled_was_triggered)
     nrf_radio_int_enable(NRF_RADIO_INT_EDEND_MASK);
 
     // Set FEM
-    fem_for_lna_set(NRF_TIMER_CC_CHANNEL0, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+    fem_for_lna_set();
 
     // Clr event EGU
     nrf_egu_event_clear(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
@@ -1655,7 +1724,7 @@ static void cca_init(bool disabled_was_triggered)
     nrf_radio_int_enable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
 
     // Set FEM
-    fem_for_lna_set(NRF_TIMER_CC_CHANNEL0, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+    fem_for_lna_set();
 
     // Clr event EGU
     nrf_egu_event_clear(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
@@ -1714,6 +1783,9 @@ static void cont_prec_approved(void)
         m_rsch_timeslot_is_granted = true;
         nrf_802154_timer_coord_start();
 
+        nrf_802154_fal_pa_configuration_set(NULL, &m_deactivate_on_disable);
+        nrf_802154_fal_lna_configuration_set(NULL, &m_deactivate_on_disable);
+
         switch (m_state)
         {
             case RADIO_STATE_SLEEP:
@@ -1768,7 +1840,10 @@ static void cont_prec_denied(void)
             nrf_radio_reset();
         }
 
-        nrf_fem_control_pin_clear();
+        nrf_802154_fal_pa_configuration_clear(NULL, &m_deactivate_on_disable);
+        nrf_802154_fal_lna_configuration_clear(NULL, &m_deactivate_on_disable);
+
+        nrf_802154_fal_deactivate_now(NRF_802154_FAL_ALL);
         nrf_802154_timer_coord_stop();
 
         result = current_operation_terminate(NRF_802154_TERM_802154, REQ_ORIG_RSCH, false);
@@ -2052,8 +2127,14 @@ static void irq_crcok_state_rx(void)
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
 
             // Set FEM PPIs
-            nrf_fem_control_ppi_disable(NRF_FEM_CONTROL_LNA_PIN);
-            nrf_fem_control_ppi_enable(NRF_FEM_CONTROL_PA_PIN, NRF_TIMER_CC_CHANNEL2);
+            uint32_t time_to_pa = nrf_timer_cc_read(NRF_802154_TIMER_INSTANCE,
+                                                    NRF_TIMER_CC_CHANNEL1);
+
+            nrf_802154_fal_event_t timer = m_activate_tx_cc0;
+
+            timer.event.timer.counter_value += time_to_pa;
+
+            nrf_802154_fal_pa_configuration_set(&timer, NULL);
 
             // Detect if PPI worked (timer is counting or TIMER event is marked)
             nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_CAPTURE3);
@@ -2192,8 +2273,10 @@ static void irq_phyend_state_tx_ack(void)
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
 
     // Set FEM PPIs
-    nrf_fem_control_ppi_disable(NRF_FEM_CONTROL_PA_PIN);
-    nrf_fem_control_ppi_enable(NRF_FEM_CONTROL_LNA_PIN, NRF_TIMER_CC_CHANNEL0);
+    nrf_802154_fal_deactivate_now(NRF_802154_FAL_ALL);
+    nrf_802154_fal_pa_configuration_clear(&m_activate_tx_cc0, NULL);
+    nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+    nrf_802154_fal_lna_configuration_set(&m_activate_rx_cc0, NULL);
 
     nrf_radio_shorts_set(SHORTS_RX);
 
@@ -2342,7 +2425,7 @@ static void irq_phyend_state_tx_frame(void)
         // Clear FEM configuration set at the beginning of the transmission
         fem_for_tx_reset(false);
         // Set PPIs necessary in rx_ack state
-        fem_for_lna_set(NRF_TIMER_CC_CHANNEL2, NRF_TIMER_SHORT_COMPARE2_STOP_MASK);
+        fem_for_lna_set();
 
         nrf_ppi_channel_and_fork_endpoint_setup(PPI_EGU_RAMP_UP,
                                                 (uint32_t)nrf_egu_event_address_get(
@@ -2505,7 +2588,7 @@ static void irq_edend_state_ed(void)
         }
         else
         {
-            fem_for_lna_reset(NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+            fem_for_lna_reset();
         }
     }
     else
@@ -2785,10 +2868,10 @@ void nrf_802154_core_deinit(void)
     if (timeslot_is_granted())
     {
         nrf_radio_reset();
+        nrf_802154_fal_deactivate_now(NRF_802154_FAL_ALL);
     }
 
-    nrf_fem_control_pin_clear();
-    nrf_fem_control_deactivate();
+    nrf_802154_fal_cleanup();
 
     irq_deinit();
 }

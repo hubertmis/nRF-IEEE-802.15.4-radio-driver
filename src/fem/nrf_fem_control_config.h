@@ -31,9 +31,43 @@
 #ifndef NRF_FEM_CONTROL_CONFIG_H_
 #define NRF_FEM_CONTROL_CONFIG_H_
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Configuration parameters for pins that enable or disable (or both) either Power Amplifier (PA) or Low Noise Amplifier (LNA).
+ */
+typedef struct
+{
+    bool    enable;       /* Enable toggling for this pin. */
+    bool    active_high;  /* If true, the pin will be active high. Otherwise, the pin will be active low. */
+    uint8_t gpio_pin;     /* GPIO pin number for the pin. */
+    uint8_t gpiote_ch_id; /* GPIOTE channel to be used for toggling pins. */
+} nrf_fem_gpiote_pin_config_t;
+
+/**
+ * @brief Configuration parameters for the PA/LNA interface.
+ */
+typedef struct
+{
+    struct
+    {
+        uint32_t pa_time_gap_us;                /* Time between the activation of the PA pin and the start of the radio transmission. */
+        uint32_t lna_time_gap_us;               /* Time between the activation of the LNA pin and the start of the radio reception. */
+        int8_t   pa_gain_db;                    /* Configurable PA gain. Ignored if the amplifier is not supporting this feature. */
+        int8_t   lna_gain_db;                   /* Configurable LNA gain. Ignored if the amplifier is not supporting this feature. */
+    }                           fem_config;
+
+    nrf_fem_gpiote_pin_config_t pa_pin_config;  /* Power Amplifier pin configuration. */
+    nrf_fem_gpiote_pin_config_t lna_pin_config; /* Low Noise Amplifier pin configuration. */
+
+    int                         ppi_ch_id_set;  /* PPI channel to be used for setting pins. */
+    int                         ppi_ch_id_clr;  /* PPI channel to be used for clearing pins. */
+} nrf_fem_interface_config_t;
 
 /**
  * @section Timings.
@@ -50,6 +84,88 @@ extern "C" {
 
 /** Radio ramp-up time in RX mode, in microseconds. */
 #define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
+
+#ifdef NRF52811_XXAA
+/** Default Power Amplifier pin. */
+#define NRF_FEM_CONTROL_DEFAULT_PA_PIN  19
+
+/** Default Low Noise Amplifier pin. */
+#define NRF_FEM_CONTROL_DEFAULT_LNA_PIN 20
+
+#else
+
+/** Default Power Amplifier pin. */
+#define NRF_FEM_CONTROL_DEFAULT_PA_PIN  15
+
+/** Default Low Noise Amplifier pin. */
+#define NRF_FEM_CONTROL_DEFAULT_LNA_PIN 16
+#endif
+
+/** Default PPI channel for pin setting. */
+#define NRF_FEM_CONTROL_DEFAULT_SET_PPI_CHANNEL    15
+
+/** Default PPI channel for pin clearing. */
+#define NRF_FEM_CONTROL_DEFAULT_CLR_PPI_CHANNEL    16
+
+/** Default GPIOTE channel for FEM control. */
+#define NRF_FEM_CONTROL_DEFAULT_LNA_GPIOTE_CHANNEL 6
+
+/** Default GPIOTE channel for FEM control. */
+#define NRF_FEM_CONTROL_DEFAULT_PA_GPIOTE_CHANNEL  7
+
+/**
+ * @section Configuration
+ */
+
+#if ENABLE_FEM
+
+/**
+ * @brief Configures the PA and LNA device interface.
+ *
+ * This function sets device interface parameters for the PA/LNA module.
+ * The module can then be used to control a power amplifier or a low noise amplifier (or both) through the given interface and resources.
+ *
+ * The function also sets the PPI and GPIOTE channels to be configured for the PA/LNA interface.
+ *
+ * @param[in] p_config Pointer to the interface parameters for the PA/LNA device.
+ *
+ * @retval   ::NRF_SUCCESS                 PA/LNA control successfully configured.
+ * @retval   ::NRF_ERROR_NOT_SUPPORTED     PA/LNA is not available.
+ *
+ */
+int32_t nrf_fem_interface_configuration_set(nrf_fem_interface_config_t const * const p_config);
+
+/**
+ * @brief Retrieves the configuration of PA and LNA device interface.
+ *
+ * This function gets device interface parameters for the PA/LNA module.
+ * The module can then be used to control a power amplifier or a low noise amplifier (or both) through the given interface and resources.
+ *
+ *
+ * @param[in] p_config Pointer to the interface parameters for the PA/LNA device to be populated.
+ *
+ * @retval   ::NRF_SUCCESS                 PA/LNA control successfully configured.
+ * @retval   ::NRF_ERROR_NOT_SUPPORTED     PA/LNA is not available.
+ *
+ */
+int32_t nrf_fem_interface_configuration_get(nrf_fem_interface_config_t * p_config);
+
+#else // ENABLE_FEM
+
+static inline int32_t nrf_fem_interface_configuration_set(
+    nrf_fem_interface_config_t const * const p_config)
+{
+    (void)p_config;
+    return NRF_ERROR_NOT_SUPPORTED;
+}
+
+static inline int32_t nrf_fem_interface_configuration_get(nrf_fem_interface_config_t * p_config)
+{
+    (void)p_config;
+    return NRF_ERROR_NOT_SUPPORTED;
+}
+
+#endif // ENABLE_FEM
 
 #ifdef __cplusplus
 }
