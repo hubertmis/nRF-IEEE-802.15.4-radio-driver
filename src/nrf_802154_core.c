@@ -191,20 +191,18 @@ static const nrf_802154_fal_event_t m_activate_rx_cc0 =
  .override_ppi                 = false,
  .event.timer.p_timer_instance =
      NRF_802154_TIMER_INSTANCE,
- .event.timer.compare_channel_mask = 1 <<
-                                     NRF_TIMER_CC_CHANNEL0,
-        .event.timer.counter_value =
-         NRF_FEM_RADIO_RX_STARTUP_LATENCY_US};
+ .event.timer.compare_channel_mask = ((1 << NRF_TIMER_CC_CHANNEL0) | (1 << NRF_TIMER_CC_CHANNEL2)),
+ .event.timer.counter_value        =
+     RX_RAMP_UP_TIME};
 
 static const nrf_802154_fal_event_t m_activate_tx_cc0 =
 {.type                         = NRF_802154_FAL_EVENT_TYPE_TIMER,
  .override_ppi                 = false,
  .event.timer.p_timer_instance =
      NRF_802154_TIMER_INSTANCE,
- .event.timer.compare_channel_mask = 1 <<
-                                     NRF_TIMER_CC_CHANNEL0,
-        .event.timer.counter_value =
-         NRF_FEM_RADIO_TX_STARTUP_LATENCY_US};
+ .event.timer.compare_channel_mask = ((1 << NRF_TIMER_CC_CHANNEL0) | (1 << NRF_TIMER_CC_CHANNEL2)),
+ .event.timer.counter_value        =
+     TX_RAMP_UP_TIME};
 
 static const nrf_802154_fal_event_t m_ccaidle =
 {.type                           = NRF_802154_FAL_EVENT_TYPE_GENERIC,
@@ -1077,7 +1075,21 @@ static void rx_terminate(void)
         ints_to_disable |= NRF_RADIO_INT_CRCOK_MASK;
         nrf_radio_int_disable(ints_to_disable);
         nrf_radio_shorts_set(SHORTS_IDLE);
+        bool shutdown = nrf_fem_prepare_powerdown(NRF_802154_TIMER_INSTANCE,
+                                                  NRF_TIMER_CC_CHANNEL0,
+                                                  PPI_EGU_TIMER_START);
+
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+        if (shutdown)
+        {
+            while (!nrf_timer_event_check(NRF_802154_TIMER_INSTANCE, NRF_TIMER_EVENT_COMPARE0))
+            {
+                // Wait until the event is set.
+            }
+            nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+            nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+            nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
+        }
     }
 }
 
@@ -1151,8 +1163,22 @@ static void tx_terminate(void)
 
         nrf_radio_int_disable(ints_to_disable);
         nrf_radio_shorts_set(SHORTS_IDLE);
+        bool shutdown = nrf_fem_prepare_powerdown(NRF_802154_TIMER_INSTANCE,
+                                                  NRF_TIMER_CC_CHANNEL0,
+                                                  PPI_EGU_TIMER_START);
+
         nrf_radio_task_trigger(NRF_RADIO_TASK_CCASTOP);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+        if (shutdown)
+        {
+            while (!nrf_timer_event_check(NRF_802154_TIMER_INSTANCE, NRF_TIMER_EVENT_COMPARE0))
+            {
+                // Wait until the event is set.
+            }
+            nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+            nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+            nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
+        }
     }
 }
 
@@ -1195,10 +1221,25 @@ static void ed_terminate(void)
 
     if (timeslot_is_granted())
     {
+        bool shutdown = nrf_fem_prepare_powerdown(NRF_802154_TIMER_INSTANCE,
+                                                  NRF_TIMER_CC_CHANNEL0,
+                                                  PPI_EGU_TIMER_START);
+
         nrf_radio_int_disable(NRF_RADIO_INT_EDEND_MASK);
         nrf_radio_shorts_set(SHORTS_IDLE);
         nrf_radio_task_trigger(NRF_RADIO_TASK_EDSTOP);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+
+        if (shutdown)
+        {
+            while (!nrf_timer_event_check(NRF_802154_TIMER_INSTANCE, NRF_TIMER_EVENT_COMPARE0))
+            {
+                // Wait until the event is set.
+            }
+            nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+            nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+            nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
+        }
     }
 }
 
@@ -1215,10 +1256,25 @@ static void cca_terminate(void)
 
     if (timeslot_is_granted())
     {
+        bool shutdown = nrf_fem_prepare_powerdown(NRF_802154_TIMER_INSTANCE,
+                                                  NRF_TIMER_CC_CHANNEL0,
+                                                  PPI_EGU_TIMER_START);
+
         nrf_radio_int_disable(NRF_RADIO_INT_CCABUSY_MASK | NRF_RADIO_INT_CCAIDLE_MASK);
         nrf_radio_shorts_set(SHORTS_IDLE);
         nrf_radio_task_trigger(NRF_RADIO_TASK_CCASTOP);
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+
+        if (shutdown)
+        {
+            while (!nrf_timer_event_check(NRF_802154_TIMER_INSTANCE, NRF_TIMER_EVENT_COMPARE0))
+            {
+                // Wait until the event is set.
+            }
+            nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+            nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+            nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
+        }
     }
 }
 
@@ -1232,7 +1288,21 @@ static void continuous_carrier_terminate(void)
 
     if (timeslot_is_granted())
     {
+        bool shutdown = nrf_fem_prepare_powerdown(NRF_802154_TIMER_INSTANCE,
+                                                  NRF_TIMER_CC_CHANNEL0,
+                                                  PPI_EGU_TIMER_START);
+
         nrf_radio_task_trigger(NRF_RADIO_TASK_DISABLE);
+        if (shutdown)
+        {
+            while (!nrf_timer_event_check(NRF_802154_TIMER_INSTANCE, NRF_TIMER_EVENT_COMPARE0))
+            {
+                // Wait until the event is set.
+            }
+            nrf_timer_shorts_disable(NRF_802154_TIMER_INSTANCE, NRF_TIMER_SHORT_COMPARE0_STOP_MASK);
+            nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
+            nrf_ppi_channel_disable(PPI_EGU_TIMER_START);
+        }
     }
 }
 

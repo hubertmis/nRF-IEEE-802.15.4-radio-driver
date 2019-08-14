@@ -148,32 +148,13 @@ typedef nrf_fem_control_cfg_t nrf_802154_fem_control_cfg_t;
         .ppi_ch_id_clr = NRF_FEM_CONTROL_DEFAULT_CLR_PPI_CHANNEL,       \
     })
 
-#define NRF_802154_FAL_DEFAULT_SETTINGS                                \
-    ((nrf_fem_interface_config_t) {                                    \
-        .fem_config = {                                                \
-            .pa_time_gap_us = NRF_FEM_PA_TIME_IN_ADVANCE,              \
-            .lna_time_gap_us = NRF_FEM_LNA_TIME_IN_ADVANCE             \
-        },                                                             \
-        .pa_pin_config = {                                             \
-            .enable = 1,                                               \
-            .active_high = 1,                                          \
-            .gpio_pin = NRF_FEM_CONTROL_DEFAULT_PA_PIN,                \
-            .gpiote_ch_id = NRF_FEM_CONTROL_DEFAULT_PA_GPIOTE_CHANNEL  \
-        },                                                             \
-        .lna_pin_config = {                                            \
-            .enable = 1,                                               \
-            .active_high = 1,                                          \
-            .gpio_pin = NRF_FEM_CONTROL_DEFAULT_LNA_PIN,               \
-            .gpiote_ch_id = NRF_FEM_CONTROL_DEFAULT_LNA_GPIOTE_CHANNEL \
-        },                                                             \
-        .ppi_ch_id_set = NRF_FEM_CONTROL_DEFAULT_SET_PPI_CHANNEL,      \
-        .ppi_ch_id_clr = NRF_FEM_CONTROL_DEFAULT_CLR_PPI_CHANNEL,      \
-    })
-
 /**
  * @brief Sets the PA & LNA GPIO toggle configuration.
  *
  * @note This function must not be called when the radio is in use.
+ *
+ * @note This function is deprecated. Only to be used with Skyworks module.
+ *       Consider using nrf_fem_interface_configuration_set instead.
  *
  * @param[in] p_cfg Pointer to the PA & LNA GPIO toggle configuration.
  *
@@ -184,6 +165,9 @@ void nrf_802154_fem_control_cfg_set(nrf_802154_fem_control_cfg_t const * const p
  * @brief Get the PA & LNA GPIO toggle configuration.
  *
  * @param[out] p_cfg Pointer to the structure for the PA & LNA GPIO toggle configuration.
+ *
+ * @note This function is deprecated. Only to be used with Skyworks module.
+ *       Consider using nrf_fem_interface_configuration_get instead.
  *
  */
 void nrf_802154_fem_control_cfg_get(nrf_802154_fem_control_cfg_t * p_cfg);

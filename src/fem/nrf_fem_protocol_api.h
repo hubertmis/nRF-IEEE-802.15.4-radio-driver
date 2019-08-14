@@ -138,6 +138,7 @@ int32_t nrf_802154_fal_pa_configuration_set(const nrf_802154_fal_event_t * const
  * @param[in] p_deactivate_event Pointer to the deactivation event structure.
  *
  * @retval   ::NRF_SUCCESS               PA activate setup purge is successful.
+ * @retval   ::NRF_ERROR_FORBIDDEN       PA is currently disabled.
  * @retval   ::NRF_ERROR_INVALID_STATE   PA activate setup purge could not be performed due to invalid or missing configuration parameters
  *                                       in p_activate_event or p_deactivate_event, or both.
  */
@@ -181,6 +182,7 @@ int32_t nrf_802154_fal_lna_configuration_set(const nrf_802154_fal_event_t * cons
  * @param[in] p_deactivate_event Pointer to the deactivation event structure.
  *
  * @retval   ::NRF_SUCCESS               LNA activate setup purge is successful.
+ * @retval   ::NRF_ERROR_FORBIDDEN       LNA is currently disabled.
  * @retval   ::NRF_ERROR_INVALID_STATE   LNA activate setup purge could not be performed due to invalid or missing configuration parameters
  *                                       in p_activate_event or p_deactivate_event, or both.
  */
@@ -208,6 +210,20 @@ void nrf_802154_fal_cleanup(void);
  *
  */
 void nrf_802154_fal_pa_is_configured(int8_t * const p_gain);
+
+/**
+ * @brief Prepares the FEM module to switch to the Power Down state.
+ *
+ * @param[in] p_instance Timer instance that is used to schedule the transition to the Power Down state.
+ * @param[in] compare_channel Compare channel to hold a value for the timer.
+ * @param[in] ppi_id ID of the PPI channel used to switch to the Power Down state.
+ *
+ * @return bool Whether the scheduling of the transition was successful or not.
+ *
+ */
+bool nrf_fem_prepare_powerdown(NRF_TIMER_Type  * p_instance,
+                               uint32_t          compare_channel,
+                               nrf_ppi_channel_t ppi_id);
 
 #else // ENABLE_FEM
 
@@ -255,6 +271,16 @@ static inline void nrf_802154_fal_deactivate_now(nrf_fal_functionality_t type)
 static inline void nrf_802154_fal_cleanup(void)
 {
 
+}
+
+static inline bool nrf_fem_prepare_powerdown(NRF_TIMER_Type  * p_instance,
+                                             uint32_t          compare_channel,
+                                             nrf_ppi_channel_t ppi_id)
+{
+    (void)p_instance;
+    (void)compare_channel;
+    (void)ppi_id;
+    return false;
 }
 
 static inline void nrf_802154_fal_pa_is_configured(int8_t * const p_gain)

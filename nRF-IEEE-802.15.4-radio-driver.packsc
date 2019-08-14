@@ -344,6 +344,9 @@
             "src/fem/nrf_fem_protocol_api.h",
             "src/fem/nrf_fem_protocol_legacy_api.h"
         ],
+        "_includes" : [
+            "src/fem"
+        ],
         "_defines": [
             "ENABLE_FEM"
         ],
@@ -352,12 +355,31 @@
                 "_attrs": [
                     "public"
                 ],
+                "_includes": [
+                    "src/fem/simple_gpio"
+                ],
                 "_links": [
                     "nrfx_hal"
                 ],
                 "_files": [
-                    "src/fem/nrf_fem_control.c"
-                ]
+                    "src/fem/simple_gpio/nrf_fem_simple_gpio.c"
+                ],
+                "_name": "simple"
+            },
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_includes": [
+                    "src/fem/three_pin_gpio"
+                ],
+                "_links": [
+                    "nrfx_hal"
+                ],
+                "_files": [
+                    "src/fem/three_pin_gpio/nrf_fem_three_pin_gpio.c"
+                ],
+                "_name": "three_pin_gpio"
             },
             {
                 "_attrs": [
@@ -371,7 +393,8 @@
                 ],
                 "_includes": [
                     "cmock",
-                    "src/fem"
+                    "src/fem",
+                    "src/fem/none"
                 ],
                 "_name": "cmock"
             },

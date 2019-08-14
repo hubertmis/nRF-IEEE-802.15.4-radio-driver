@@ -244,7 +244,9 @@ void nrf_802154_radio_irq_handler(void)
 #if ENABLE_FEM
 void nrf_802154_fem_control_cfg_set(nrf_802154_fem_control_cfg_t const * const p_cfg)
 {
-    nrf_fem_interface_config_t config = NRF_802154_FAL_DEFAULT_SETTINGS;
+    nrf_fem_interface_config_t config;
+
+    nrf_fem_interface_configuration_get(&config);
 
     config.lna_pin_config.active_high  = p_cfg->lna_cfg.active_high;
     config.lna_pin_config.enable       = p_cfg->lna_cfg.enable;
