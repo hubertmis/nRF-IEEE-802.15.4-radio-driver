@@ -51,10 +51,33 @@
 
 #if ENABLE_FEM
 
-#define PPI_INVALID_CHANNEL 0xFF                                           /**< Default value for the PPI holder variable. */
+#define PPI_INVALID_CHANNEL 0xFF                               /**< Default value for the PPI holder variable. */
 
-static nrf_fem_interface_config_t m_nrf_fem_interface_config;              /**< FEM controller configuration. */
-static uint8_t                    m_ppi_channel_ext = PPI_INVALID_CHANNEL; /**< PPI channel provided by the `override_ppi = true` functionality. */
+static nrf_fem_interface_config_t m_nrf_fem_interface_config = /**< FEM controller configuration. */
+{
+    .fem_config =
+    {
+        .pa_time_gap_us  = NRF_FEM_PA_TIME_IN_ADVANCE_US,
+        .lna_time_gap_us = NRF_FEM_LNA_TIME_IN_ADVANCE_US
+    },
+    .pa_pin_config =
+    {
+        .enable       = 1,
+        .active_high  = 1,
+        .gpio_pin     = NRF_FEM_CONTROL_DEFAULT_PA_PIN,
+        .gpiote_ch_id = NRF_FEM_CONTROL_DEFAULT_PA_GPIOTE_CHANNEL
+    },
+    .lna_pin_config =
+    {
+        .enable       = 1,
+        .active_high  = 1,
+        .gpio_pin     = NRF_FEM_CONTROL_DEFAULT_LNA_PIN,
+        .gpiote_ch_id = NRF_FEM_CONTROL_DEFAULT_LNA_GPIOTE_CHANNEL
+    },
+    .ppi_ch_id_set = NRF_FEM_CONTROL_DEFAULT_SET_PPI_CHANNEL,
+    .ppi_ch_id_clr = NRF_FEM_CONTROL_DEFAULT_CLR_PPI_CHANNEL
+};
+static uint8_t m_ppi_channel_ext = PPI_INVALID_CHANNEL; /**< PPI channel provided by the `override_ppi = true` functionality. */
 
 /** Map the mask bits with the Compare Channels. */
 static uint32_t get_first_available_compare_channel(uint8_t mask)
@@ -129,8 +152,8 @@ static int32_t event_configuration_set(const nrf_802154_fal_event_t * const p_ev
     else
     {
         ppi_ch =
-            activate ? m_nrf_fem_interface_config.ppi_ch_id_set :
-            m_nrf_fem_interface_config.ppi_ch_id_clr;
+            activate ? m_nrf_fem_interface_config.ppi_ch_id_set : m_nrf_fem_interface_config.
+            ppi_ch_id_clr;
     }
 
     if (p_pin_config->active_high ^ activate)
@@ -432,6 +455,16 @@ void nrf_802154_fal_cleanup(void)
         nrf_ppi_fork_endpoint_setup((nrf_ppi_channel_t)m_ppi_channel_ext, 0);
         m_ppi_channel_ext = PPI_INVALID_CHANNEL;
     }
+}
+
+bool nrf_fem_prepare_powerdown(NRF_TIMER_Type  * p_instance,
+                               uint32_t          compare_channel,
+                               nrf_ppi_channel_t ppi_id)
+{
+    (void)p_instance;
+    (void)compare_channel;
+    (void)ppi_id;
+    return false;
 }
 
 #endif // ENABLE_FEM

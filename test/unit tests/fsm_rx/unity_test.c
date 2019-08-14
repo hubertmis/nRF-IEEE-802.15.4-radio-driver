@@ -461,6 +461,7 @@ static inline void rx_terminate_periph_reset_verify(bool timeslot_granted)
                                      NRF_RADIO_INT_BCMATCH_MASK  |
                                      NRF_RADIO_INT_CRCOK_MASK);
         nrf_radio_shorts_set_Expect(0);
+        nrf_fem_prepare_powerdown_ExpectAndReturn(NRF_802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, PPI_EGU_TIMER_START, false);
         nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
     }
 }

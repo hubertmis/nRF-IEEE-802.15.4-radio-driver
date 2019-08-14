@@ -209,6 +209,7 @@ static void mock_rx_terminate(void)
                                  NRF_RADIO_INT_CRCERROR_MASK |
                                  NRF_RADIO_INT_CRCOK_MASK);
     nrf_radio_shorts_set_Expect(0);
+    nrf_fem_prepare_powerdown_ExpectAndReturn(NRF_802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, PPI_EGU_TIMER_START, false);
     nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
 }
 
@@ -261,6 +262,7 @@ static void mock_tx_terminate(void)
                                  NRF_RADIO_INT_CCABUSY_MASK |
                                  NRF_RADIO_INT_ADDRESS_MASK);
     nrf_radio_shorts_set_Expect(SHORTS_IDLE);
+    nrf_fem_prepare_powerdown_ExpectAndReturn(NRF_802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, PPI_EGU_TIMER_START, false);
     nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_CCASTOP);
     nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
 }

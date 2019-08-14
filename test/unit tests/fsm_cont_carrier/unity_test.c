@@ -217,6 +217,7 @@ void test_continuous_carrier_terminate_ShallResetPeriphAndTriggerDisableTask(voi
 
     m_rsch_timeslot_is_granted = true;
 
+    nrf_fem_prepare_powerdown_ExpectAndReturn(NRF_802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, PPI_EGU_TIMER_START, false);
     nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_DISABLE);
 
     continuous_carrier_terminate();

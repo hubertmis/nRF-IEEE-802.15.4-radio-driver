@@ -332,6 +332,7 @@ static void verify_ed_terminate_periph_reset(bool is_in_timeslot)
 
     if (is_in_timeslot)
     {
+        nrf_fem_prepare_powerdown_ExpectAndReturn(NRF_802154_TIMER_INSTANCE, NRF_TIMER_CC_CHANNEL0, PPI_EGU_TIMER_START, false);
         nrf_radio_int_disable_Expect(NRF_RADIO_INT_EDEND_MASK);
         nrf_radio_shorts_set_Expect(0);
         nrf_radio_task_trigger_Expect(NRF_RADIO_TASK_EDSTOP);
