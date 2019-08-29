@@ -2314,7 +2314,6 @@ static void irq_phyend_state_tx_ack(void)
     nrf_ppi_channel_disable(PPI_DISABLED_EGU);
 
     // Set FEM PPIs
-    nrf_802154_fal_deactivate_now(NRF_802154_FAL_ALL);
     nrf_802154_fal_pa_configuration_clear(&m_activate_tx_cc0, NULL);
     nrf_timer_task_trigger(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_802154_fal_lna_configuration_set(&m_activate_rx_cc0, NULL);

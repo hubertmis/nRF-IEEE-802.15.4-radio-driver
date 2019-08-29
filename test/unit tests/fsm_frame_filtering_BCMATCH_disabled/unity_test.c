@@ -727,7 +727,6 @@ void test_OnPhyEndStateTxAck_ShallResetCounterTimer(void)
 
     nrf_ppi_channel_disable_Expect(PPI_DISABLED_EGU);
 
-    nrf_802154_fal_deactivate_now_Expect(NRF_802154_FAL_ALL);
     nrf_802154_fal_pa_configuration_clear_ExpectAndReturn(&m_activate_tx_cc0, NULL, NRF_SUCCESS);
     nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
     nrf_802154_fal_lna_configuration_set_ExpectAndReturn(&m_activate_rx_cc0, NULL, NRF_SUCCESS);
