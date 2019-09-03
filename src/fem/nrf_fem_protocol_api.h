@@ -288,6 +288,10 @@ static inline void nrf_802154_fal_pa_is_configured(int8_t * const p_gain)
     *p_gain = 0;
 }
 
+#define NRF_802154_FEM_PINS_USED_MASK            0
+#define NRF_802154_FEM_PPI_CHANNELS_USED_MASK    0
+#define NRF_802154_FEM_GPIOTE_CHANNELS_USED_MASK 0
+
 #endif // ENABLE_FEM
 
 #endif // NRF_FEM_PROTOCOL_API_H__

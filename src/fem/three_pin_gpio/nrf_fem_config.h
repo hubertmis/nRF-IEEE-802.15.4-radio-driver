@@ -126,6 +126,22 @@ typedef struct
 /** Default GPIOTE channel for PA control. */
 #define NRF_FEM_CONTROL_DEFAULT_PA_GPIOTE_CHANNEL  7
 
+/** Mask of GPIO pins used for FEM control. */
+#define NRF_802154_FEM_PINS_USED_MASK              ((1 << NRF_FEM_CONTROL_DEFAULT_PA_PIN) |  \
+                                                    (1 << NRF_FEM_CONTROL_DEFAULT_LNA_PIN) | \
+                                                    (1 << NRF_FEM_CONTROL_DEFAULT_PDN_PIN))
+
+/** Mask of PPI channels used for FEM control. */
+#define NRF_802154_FEM_PPI_CHANNELS_USED_MASK      ((1 << NRF_FEM_CONTROL_DEFAULT_SET_PPI_CHANNEL) | \
+                                                    (1 << NRF_FEM_CONTROL_DEFAULT_CLR_PPI_CHANNEL) | \
+                                                    (1 << NRF_FEM_CONTROL_DEFAULT_PDN_PPI_CHANNEL))
+
+/** Mask of GPIOTE channels used for FEM control. */
+#define NRF_802154_FEM_GPIOTE_CHANNELS_USED_MASK   (        \
+        (1 << NRF_FEM_CONTROL_DEFAULT_PDN_GPIOTE_CHANNEL) | \
+        (1 << NRF_FEM_CONTROL_DEFAULT_LNA_GPIOTE_CHANNEL) | \
+        (1 << NRF_FEM_CONTROL_DEFAULT_PA_GPIOTE_CHANNEL))
+
 #ifdef __cplusplus
 }
 #endif

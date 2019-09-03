@@ -63,54 +63,54 @@ static void radio_event_gpio_toggle_init(void)
     nrf_gpio_cfg_output(PIN_DBG_RADIO_EVT_FRAMESTART);
     nrf_gpio_cfg_output(PIN_DBG_RADIO_EVT_EDEND);
 
-    nrf_gpiote_task_configure(0,
+    nrf_gpiote_task_configure(GPIOTE_DBG_RADIO_EVT_END,
                               PIN_DBG_RADIO_EVT_END,
                               NRF_GPIOTE_POLARITY_TOGGLE,
                               NRF_GPIOTE_INITIAL_VALUE_HIGH);
-    nrf_gpiote_task_configure(1,
+    nrf_gpiote_task_configure(GPIOTE_DBG_RADIO_EVT_DISABLED,
                               PIN_DBG_RADIO_EVT_DISABLED,
                               NRF_GPIOTE_POLARITY_TOGGLE,
                               NRF_GPIOTE_INITIAL_VALUE_HIGH);
-    nrf_gpiote_task_configure(2,
+    nrf_gpiote_task_configure(GPIOTE_DBG_RADIO_EVT_READY,
                               PIN_DBG_RADIO_EVT_READY,
                               NRF_GPIOTE_POLARITY_TOGGLE,
                               NRF_GPIOTE_INITIAL_VALUE_HIGH);
-    nrf_gpiote_task_configure(3,
+    nrf_gpiote_task_configure(GPIOTE_DBG_RADIO_EVT_FRAMESTART,
                               PIN_DBG_RADIO_EVT_FRAMESTART,
                               NRF_GPIOTE_POLARITY_TOGGLE,
                               NRF_GPIOTE_INITIAL_VALUE_HIGH);
-    nrf_gpiote_task_configure(4,
+    nrf_gpiote_task_configure(GPIOTE_DBG_RADIO_EVT_EDEND,
                               PIN_DBG_RADIO_EVT_EDEND,
                               NRF_GPIOTE_POLARITY_TOGGLE,
                               NRF_GPIOTE_INITIAL_VALUE_HIGH);
 
-    nrf_gpiote_task_enable(0);
-    nrf_gpiote_task_enable(1);
-    nrf_gpiote_task_enable(2);
-    nrf_gpiote_task_enable(3);
-    nrf_gpiote_task_enable(4);
+    nrf_gpiote_task_enable(GPIOTE_DBG_RADIO_EVT_END);
+    nrf_gpiote_task_enable(GPIOTE_DBG_RADIO_EVT_DISABLED);
+    nrf_gpiote_task_enable(GPIOTE_DBG_RADIO_EVT_READY);
+    nrf_gpiote_task_enable(GPIOTE_DBG_RADIO_EVT_FRAMESTART);
+    nrf_gpiote_task_enable(GPIOTE_DBG_RADIO_EVT_EDEND);
 
-    nrf_ppi_channel_endpoint_setup(NRF_PPI_CHANNEL0,
+    nrf_ppi_channel_endpoint_setup((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_END,
                                    (uint32_t)&NRF_RADIO->EVENTS_END,
                                    nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_0));
-    nrf_ppi_channel_endpoint_setup(NRF_PPI_CHANNEL1,
+    nrf_ppi_channel_endpoint_setup((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_DISABLED,
                                    (uint32_t)&NRF_RADIO->EVENTS_DISABLED,
                                    nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_1));
-    nrf_ppi_channel_endpoint_setup(NRF_PPI_CHANNEL2,
+    nrf_ppi_channel_endpoint_setup((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_READY,
                                    (uint32_t)&NRF_RADIO->EVENTS_READY,
                                    nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_2));
-    nrf_ppi_channel_endpoint_setup(NRF_PPI_CHANNEL3,
+    nrf_ppi_channel_endpoint_setup((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_FRAMESTART,
                                    (uint32_t)&NRF_RADIO->EVENTS_FRAMESTART,
                                    nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_3));
-    nrf_ppi_channel_endpoint_setup(NRF_PPI_CHANNEL4,
+    nrf_ppi_channel_endpoint_setup((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_EDEND,
                                    (uint32_t)&NRF_RADIO->EVENTS_EDEND,
                                    nrf_gpiote_task_addr_get(NRF_GPIOTE_TASKS_OUT_4));
 
-    nrf_ppi_channel_enable(NRF_PPI_CHANNEL0);
-    nrf_ppi_channel_enable(NRF_PPI_CHANNEL1);
-    nrf_ppi_channel_enable(NRF_PPI_CHANNEL2);
-    nrf_ppi_channel_enable(NRF_PPI_CHANNEL3);
-    nrf_ppi_channel_enable(NRF_PPI_CHANNEL4);
+    nrf_ppi_channel_enable((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_END);
+    nrf_ppi_channel_enable((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_DISABLED);
+    nrf_ppi_channel_enable((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_READY);
+    nrf_ppi_channel_enable((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_FRAMESTART);
+    nrf_ppi_channel_enable((nrf_ppi_channel_t)PPI_DBG_RADIO_EVT_EDEND);
 }
 
 /**

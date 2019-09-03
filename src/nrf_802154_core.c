@@ -47,6 +47,7 @@
 #include "nrf_802154_critical_section.h"
 #include "nrf_802154_debug.h"
 #include "nrf_802154_notification.h"
+#include "nrf_802154_peripherals.h"
 #include "nrf_802154_pib.h"
 #include "nrf_802154_procedures_duration.h"
 #include "nrf_802154_rssi.h"
@@ -73,27 +74,20 @@
 
 #define EGU_EVENT                  NRF_EGU_EVENT_TRIGGERED15
 #define EGU_TASK                   NRF_EGU_TASK_TRIGGER15
-#define PPI_CH0                    NRF_PPI_CHANNEL6
-#define PPI_CH1                    NRF_PPI_CHANNEL7
-#define PPI_CH2                    NRF_PPI_CHANNEL8
-#define PPI_CH3                    NRF_PPI_CHANNEL9
-#define PPI_CH4                    NRF_PPI_CHANNEL10
-#define PPI_CH5                    NRF_PPI_CHANNEL11
-#define PPI_CH6                    NRF_PPI_CHANNEL12
-#define PPI_CHGRP0                 NRF_PPI_CHANNEL_GROUP0 ///< PPI group used to disable self-disabling PPIs
-#define PPI_CHGRP0_DIS_TASK        NRF_PPI_TASK_CHG0_DIS  ///< PPI task used to disable self-disabling PPIs
+#define PPI_CHGRP0                 NRF_802154_PPI_CORE_GROUP                     ///< PPI group used to disable self-disabling PPIs
+#define PPI_CHGRP0_DIS_TASK        NRF_PPI_TASK_CHG0_DIS                         ///< PPI task used to disable self-disabling PPIs
 
-#define PPI_DISABLED_EGU           PPI_CH0                ///< PPI that connects RADIO DISABLED event with EGU task
-#define PPI_EGU_RAMP_UP            PPI_CH1                ///< PPI that connects EGU event with RADIO TXEN or RXEN task
-#define PPI_EGU_TIMER_START        PPI_CH2                ///< PPI that connects EGU event with TIMER START task
-#define PPI_CRCERROR_CLEAR         PPI_CH3                ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
-#define PPI_CCAIDLE_FEM            PPI_CH3                ///< PPI that connects RADIO CCAIDLE event with GPIOTE tasks used by FEM
-#define PPI_TIMER_TX_ACK           PPI_CH3                ///< PPI that connects TIMER COMPARE event with RADIO TXEN task
-#define PPI_CRCOK_DIS_PPI          PPI_CH4                ///< PPI that connects RADIO CRCOK event with task that disables PPI group
+#define PPI_DISABLED_EGU           NRF_802154_PPI_RADIO_DISABLED_TO_EGU          ///< PPI that connects RADIO DISABLED event with EGU task
+#define PPI_EGU_RAMP_UP            NRF_802154_PPI_EGU_TO_RADIO_RAMP_UP           ///< PPI that connects EGU event with RADIO TXEN or RXEN task
+#define PPI_EGU_TIMER_START        NRF_802154_PPI_EGU_TO_TIMER_START             ///< PPI that connects EGU event with TIMER START task
+#define PPI_CRCERROR_CLEAR         NRF_802154_PPI_RADIO_CRCERROR_TO_TIMER_CLEAR  ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
+#define PPI_CCAIDLE_FEM            NRF_802154_PPI_RADIO_CCAIDLE_TO_FEM_GPIOTE    ///< PPI that connects RADIO CCAIDLE event with GPIOTE tasks used by FEM
+#define PPI_TIMER_TX_ACK           NRF_802154_PPI_TIMER_COMPARE_TO_RADIO_TXEN    ///< PPI that connects TIMER COMPARE event with RADIO TXEN task
+#define PPI_CRCOK_DIS_PPI          NRF_802154_PPI_RADIO_CRCOK_TO_PPI_GRP_DISABLE ///< PPI that connects RADIO CRCOK event with task that disables PPI group
 
 #if NRF_802154_DISABLE_BCC_MATCHING
-#define PPI_ADDRESS_COUNTER_COUNT  PPI_CH5                ///< PPI that connects RADIO ADDRESS event with TIMER COUNT task
-#define PPI_CRCERROR_COUNTER_CLEAR PPI_CH6                ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
+#define PPI_ADDRESS_COUNTER_COUNT  NRF_802154_PPI_RADIO_ADDR_TO_COUNTER_COUNT    ///< PPI that connects RADIO ADDRESS event with TIMER COUNT task
+#define PPI_CRCERROR_COUNTER_CLEAR NRF_802154_PPI_RADIO_CRCERROR_COUNTER_CLEAR   ///< PPI that connects RADIO CRCERROR event with TIMER CLEAR task
 #endif  // NRF_802154_DISABLE_BCC_MATCHING
 
 #if NRF_802154_DISABLE_BCC_MATCHING
