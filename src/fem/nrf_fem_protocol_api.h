@@ -49,6 +49,7 @@
 #include "nrf_fem_control_config.h"
 #include "nrf_fem_protocol_legacy_api.h"
 
+#include "nrf_error.h"
 #include "nrf_ppi.h"
 #include "nrf_timer.h"
 

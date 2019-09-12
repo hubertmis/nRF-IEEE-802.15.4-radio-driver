@@ -38,6 +38,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "nrf_error.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
