@@ -48,18 +48,33 @@ extern "C" {
 #endif
 
 /**
- * @def NRF_802154_HIGH_PRECISION_TIMER_INSTANCE
+ * @def NRF_802154_HIGH_PRECISION_TIMER_INSTANCE_NO
  *
- * The timer instance used for precise frame timestamps and synchronous radio operations.
+ * Number of the timer instance used for precise frame timestamps and synchronous radio operations.
  *
  */
 #ifndef NRF_802154_HIGH_PRECISION_TIMER_INSTANCE_NO
 #define NRF_802154_HIGH_PRECISION_TIMER_INSTANCE_NO 0
 #endif
-#ifndef NRF_802154_HIGH_PRECISION_TIMER_INSTANCE
+
+/**
+ * @def NRF_802154_HIGH_PRECISION_TIMER_INSTANCE
+ *
+ * The timer instance used for precise frame timestamps and synchronous radio operations.
+ *
+ */
 #define NRF_802154_HIGH_PRECISION_TIMER_INSTANCE \
     NRFX_CONCAT_2(NRF_TIMER, NRF_802154_HIGH_PRECISION_TIMER_INSTANCE_NO)
-#endif // NRF_802154_HIGH_PRECISION_TIMER_INSTANCE
+
+/**
+ * @def NRF_802154_TIMER_INSTANCE_NO
+ *
+ * Number of the timer instance used both by the driver for ACK IFS and by the FEM module.
+ *
+ */
+#ifndef NRF_802154_TIMER_INSTANCE_NO
+#define NRF_802154_TIMER_INSTANCE_NO 1
+#endif
 
 /**
  * @def NRF_802154_TIMER_INSTANCE
@@ -67,13 +82,18 @@ extern "C" {
  * The timer instance used both by the driver for ACK IFS and by the FEM module.
  *
  */
-#ifndef NRF_802154_TIMER_INSTANCE_NO
-#define NRF_802154_TIMER_INSTANCE_NO 1
-#endif
-#ifndef NRF_802154_TIMER_INSTANCE
 #define NRF_802154_TIMER_INSTANCE \
     NRFX_CONCAT_2(NRF_TIMER, NRF_802154_TIMER_INSTANCE_NO)
-#endif // NRF_802154_TIMER_INSTANCE
+
+/**
+ * @def NRF_802154_COUNTER_TIMER_INSTANCE_NO
+ *
+ * Number of the timer instance used for detecting when PSDU is being received.
+ *
+ */
+#ifndef NRF_802154_COUNTER_TIMER_INSTANCE_NO
+#define NRF_802154_COUNTER_TIMER_INSTANCE_NO 2
+#endif
 
 /**
  * @def NRF_802154_COUNTER_TIMER_INSTANCE
@@ -83,21 +103,14 @@ extern "C" {
  * @note This configuration is used only when the NRF_RADIO_EVENT_BCMATCH event handling is disabled
  *       (see @ref NRF_802154_DISABLE_BCC_MATCHING).
  */
-#ifndef NRF_802154_COUNTER_TIMER_INSTANCE_NO
-#define NRF_802154_COUNTER_TIMER_INSTANCE_NO 2
-#endif
-#ifndef NRF_802154_COUNTER_TIMER_INSTANCE
 #define NRF_802154_COUNTER_TIMER_INSTANCE \
     NRFX_CONCAT_2(NRF_TIMER, NRF_802154_COUNTER_TIMER_INSTANCE_NO)
-#endif // NRF_802154_COUNTER_TIMER_INSTANCE
 
 /**
- * @def NRF_802154_SWI_EGU_INSTANCE
+ * @def NRF_802154_SWI_EGU_INSTANCE_NO
  *
- * The SWI EGU instance used by the driver to synchronize PPIs and for requests and notifications if
- * SWI is in use.
- *
- * @note This option is used by the core module regardless of the driver configuration.
+ * Number of the SWI EGU instance used by the driver to synchronize PPIs and for requests and
+ * notifications if SWI is in use.
  *
  */
 #ifndef NRF_802154_SWI_EGU_INSTANCE_NO
@@ -110,9 +123,16 @@ extern "C" {
 
 #endif // NRF_802154_SWI_EGU_INSTANCE_NO
 
-#ifndef NRF_802154_SWI_EGU_INSTANCE
+/**
+ * @def NRF_802154_SWI_EGU_INSTANCE
+ *
+ * The SWI EGU instance used by the driver to synchronize PPIs and for requests and notifications if
+ * SWI is in use.
+ *
+ * @note This option is used by the core module regardless of the driver configuration.
+ *
+ */
 #define NRF_802154_SWI_EGU_INSTANCE NRFX_CONCAT_2(NRF_EGU, NRF_802154_SWI_EGU_INSTANCE_NO)
-#endif
 
 /**
  * @def NRF_802154_SWI_IRQ_HANDLER
@@ -122,12 +142,10 @@ extern "C" {
  * @note This option is used when the driver uses SWI to process requests and notifications.
  *
  */
-#ifndef NRF_802154_SWI_IRQ_HANDLER
 #define NRF_802154_SWI_IRQ_HANDLER                                          \
     NRFX_CONCAT_3(NRFX_CONCAT_3(SWI, NRF_802154_SWI_EGU_INSTANCE_NO, _EGU), \
                   NRF_802154_SWI_EGU_INSTANCE_NO,                           \
                   _IRQHandler)
-#endif // NRF_802154_SWI_IRQ_HANDLER
 
 /**
  * @def NRF_802154_SWI_IRQN
@@ -137,20 +155,15 @@ extern "C" {
  * @note This option is used when the driver uses SWI to process requests and notifications.
  *
  */
-#ifndef NRF_802154_SWI_IRQN
 #define NRF_802154_SWI_IRQN                                                 \
     NRFX_CONCAT_3(NRFX_CONCAT_3(SWI, NRF_802154_SWI_EGU_INSTANCE_NO, _EGU), \
                   NRF_802154_SWI_EGU_INSTANCE_NO,                           \
                   _IRQn)
-#endif // NRF_802154_SWI_IRQN
 
 /**
- * @def NRF_802154_RTC_INSTANCE
+ * @def NRF_802154_RTC_INSTANCE_NO
  *
- * The RTC instance used in the standalone timer driver implementation.
- *
- * @note This configuration is only applicable for the Low Power Timer Abstraction Layer
- *       implementation in nrf_802154_lp_timer_nodrv.c.
+ * Number of the RTC instance used in the standalone timer driver implementation.
  *
  */
 #ifndef NRF_802154_RTC_INSTANCE_NO
@@ -163,9 +176,16 @@ extern "C" {
 
 #endif // NRF_802154_RTC_INSTANCE_NO
 
-#ifndef NRF_802154_RTC_INSTANCE
-#define NRF_802154_RTC_INSTANCE NRFX_CONCAT_2(NRF_RTC, NRF_802154_RTC_INSTANCE_NO)
-#endif
+/**
+ * @def NRF_802154_RTC_INSTANCE
+ *
+ * The RTC instance used in the standalone timer driver implementation.
+ *
+ * @note This configuration is only applicable for the Low Power Timer Abstraction Layer
+ *       implementation in nrf_802154_lp_timer_nodrv.c.
+ *
+ */
+#define NRF_802154_RTC_INSTANCE    NRFX_CONCAT_2(NRF_RTC, NRF_802154_RTC_INSTANCE_NO)
 
 /**
  * @def NRF_802154_RTC_IRQ_HANDLER
@@ -176,9 +196,7 @@ extern "C" {
  *       in nrf_802154_lp_timer_nodrv.c.
  *
  */
-#ifndef NRF_802154_RTC_IRQ_HANDLER
 #define NRF_802154_RTC_IRQ_HANDLER NRFX_CONCAT_3(RTC, NRF_802154_RTC_INSTANCE_NO, _IRQHandler)
-#endif
 
 /**
  * @def NRF_802154_RTC_IRQN
@@ -189,9 +207,7 @@ extern "C" {
  *       in nrf_802154_lp_timer_nodrv.c.
  *
  */
-#ifndef NRF_802154_RTC_IRQN
-#define NRF_802154_RTC_IRQN NRFX_CONCAT_3(RTC, NRF_802154_RTC_INSTANCE_NO, _IRQn)
-#endif
+#define NRF_802154_RTC_IRQN        NRFX_CONCAT_3(RTC, NRF_802154_RTC_INSTANCE_NO, _IRQn)
 
 /**
  * @def NRF_802154_PPI_RADIO_DISABLED_TO_EGU
@@ -311,6 +327,12 @@ extern "C" {
 #define NRF_802154_PPI_RADIO_CRCERROR_COUNTER_CLEAR NRF_PPI_CHANNEL12
 #endif
 
+/**
+ * @def NRF_802154_DISABLE_BCC_MATCHING_PPI_CHANNELS_USED_MASK
+ *
+ * Helper bit mask of PPI channels used by the 802.15.4 driver additionally when BCC matching
+ * is disabled.
+ */
 #define NRF_802154_DISABLE_BCC_MATCHING_PPI_CHANNELS_USED_MASK \
     ((1 << NRF_802154_PPI_RADIO_ADDR_TO_COUNTER_COUNT) |       \
      (1 << NRF_802154_PPI_RADIO_CRCERROR_COUNTER_CLEAR))
@@ -349,9 +371,14 @@ extern "C" {
 #define NRF_802154_PPI_TIMESTAMP_EVENT_TO_TIMER_CAPTURE NRF_PPI_CHANNEL14
 #endif
 
-#define NRF_802154_TIMESTAMP_PPI_CHANNELS_USED_MASK     ( \
-        (NRF_802154_PPI_RTC_COMPARE_TO_TIMER_CAPTURE) |   \
-        (NRF_802154_PPI_TIMESTAMP_EVENT_TO_TIMER_CAPTURE))
+/**
+ * @def NRF_802154_TIMESTAMP_PPI_CHANNELS_USED_MASK
+ *
+ * Helper bit mask of PPI channels used by the 802.15.4 driver for timestamping.
+ */
+#define NRF_802154_TIMESTAMP_PPI_CHANNELS_USED_MASK       \
+    ((1 << NRF_802154_PPI_RTC_COMPARE_TO_TIMER_CAPTURE) | \
+     (1 << NRF_802154_PPI_TIMESTAMP_EVENT_TO_TIMER_CAPTURE))
 
 #else // NRF_802154_FRAME_TIMESTAMP_ENABLED
 
