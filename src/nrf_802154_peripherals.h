@@ -29,7 +29,7 @@
  */
 
 /**
- * @brief Module that defines peripherals usage by the 802.15.4 driver.
+ * @brief Module that defines the 802.15.4 driver peripheral usage.
  *
  */
 
@@ -330,7 +330,7 @@ extern "C" {
 /**
  * @def NRF_802154_DISABLE_BCC_MATCHING_PPI_CHANNELS_USED_MASK
  *
- * Helper bit mask of PPI channels used by the 802.15.4 driver additionally when BCC matching
+ * Helper bit mask of PPI channels used additionally by the 802.15.4 driver when the BCC matching
  * is disabled.
  */
 #define NRF_802154_DISABLE_BCC_MATCHING_PPI_CHANNELS_USED_MASK \
