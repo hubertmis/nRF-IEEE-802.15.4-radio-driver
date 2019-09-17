@@ -64,6 +64,7 @@ typedef enum
 {
     RSCH_PREC_HFCLK,
     RSCH_PREC_RAAL,
+    RSCH_PREC_COEX,
     RSCH_PREC_CNT,
 } rsch_prec_t;
 
