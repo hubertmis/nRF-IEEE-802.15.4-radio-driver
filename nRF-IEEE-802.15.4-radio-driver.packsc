@@ -65,7 +65,6 @@
                     "src/platform/lp_timer/nrf_802154_lp_timer_nodrv.c",
                     "src/platform/random/nrf_802154_random_stdlib.c",
                     "src/platform/temperature/nrf_802154_temperature_none.c",
-                    "src/platform/coex/nrf_802154_wifi_coex_none.c",
                     "src/rsch/nrf_802154_rsch.c",
                     "src/rsch/nrf_802154_rsch_crit_sect.c",
                     "src/timer_scheduler/nrf_802154_timer_sched.c",
@@ -77,6 +76,7 @@
                 "_links": [
                     "nrfx_hal",
                     "nrf_drv_clock",
+                    "wifi_coex",
                     ["s140"],
                     "!mpsl",
                     "!unity"
@@ -120,6 +120,7 @@
                 ],
                 "_links": [
                     "nrfx_hal",
+                    "wifi_coex",
                     ["mpsl"],
                     "!s140",
                     "!unity"
@@ -155,7 +156,6 @@
                     "src/platform/lp_timer/nrf_802154_lp_timer_nodrv.c",
                     "src/platform/random/nrf_802154_random_stdlib.c",
                     "src/platform/temperature/nrf_802154_temperature_none.c",
-                    "src/platform/coex/nrf_802154_wifi_coex_none.c",
                     "src/rsch/nrf_802154_rsch.c",
                     "src/rsch/nrf_802154_rsch_crit_sect.c",
                     "src/timer_scheduler/nrf_802154_timer_sched.c",
@@ -166,6 +166,7 @@
                 "_links": [
                     "nrfx_hal",
                     "nrf_drv_clock",
+                    "wifi_coex",
                     "!s140",
                     "!mpsl",
                     "!unity"
@@ -408,6 +409,29 @@
             }
         ]
     },
+
+    "wifi_coex": {
+        "_class": "nRF_drv_radio_802_15_4",
+        "_description": "This option handles Wifi Coexistence support.",
+        "_variants": [
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_files": [
+                    "src/platform/coex/nrf_802154_wifi_coex_none.c"
+                ],
+                "_name": "none"
+            },
+            {
+                "_attrs": [
+                    "public"
+                ],
+                "_name": "external"
+            }
+        ]
+    },
+
     "cli": {
         "_class": "nRF_drv_radio_802_15_4",
         "_description": "This option enables CLI.",
