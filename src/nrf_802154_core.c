@@ -1042,6 +1042,8 @@ static void rx_terminate(void)
     nrf_ppi_channel_disable(PPI_CRCOK_DIS_PPI);
     nrf_ppi_channel_disable(PPI_ADDRESS_COUNTER_COUNT);
     nrf_ppi_channel_disable(PPI_CRCERROR_COUNTER_CLEAR);
+    nrf_ppi_channel_endpoint_setup(PPI_CRCERROR_CLEAR, 0, 0);
+    nrf_ppi_fork_endpoint_setup(PPI_CRCERROR_CLEAR, 0);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
     // Disable LNA
@@ -1106,6 +1108,8 @@ static void tx_ack_terminate(void)
 #if NRF_802154_DISABLE_BCC_MATCHING
     nrf_ppi_channel_disable(PPI_CRCERROR_CLEAR);
     nrf_ppi_channel_disable(PPI_CRCOK_DIS_PPI);
+    nrf_ppi_channel_endpoint_setup(PPI_CRCERROR_CLEAR, 0, 0);
+    nrf_ppi_fork_endpoint_setup(PPI_CRCERROR_CLEAR, 0);
 #endif // NRF_802154_DISABLE_BCC_MATCHING
 
     // Disable PA
@@ -2252,6 +2256,8 @@ static void irq_crcok_state_rx(void)
 
 #if !NRF_802154_DISABLE_BCC_MATCHING
                 nrf_ppi_channel_disable(PPI_TIMER_TX_ACK);
+                nrf_ppi_channel_endpoint_setup(PPI_TIMER_TX_ACK, 0, 0);
+                nrf_ppi_fork_endpoint_setup(PPI_TIMER_TX_ACK, 0);
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
 
                 // RX uses the same peripherals as TX_ACK until RADIO ints are updated.
@@ -2382,7 +2388,9 @@ static void irq_phyend_state_tx_ack(void)
                                     NRF_TIMER_TASK_START));
 #else // NRF_802154_DISABLE_BCC_MATCHING
     nrf_ppi_channel_disable(PPI_TIMER_TX_ACK);
-#endif  // NRF_802154_DISABLE_BCC_MATCHING
+    nrf_ppi_channel_endpoint_setup(PPI_TIMER_TX_ACK, 0, 0);
+    nrf_ppi_fork_endpoint_setup(PPI_TIMER_TX_ACK, 0);
+#endif // NRF_802154_DISABLE_BCC_MATCHING
 
     // Enable PPI disabled by CRCOK
     nrf_ppi_channel_enable(PPI_EGU_RAMP_UP);

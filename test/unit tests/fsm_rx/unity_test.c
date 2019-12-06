@@ -698,6 +698,8 @@ void test_crcok_handler_ShallNotifyReceivedFrameAndStartRxIfTransmitterDidNotRam
     nrf_radio_event_check_ExpectAndReturn(NRF_RADIO_EVENT_TXREADY, false);
 
     nrf_ppi_channel_disable_Expect(PPI_TIMER_TX_ACK);
+    nrf_ppi_channel_endpoint_setup_Expect(PPI_TIMER_TX_ACK, 0, 0);
+    nrf_ppi_fork_endpoint_setup_Expect(PPI_TIMER_TX_ACK, 0);
 
     rx_terminate_periph_reset_verify(true);
 
@@ -892,6 +894,8 @@ static void verify_phyend_tx_ack_periph_reset(void)
     nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_disable_Expect(PPI_TIMER_TX_ACK);
+    nrf_ppi_channel_endpoint_setup_Expect(PPI_TIMER_TX_ACK, 0, 0);
+    nrf_ppi_fork_endpoint_setup_Expect(PPI_TIMER_TX_ACK, 0);
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
 
     nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);
@@ -934,6 +938,8 @@ void test_phyend_handler_ShallResetPeripheralsForRxStateAndNotfiThatFrameWasRece
     nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
 
     nrf_ppi_channel_disable_Expect(PPI_TIMER_TX_ACK);
+    nrf_ppi_channel_endpoint_setup_Expect(PPI_TIMER_TX_ACK, 0, 0);
+    nrf_ppi_fork_endpoint_setup_Expect(PPI_TIMER_TX_ACK, 0);
     nrf_ppi_channel_enable_Expect(PPI_EGU_RAMP_UP);
 
     nrf_egu_event_clear_Expect(NRF_802154_SWI_EGU_INSTANCE, EGU_EVENT);

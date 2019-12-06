@@ -170,6 +170,8 @@ static void mock_rx_terminate(void)
     nrf_ppi_channel_disable_Expect(PPI_CRCOK_DIS_PPI);
     nrf_ppi_channel_disable_Expect(PPI_ADDRESS_COUNTER_COUNT);
     nrf_ppi_channel_disable_Expect(PPI_CRCERROR_COUNTER_CLEAR);
+    nrf_ppi_channel_endpoint_setup_Expect(PPI_CRCERROR_CLEAR, 0, 0);
+    nrf_ppi_fork_endpoint_setup_Expect(PPI_CRCERROR_CLEAR, 0);
 
     nrf_802154_fal_lna_configuration_clear_ExpectAndReturn(&m_activate_rx_cc0, NULL, NRF_SUCCESS);
     nrf_timer_task_trigger_Expect(NRF_802154_TIMER_INSTANCE, NRF_TIMER_TASK_SHUTDOWN);
